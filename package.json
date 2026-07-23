@@ -1,0 +1,22 @@
+{
+  "name": "nestchat",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Multi-tenant SaaS chatbot platform",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean",
+    "seed": "pnpm --filter @nestchat/server run seed"
+  },
+  "devDependencies": {
+    "turbo": "^1.10.16",
+    "typescript": "^5.3.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.10.0"
+}
