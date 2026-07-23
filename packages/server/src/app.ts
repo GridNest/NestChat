@@ -13,6 +13,8 @@ import { knowledgeRoutes } from './modules/knowledge/knowledge.routes';
 import { faqRoutes } from './modules/faq/faq.routes';
 import { chatRoutes } from './modules/chat/chat.routes';
 import { widgetRoutes } from './modules/widget/widget.routes';
+import { inquiryRoutes } from './modules/inquiry/inquiry.routes';
+import { unansweredRoutes } from './modules/unanswered/unanswered.routes';
 import { logger } from './utils/logger';
 
 const app: Express = express();
@@ -46,6 +48,8 @@ app.use('/api/knowledge', knowledgeRoutes);
 app.use('/api/faqs', faqRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/widget', widgetRoutes);
+app.use('/api/inquiry', inquiryRoutes);
+app.use('/api/unanswered', unansweredRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

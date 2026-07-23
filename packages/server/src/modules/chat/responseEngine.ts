@@ -1,17 +1,19 @@
 import { KnowledgeMatch, KnowledgeEngine } from './knowledgeEngine';
 import { LanguageEngine, Language } from './languageEngine';
 import { DEFAULT_QUICK_ACTIONS } from '@nestchat/shared';
+import { InquiryEngine } from '../inquiry/inquiryEngine';
 
 export interface BotResponse {
   content: string;
   messageType: 'text' | 'quickAction' | 'inquiry' | 'system';
   metadata: {
-    matchedType: 'faq' | 'knowledge' | 'quickAction' | 'unknown';
+    matchedType: 'faq' | 'knowledge' | 'quickAction' | 'unknown' | 'inquiry_trigger';
     matchedId?: string;
     confidence: number;
   };
   quickActions?: typeof DEFAULT_QUICK_ACTIONS;
   suggestedQuestions?: string[];
+  triggerInquiry?: boolean;
 }
 
 export interface ResponseEngineOptions {
@@ -20,11 +22,23 @@ export interface ResponseEngineOptions {
   query: string;
   clientName: string;
   conversationHistory?: Array<{ sender: string; content: string }>;
+  isInquiryMode?: boolean;
 }
 
 export class ResponseEngine {
   static async generateResponse(options: ResponseEngineOptions): Promise<BotResponse> {
-    const { clientId, language, query, clientName, conversationHistory } = options;
+    const { clientId, language, query, clientName, conversationHistory, isInquiryMode } = options;
+
+    if (InquiryEngine.isCancelRequest(query)) {
+      return {
+        content: LanguageEngine.getInquiryCancelled(language),
+        messageType: 'text',
+        metadata: {
+          matchedType: 'unknown',
+          confidence: 1,
+        },
+      };
+    }
 
     const match = await KnowledgeEngine.search({
       clientId,
@@ -55,14 +69,18 @@ export class ResponseEngine {
     }
 
     if (match.type === 'quickAction') {
+      const response = this.getQuickActionResponse(match.matchedId || '', language);
+      const shouldTriggerInquiry = match.matchedId === 'get_quote' || match.matchedId === 'book_consultation';
+
       return {
-        content: this.getQuickActionResponse(match.matchedId || '', language),
-        messageType: 'quickAction',
+        content: response,
+        messageType: shouldTriggerInquiry ? 'inquiry' : 'quickAction',
         metadata: {
           matchedType: 'quickAction',
           matchedId: match.matchedId,
           confidence: match.confidence,
         },
+        triggerInquiry: shouldTriggerInquiry,
       };
     }
 
@@ -74,12 +92,12 @@ export class ResponseEngine {
 
     return {
       content: unknownMessage,
-      messageType: 'text',
+      messageType: 'inquiry',
       metadata: {
         matchedType: 'unknown',
         confidence: 0,
       },
-      quickActions: DEFAULT_QUICK_ACTIONS,
+      triggerInquiry: true,
     };
   }
 

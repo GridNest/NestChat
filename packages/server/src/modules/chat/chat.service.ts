@@ -2,6 +2,9 @@ import { ChatModel, ChatDocument } from './chat.model';
 import { ChatMessageModel, ChatMessageDocument } from './chatMessage.model';
 import { ResponseEngine, BotResponse } from './responseEngine';
 import { LanguageEngine, Language } from './languageEngine';
+import { InquiryEngine } from '../inquiry/inquiryEngine';
+import { InquiryService } from '../inquiry/inquiry.service';
+import { UnansweredService } from '../unanswered/unanswered.service';
 import { ApiError } from '../../utils/apiError';
 import mongoose from 'mongoose';
 
@@ -128,12 +131,98 @@ export class ChatService {
 
     const startTime = Date.now();
 
-    const botResponse = await ResponseEngine.generateResponse({
-      clientId: data.clientId,
-      language: data.language || chat.language,
-      query: data.content,
-      clientName: await this.getClientName(data.clientId),
-    });
+    const activeInquiry = await InquiryEngine.getState(chat._id.toString());
+    const isInquiryMode = !!activeInquiry;
+
+    let botResponse: BotResponse;
+
+    if (isInquiryMode) {
+      const inquiryResult = await InquiryEngine.processInput(chat._id.toString(), data.content);
+
+      if (inquiryResult.isCancelled) {
+        botResponse = {
+          content: inquiryResult.message,
+          messageType: 'text',
+          metadata: {
+            matchedType: 'unknown',
+            confidence: 1,
+          },
+        };
+      } else if (inquiryResult.isComplete && inquiryResult.data) {
+        await InquiryService.create({
+          clientId: data.clientId,
+          chatId: chat._id.toString(),
+          sessionId: data.sessionId,
+          visitorId: chat.visitorId,
+          name: inquiryResult.data.name || '',
+          email: inquiryResult.data.email || '',
+          phone: inquiryResult.data.phone || '',
+          country: inquiryResult.data.country,
+          state: inquiryResult.data.state,
+          service: inquiryResult.data.service || '',
+          details: inquiryResult.data.details || '',
+          company: inquiryResult.data.company,
+          language: chat.language,
+        });
+
+        botResponse = {
+          content: inquiryResult.message,
+          messageType: 'text',
+          metadata: {
+            matchedType: 'inquiry_trigger',
+            confidence: 1,
+          },
+        };
+      } else {
+        botResponse = {
+          content: inquiryResult.message,
+          messageType: 'inquiry',
+          metadata: {
+            matchedType: 'inquiry_trigger',
+            confidence: 1,
+          },
+        };
+      }
+    } else {
+      botResponse = await ResponseEngine.generateResponse({
+        clientId: data.clientId,
+        language: data.language || chat.language,
+        query: data.content,
+        clientName: await this.getClientName(data.clientId),
+        conversationHistory: await this.getRecentHistory(chat._id.toString(), 5),
+      });
+
+      if (botResponse.triggerInquiry && !isInquiryMode) {
+        await InquiryEngine.createState({
+          chatId: chat._id.toString(),
+          sessionId: data.sessionId,
+          clientId: data.clientId,
+          visitorId: chat.visitorId,
+          language: data.language || chat.language,
+        });
+
+        const firstQuestion = await InquiryEngine.getFirstQuestion(chat._id.toString());
+        if (firstQuestion) {
+          botResponse = {
+            content: `${botResponse.content}\n\n${firstQuestion}`,
+            messageType: 'inquiry',
+            metadata: {
+              matchedType: 'inquiry_trigger',
+              confidence: 1,
+            },
+          };
+        }
+      }
+
+      if (botResponse.metadata.matchedType === 'unknown') {
+        await UnansweredService.track({
+          clientId: data.clientId,
+          question: data.content,
+          sessionId: data.sessionId,
+          visitorId: chat.visitorId,
+        });
+      }
+    }
 
     const responseTimeMs = Date.now() - startTime;
 
@@ -169,6 +258,18 @@ export class ChatService {
       .lean();
 
     return messages.map(msg => this.formatMessage(msg as unknown as ChatMessageDocument));
+  }
+
+  static async getRecentHistory(chatId: string, limit: number): Promise<Array<{ sender: string; content: string }>> {
+    const messages = await ChatMessageModel.find({ chatId })
+      .sort({ timestamp: -1 })
+      .limit(limit)
+      .lean();
+
+    return messages.reverse().map(msg => ({
+      sender: msg.sender,
+      content: msg.content,
+    }));
   }
 
   static async endSession(sessionId: string): Promise<void> {

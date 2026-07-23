@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useWidgetStore } from '../store/chatStore';
 import { getMessage, isValidEmail, isValidPhone } from '@nestchat/shared';
+import { createApiClient } from '../services/api';
 
 const INQUIRY_STEPS = [
   { field: 'name', key: 'inquiryName', required: true },
@@ -14,10 +15,11 @@ const INQUIRY_STEPS = [
 ];
 
 export function InquiryForm() {
-  const { language, clientConfig, setInquiryStep, setInquiryData, inquiryStep, inquiryData, setCurrentView, addMessage } = useWidgetStore();
+  const { language, clientConfig, setInquiryStep, setInquiryData, inquiryStep, inquiryData, setCurrentView, addMessage, sessionId, chatId } = useWidgetStore();
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const currentStep = INQUIRY_STEPS[currentStepIndex];
 
@@ -56,12 +58,24 @@ export function InquiryForm() {
   };
 
   const submitInquiry = async (data: Record<string, string>) => {
+    if (!clientConfig) return;
+    
+    setIsSubmitting(true);
     try {
       addMessage({
         id: `inq_${Date.now()}`,
         sender: 'user',
         content: language === 'hi' ? 'Inquiry submit ho rahi hai...' : 'Submitting your inquiry...',
         timestamp: new Date(),
+      });
+
+      const api = createApiClient(clientConfig.clientName);
+      await api.submitInquiry({
+        clientId: clientConfig.clientName,
+        sessionId,
+        chatId: chatId || '',
+        ...data,
+        language,
       });
 
       addMessage({
@@ -74,6 +88,17 @@ export function InquiryForm() {
       setCurrentView('chat');
     } catch (error) {
       console.error('Failed to submit inquiry:', error);
+      addMessage({
+        id: `inq_error_${Date.now()}`,
+        sender: 'bot',
+        content: language === 'hi' 
+          ? 'Submission mein error aaya. Kripya baad mein try karein.'
+          : 'There was an error submitting. Please try again later.',
+        timestamp: new Date(),
+      });
+      setCurrentView('chat');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -100,6 +125,7 @@ export function InquiryForm() {
             onChange={(e) => setInput(e.target.value)}
             className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 text-sm"
             autoFocus
+            disabled={isSubmitting}
           />
           {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
         </div>
@@ -123,17 +149,21 @@ export function InquiryForm() {
               setCurrentView('chat');
             }}
             className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors text-sm"
+            disabled={isSubmitting}
           >
             {language === 'hi' ? 'Cancel' : 'Cancel'}
           </button>
           <button
             type="submit"
-            className="flex-1 px-4 py-2 text-white rounded-lg transition-colors text-sm"
+            className="flex-1 px-4 py-2 text-white rounded-lg transition-colors text-sm disabled:opacity-50"
             style={{ backgroundColor: clientConfig?.brandColor || '#3B82F6' }}
+            disabled={isSubmitting}
           >
-            {currentStepIndex < INQUIRY_STEPS.length - 1
-              ? language === 'hi' ? 'Aage Badhein' : 'Next'
-              : language === 'hi' ? 'Submit Karein' : 'Submit'}
+            {isSubmitting 
+              ? (language === 'hi' ? 'Submit ho raha hai...' : 'Submitting...')
+              : currentStepIndex < INQUIRY_STEPS.length - 1
+                ? language === 'hi' ? 'Aage Badhein' : 'Next'
+                : language === 'hi' ? 'Submit Karein' : 'Submit'}
           </button>
         </div>
       </form>
