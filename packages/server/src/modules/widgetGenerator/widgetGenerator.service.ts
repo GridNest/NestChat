@@ -1,5 +1,5 @@
-import { ClientModel } from '../client/client.model';
-import { ApiError } from '../../utils/apiError';
+import { ClientModel } from '../client/client.model.js';
+import { ApiError } from '../../utils/apiError.js';
 import crypto from 'crypto';
 
 export interface WidgetScript {

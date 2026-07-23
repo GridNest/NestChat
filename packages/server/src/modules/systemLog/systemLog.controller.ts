@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { logger } from './logger.service';
+import { logger } from './logger.service.js';
 
 export class SystemLogController {
   async getLogs(req: Request, res: Response) {

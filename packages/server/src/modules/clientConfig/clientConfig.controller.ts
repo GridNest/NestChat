@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { ClientConfigService } from './clientConfig.service';
+import { ClientConfigService } from './clientConfig.service.js';
 
 export class ClientConfigController {
   static async getByClientId(req: Request, res: Response, next: NextFunction) {

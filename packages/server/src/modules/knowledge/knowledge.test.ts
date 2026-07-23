@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import { Knowledge } from './knowledge.model';
+import { Knowledge } from './knowledge.model.js';
 
 let mongoServer: MongoMemoryServer;
 

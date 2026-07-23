@@ -1,4 +1,4 @@
-import { SystemLog, ISystemLog } from './systemLog.model';
+import { SystemLog, ISystemLog } from './systemLog.model.js';
 
 export interface LogOptions {
   level: ISystemLog['level'];

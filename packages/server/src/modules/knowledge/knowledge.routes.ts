@@ -1,14 +1,14 @@
 import { Router } from 'express';
-import { KnowledgeController } from './knowledge.controller';
-import { validate } from '../../middleware/validate';
-import { authenticate, authorize } from '../../middleware/auth';
+import { KnowledgeController } from './knowledge.controller.js';
+import { validate } from '../../middleware/validate.js';
+import { authenticate, authorize } from '../../middleware/auth.js';
 import {
   createKnowledgeSchema,
   updateKnowledgeSchema,
   getKnowledgeSchema,
   listKnowledgeSchema,
   searchKnowledgeSchema,
-} from './knowledge.validation';
+} from './knowledge.validation.js';
 
 const router: Router = Router();
 

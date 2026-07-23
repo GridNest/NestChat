@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { AuthService } from './auth.service';
-import { ApiResponseHelper } from '../../utils/apiResponse';
-import { AuthRequest } from '../../middleware/auth';
+import { AuthService } from './auth.service.js';
+import { ApiResponseHelper } from '../../utils/apiResponse.js';
+import { AuthRequest } from '../../middleware/auth.js';
 
 export class AuthController {
   static async register(req: Request, res: Response, next: NextFunction): Promise<void> {

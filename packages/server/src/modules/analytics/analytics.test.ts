@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import { Analytics } from './analytics.model';
-import { ChatAnalytics } from './chatAnalytics.model';
-import { analyticsService } from './analytics.service';
+import { Analytics } from './analytics.model.js';
+import { ChatAnalytics } from './chatAnalytics.model.js';
+import { analyticsService } from './analytics.service.js';
 
 let mongoServer: MongoMemoryServer;
 

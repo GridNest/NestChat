@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { User } from '../user/user.model';
+import { User } from '../user/user.model.js';
 
 let mongoServer: MongoMemoryServer;
 

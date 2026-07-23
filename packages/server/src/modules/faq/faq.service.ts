@@ -1,7 +1,7 @@
 import { CreateFAQRequest, UpdateFAQRequest, PaginationQuery } from '@nestchat/shared';
-import { FAQModel, FAQDocument } from './faq.model';
-import { ApiError } from '../../utils/apiError';
-import { omitUndefined } from '../../utils/helpers';
+import { FAQModel, FAQDocument } from './faq.model.js';
+import { ApiError } from '../../utils/apiError.js';
+import { omitUndefined } from '../../utils/helpers.js';
 
 export interface FAQListItem {
   id: string;

@@ -1,6 +1,6 @@
 import { Response, NextFunction } from 'express';
-import { UserRoleService } from './userRole.service';
-import { AuthRequest } from '../../middleware/auth';
+import { UserRoleService } from './userRole.service.js';
+import { AuthRequest } from '../../middleware/auth.js';
 
 export class UserRoleController {
   static async assign(req: AuthRequest, res: Response, next: NextFunction) {

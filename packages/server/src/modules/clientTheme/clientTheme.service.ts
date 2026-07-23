@@ -1,7 +1,7 @@
 import { UpdateClientThemeRequest } from '@nestchat/shared';
-import { ClientThemeModel, ClientThemeDocument } from './clientTheme.model';
-import { ApiError } from '../../utils/apiError';
-import { omitUndefined } from '../../utils/helpers';
+import { ClientThemeModel, ClientThemeDocument } from './clientTheme.model.js';
+import { ApiError } from '../../utils/apiError.js';
+import { omitUndefined } from '../../utils/helpers.js';
 
 export interface ClientThemeResponse {
   id: string;

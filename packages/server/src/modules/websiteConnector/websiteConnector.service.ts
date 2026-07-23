@@ -1,6 +1,6 @@
-import { WebsiteConnectorModel, WebsiteConnectorDocument } from './websiteConnector.model';
-import { ApiError } from '../../utils/apiError';
-import { omitUndefined } from '../../utils/helpers';
+import { WebsiteConnectorModel, WebsiteConnectorDocument } from './websiteConnector.model.js';
+import { ApiError } from '../../utils/apiError.js';
+import { omitUndefined } from '../../utils/helpers.js';
 
 export interface WebsiteConnectorResponse {
   id: string;

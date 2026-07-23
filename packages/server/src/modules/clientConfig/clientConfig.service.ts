@@ -1,7 +1,7 @@
 import { UpdateClientConfigRequest } from '@nestchat/shared';
-import { ClientConfigModel, ClientConfigDocument } from './clientConfig.model';
-import { ApiError } from '../../utils/apiError';
-import { omitUndefined } from '../../utils/helpers';
+import { ClientConfigModel, ClientConfigDocument } from './clientConfig.model.js';
+import { ApiError } from '../../utils/apiError.js';
+import { omitUndefined } from '../../utils/helpers.js';
 
 export interface ClientConfigResponse {
   id: string;

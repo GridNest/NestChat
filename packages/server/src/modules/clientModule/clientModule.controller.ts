@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { ClientModuleService } from './clientModule.service';
+import { ClientModuleService } from './clientModule.service.js';
 
 export class ClientModuleController {
   static async getByClientId(req: Request, res: Response, next: NextFunction) {

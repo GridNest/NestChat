@@ -1,5 +1,5 @@
-import { KnowledgeModel, KnowledgeDocument } from '../knowledge/knowledge.model';
-import { FAQModel, FAQDocument } from '../faq/faq.model';
+import { KnowledgeModel, KnowledgeDocument } from '../knowledge/knowledge.model.js';
+import { FAQModel, FAQDocument } from '../faq/faq.model.js';
 import { normalizeQuestion, extractKeywords, calculateSimilarity } from '@nestchat/shared';
 
 export interface SearchResult {

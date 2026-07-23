@@ -1,9 +1,9 @@
-import { ClientModel } from '../client/client.model';
-import { ChatModel } from '../chat/chat.model';
-import { InquiryModel } from '../inquiry/inquiry.model';
-import { KnowledgeModel } from '../knowledge/knowledge.model';
-import { FAQModel } from '../faq/faq.model';
-import { AuditLogModel } from '../auditLog/auditLog.model';
+import { ClientModel } from '../client/client.model.js';
+import { ChatModel } from '../chat/chat.model.js';
+import { InquiryModel } from '../inquiry/inquiry.model.js';
+import { KnowledgeModel } from '../knowledge/knowledge.model.js';
+import { FAQModel } from '../faq/faq.model.js';
+import { AuditLogModel } from '../auditLog/auditLog.model.js';
 
 export class AdminDashboardService {
   static async getSuperAdminStats() {
@@ -156,7 +156,7 @@ export class AdminDashboardService {
   static async listAllUnanswered(query: { page?: number; limit?: number }) {
     const { page = 1, limit = 10 } = query;
     const skip = (page - 1) * limit;
-    const { UnansweredModel } = await import('../unanswered/unanswered.model');
+    const { UnansweredModel } = await import('../unanswered/unanswered.model.js');
     const [items, total] = await Promise.all([
       UnansweredModel.find().sort({ createdAt: -1 }).skip(skip).limit(limit).populate('clientId', 'name companyName').lean(),
       UnansweredModel.countDocuments(),

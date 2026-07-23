@@ -1,4 +1,4 @@
-import { NotificationModel } from './notification.model';
+import { NotificationModel } from './notification.model.js';
 
 export class NotificationService {
   static async create(data: {

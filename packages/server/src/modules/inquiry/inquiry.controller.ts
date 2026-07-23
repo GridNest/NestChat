@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { InquiryService } from './inquiry.service';
-import { InquiryEngine } from './inquiryEngine';
-import { ApiResponseHelper } from '../../utils/apiResponse';
-import { AuthRequest } from '../../middleware/auth';
+import { InquiryService } from './inquiry.service.js';
+import { InquiryEngine } from './inquiryEngine.js';
+import { ApiResponseHelper } from '../../utils/apiResponse.js';
+import { AuthRequest } from '../../middleware/auth.js';
 
 export class InquiryController {
   static async create(req: Request, res: Response, next: NextFunction): Promise<void> {

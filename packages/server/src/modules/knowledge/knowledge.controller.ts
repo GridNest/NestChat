@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { KnowledgeService } from './knowledge.service';
-import { ApiResponseHelper } from '../../utils/apiResponse';
-import { AuthRequest } from '../../middleware/auth';
+import { KnowledgeService } from './knowledge.service.js';
+import { ApiResponseHelper } from '../../utils/apiResponse.js';
+import { AuthRequest } from '../../middleware/auth.js';
 
 export class KnowledgeController {
   static async create(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {

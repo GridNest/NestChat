@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { reportsService } from './reports.service';
+import { reportsService } from './reports.service.js';
 
 export class ReportsController {
   async generateReport(req: Request, res: Response) {

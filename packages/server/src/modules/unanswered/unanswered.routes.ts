@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { UnansweredController } from './unanswered.controller';
-import { validate } from '../../middleware/validate';
-import { authenticate, authorize } from '../../middleware/auth';
+import { UnansweredController } from './unanswered.controller.js';
+import { validate } from '../../middleware/validate.js';
+import { authenticate, authorize } from '../../middleware/auth.js';
 import { z } from 'zod';
 
 const router: Router = Router();

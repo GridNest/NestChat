@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { WebsiteConnectorController } from './websiteConnector.controller';
-import { authenticate } from '../../middleware/auth';
+import { WebsiteConnectorController } from './websiteConnector.controller.js';
+import { authenticate } from '../../middleware/auth.js';
 
 const router: Router = Router();
 

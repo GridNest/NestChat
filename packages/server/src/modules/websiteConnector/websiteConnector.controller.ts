@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { WebsiteConnectorService } from './websiteConnector.service';
+import { WebsiteConnectorService } from './websiteConnector.service.js';
 
 export class WebsiteConnectorController {
   static async create(req: Request, res: Response, next: NextFunction) {

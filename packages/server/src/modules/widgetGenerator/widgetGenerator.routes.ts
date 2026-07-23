@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { WidgetGeneratorController } from './widgetGenerator.controller';
-import { authenticate } from '../../middleware/auth';
+import { WidgetGeneratorController } from './widgetGenerator.controller.js';
+import { authenticate } from '../../middleware/auth.js';
 
 const router: Router = Router();
 

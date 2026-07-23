@@ -1,9 +1,9 @@
-import { Analytics } from '../analytics/analytics.model';
-import { ChatAnalytics } from '../analytics/chatAnalytics.model';
-import { ChatModel } from '../chat/chat.model';
-import { InquiryModel } from '../inquiry/inquiry.model';
-import { KnowledgeModel } from '../knowledge/knowledge.model';
-import { FAQModel } from '../faq/faq.model';
+import { Analytics } from '../analytics/analytics.model.js';
+import { ChatAnalytics } from '../analytics/chatAnalytics.model.js';
+import { ChatModel } from '../chat/chat.model.js';
+import { InquiryModel } from '../inquiry/inquiry.model.js';
+import { KnowledgeModel } from '../knowledge/knowledge.model.js';
+import { FAQModel } from '../faq/faq.model.js';
 
 export class ReportsService {
   async generateReport(

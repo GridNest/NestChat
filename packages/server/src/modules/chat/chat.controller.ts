@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { ChatService } from './chat.service';
-import { ApiResponseHelper } from '../../utils/apiResponse';
+import { ChatService } from './chat.service.js';
+import { ApiResponseHelper } from '../../utils/apiResponse.js';
 
 export class ChatController {
   static async startChat(req: Request, res: Response, next: NextFunction): Promise<void> {

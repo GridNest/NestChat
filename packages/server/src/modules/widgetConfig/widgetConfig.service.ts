@@ -1,8 +1,8 @@
-import { ClientModel } from '../client/client.model';
-import { ClientConfigModel } from '../clientConfig/clientConfig.model';
-import { ClientThemeModel } from '../clientTheme/clientTheme.model';
-import { ClientModuleModel } from '../clientModule/clientModule.model';
-import { ApiError } from '../../utils/apiError';
+import { ClientModel } from '../client/client.model.js';
+import { ClientConfigModel } from '../clientConfig/clientConfig.model.js';
+import { ClientThemeModel } from '../clientTheme/clientTheme.model.js';
+import { ClientModuleModel } from '../clientModule/clientModule.model.js';
+import { ApiError } from '../../utils/apiError.js';
 
 export interface WidgetConfig {
   client: {

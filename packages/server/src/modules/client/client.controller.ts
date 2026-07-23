@@ -1,6 +1,6 @@
 import { Response, NextFunction } from 'express';
-import { ClientService } from './client.service';
-import { AuthRequest } from '../../middleware/auth';
+import { ClientService } from './client.service.js';
+import { AuthRequest } from '../../middleware/auth.js';
 
 export class ClientController {
   static async create(req: AuthRequest, res: Response, next: NextFunction) {

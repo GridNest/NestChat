@@ -1,6 +1,6 @@
-import { SearchService, SearchResult, SearchOptions } from './searchService';
-import { FAQModel } from '../faq/faq.model';
-import { KnowledgeModel } from '../knowledge/knowledge.model';
+import { SearchService, SearchResult, SearchOptions } from './searchService.js';
+import { FAQModel } from '../faq/faq.model.js';
+import { KnowledgeModel } from '../knowledge/knowledge.model.js';
 import { normalizeQuestion, extractKeywords, calculateSimilarity } from '@nestchat/shared';
 import { DEFAULT_QUICK_ACTIONS } from '@nestchat/shared';
 

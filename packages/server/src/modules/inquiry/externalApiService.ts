@@ -1,6 +1,6 @@
-import { ClientConfigModel } from '../clientConfig/clientConfig.model';
-import { InquiryDocument } from './inquiry.model';
-import { logger } from '../../utils/logger';
+import { ClientConfigModel } from '../clientConfig/clientConfig.model.js';
+import { InquiryDocument } from './inquiry.model.js';
+import { logger } from '../../utils/logger.js';
 
 export interface ExternalApiResponse {
   success: boolean;

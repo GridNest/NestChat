@@ -1,6 +1,6 @@
-import { UnansweredModel, UnansweredQuestionDocument } from './unanswered.model';
-import { FAQModel } from '../faq/faq.model';
-import { ApiError } from '../../utils/apiError';
+import { UnansweredModel, UnansweredQuestionDocument } from './unanswered.model.js';
+import { FAQModel } from '../faq/faq.model.js';
+import { ApiError } from '../../utils/apiError.js';
 import { normalizeQuestion } from '@nestchat/shared';
 
 export interface UnansweredListItem {

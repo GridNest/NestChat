@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
-import { env } from './config/env';
-import { UserModel } from './modules/user/user.model';
-import { ClientModel } from './modules/client/client.model';
-import { logger } from './utils/logger';
+import { env } from './config/env.js';
+import { UserModel } from './modules/user/user.model.js';
+import { ClientModel } from './modules/client/client.model.js';
+import { logger } from './utils/logger.js';
 
 async function seed(): Promise<void> {
   try {

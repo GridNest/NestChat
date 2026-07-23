@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { AdminDashboardService } from './admin.service';
-import { AuditLogService } from '../auditLog/auditLog.service';
-import { AuthRequest } from '../../middleware/auth';
+import { AdminDashboardService } from './admin.service.js';
+import { AuditLogService } from '../auditLog/auditLog.service.js';
+import { AuthRequest } from '../../middleware/auth.js';
 
 export class AdminController {
   static async getDashboard(req: AuthRequest, res: Response, next: NextFunction) {
@@ -106,7 +106,7 @@ export class AdminController {
 
       // Search clients (super admin only)
       if (req.user?.role === 'admin') {
-        const { ClientModel } = await import('../client/client.model');
+        const { ClientModel } = await import('../client/client.model.js');
         const clients = await ClientModel.find({
           $or: [
             { name: { $regex: q, $options: 'i' } },
@@ -127,7 +127,7 @@ export class AdminController {
       }
 
       // Search knowledge
-      const { KnowledgeModel } = await import('../knowledge/knowledge.model');
+      const { KnowledgeModel } = await import('../knowledge/knowledge.model.js');
       const knowledgeFilter: any = {
         $or: [
           { title: { $regex: q, $options: 'i' } },
@@ -149,7 +149,7 @@ export class AdminController {
       });
 
       // Search FAQs
-      const { FAQModel } = await import('../faq/faq.model');
+      const { FAQModel } = await import('../faq/faq.model.js');
       const faqFilter: any = {
         $or: [
           { question: { $regex: q, $options: 'i' } },
@@ -170,7 +170,7 @@ export class AdminController {
       });
 
       // Search inquiries
-      const { InquiryModel } = await import('../inquiry/inquiry.model');
+      const { InquiryModel } = await import('../inquiry/inquiry.model.js');
       const inquiryFilter: any = {
         $or: [
           { name: { $regex: q, $options: 'i' } },

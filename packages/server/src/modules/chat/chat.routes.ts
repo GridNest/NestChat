@@ -1,13 +1,13 @@
 import { Router } from 'express';
-import { ChatController } from './chat.controller';
-import { validate } from '../../middleware/validate';
-import { chatLimiter } from '../../middleware/rateLimiter';
+import { ChatController } from './chat.controller.js';
+import { validate } from '../../middleware/validate.js';
+import { chatLimiter } from '../../middleware/rateLimiter.js';
 import {
   startChatSchema,
   sendMessageSchema,
   getChatHistorySchema,
   endChatSchema,
-} from './chat.validation';
+} from './chat.validation.js';
 
 const router: Router = Router();
 

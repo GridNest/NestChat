@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { WidgetConfigService } from './widgetConfig.service';
+import { WidgetConfigService } from './widgetConfig.service.js';
 
 export class WidgetConfigController {
   static async loadConfig(req: Request, res: Response, next: NextFunction) {

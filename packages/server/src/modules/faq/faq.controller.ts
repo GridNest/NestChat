@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { FAQService } from './faq.service';
-import { ApiResponseHelper } from '../../utils/apiResponse';
-import { AuthRequest } from '../../middleware/auth';
+import { FAQService } from './faq.service.js';
+import { ApiResponseHelper } from '../../utils/apiResponse.js';
+import { AuthRequest } from '../../middleware/auth.js';
 
 export class FAQController {
   static async create(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {

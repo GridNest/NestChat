@@ -1,7 +1,7 @@
 import { CreateClientRequest, UpdateClientRequest, PaginationQuery } from '@nestchat/shared';
-import { ClientModel, ClientDocument } from './client.model';
-import { ApiError } from '../../utils/apiError';
-import { omitUndefined } from '../../utils/helpers';
+import { ClientModel, ClientDocument } from './client.model.js';
+import { ApiError } from '../../utils/apiError.js';
+import { omitUndefined } from '../../utils/helpers.js';
 
 export interface ClientListItem {
   id: string;

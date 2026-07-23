@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { ClientThemeService } from './clientTheme.service';
+import { ClientThemeService } from './clientTheme.service.js';
 
 export class ClientThemeController {
   static async getByClientId(req: Request, res: Response, next: NextFunction) {

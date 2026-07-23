@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { systemLogController } from './systemLog.controller';
-import { authenticate } from '../../middleware/auth';
+import { systemLogController } from './systemLog.controller.js';
+import { authenticate } from '../../middleware/auth.js';
 
 const router: Router = Router();
 

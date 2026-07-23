@@ -1,11 +1,11 @@
-import { ChatModel, ChatDocument } from './chat.model';
-import { ChatMessageModel, ChatMessageDocument } from './chatMessage.model';
-import { ResponseEngine, BotResponse } from './responseEngine';
-import { LanguageEngine, Language } from './languageEngine';
-import { InquiryEngine } from '../inquiry/inquiryEngine';
-import { InquiryService } from '../inquiry/inquiry.service';
-import { UnansweredService } from '../unanswered/unanswered.service';
-import { ApiError } from '../../utils/apiError';
+import { ChatModel, ChatDocument } from './chat.model.js';
+import { ChatMessageModel, ChatMessageDocument } from './chatMessage.model.js';
+import { ResponseEngine, BotResponse } from './responseEngine.js';
+import { LanguageEngine, Language } from './languageEngine.js';
+import { InquiryEngine } from '../inquiry/inquiryEngine.js';
+import { InquiryService } from '../inquiry/inquiry.service.js';
+import { UnansweredService } from '../unanswered/unanswered.service.js';
+import { ApiError } from '../../utils/apiError.js';
 import mongoose from 'mongoose';
 
 export interface ChatSession {

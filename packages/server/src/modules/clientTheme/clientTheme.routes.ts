@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { ClientThemeController } from './clientTheme.controller';
-import { authenticate } from '../../middleware/auth';
+import { ClientThemeController } from './clientTheme.controller.js';
+import { authenticate } from '../../middleware/auth.js';
 
 const router: Router = Router();
 

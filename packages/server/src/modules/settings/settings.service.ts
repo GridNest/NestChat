@@ -1,4 +1,4 @@
-import { SettingsModel } from './settings.model';
+import { SettingsModel } from './settings.model.js';
 
 export class SettingsService {
   static async get() {

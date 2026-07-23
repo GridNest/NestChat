@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { UnansweredService } from './unanswered.service';
-import { ApiResponseHelper } from '../../utils/apiResponse';
-import { AuthRequest } from '../../middleware/auth';
+import { UnansweredService } from './unanswered.service.js';
+import { ApiResponseHelper } from '../../utils/apiResponse.js';
+import { AuthRequest } from '../../middleware/auth.js';
 
 export class UnansweredController {
   static async list(req: Request, res: Response, next: NextFunction): Promise<void> {

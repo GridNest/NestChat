@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
-import { ApiError } from '../utils/apiError';
-import { logger } from '../utils/logger';
-import { env } from '../config/env';
+import { ApiError } from '../utils/apiError.js';
+import { logger } from '../utils/logger.js';
+import { env } from '../config/env.js';
 
 export function errorHandler(err: Error, req: Request, res: Response, next: NextFunction): void {
   logger.error('Error:', {

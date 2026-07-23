@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import { Inquiry } from './inquiry.model';
+import { Inquiry } from './inquiry.model.js';
 
 let mongoServer: MongoMemoryServer;
 

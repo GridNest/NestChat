@@ -1,4 +1,4 @@
-import { AuditLogModel } from './auditLog.model';
+import { AuditLogModel } from './auditLog.model.js';
 
 export class AuditLogService {
   static async create(data: {

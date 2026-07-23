@@ -1,6 +1,6 @@
 import { Response, NextFunction } from 'express';
-import { WidgetGeneratorService } from './widgetGenerator.service';
-import { AuthRequest } from '../../middleware/auth';
+import { WidgetGeneratorService } from './widgetGenerator.service.js';
+import { AuthRequest } from '../../middleware/auth.js';
 
 export class WidgetGeneratorController {
   static async generateScript(req: AuthRequest, res: Response, next: NextFunction) {

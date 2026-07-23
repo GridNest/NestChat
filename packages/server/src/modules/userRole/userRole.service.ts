@@ -1,5 +1,5 @@
-import { UserRoleModel, UserRoleDocument } from './userRole.model';
-import { ApiError } from '../../utils/apiError';
+import { UserRoleModel, UserRoleDocument } from './userRole.model.js';
+import { ApiError } from '../../utils/apiError.js';
 
 export interface UserRoleResponse {
   id: string;

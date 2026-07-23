@@ -1,7 +1,7 @@
-import { KnowledgeMatch, KnowledgeEngine } from './knowledgeEngine';
-import { LanguageEngine, Language } from './languageEngine';
+import { KnowledgeMatch, KnowledgeEngine } from './knowledgeEngine.js';
+import { LanguageEngine, Language } from './languageEngine.js';
 import { DEFAULT_QUICK_ACTIONS } from '@nestchat/shared';
-import { InquiryEngine } from '../inquiry/inquiryEngine';
+import { InquiryEngine } from '../inquiry/inquiryEngine.js';
 
 export interface BotResponse {
   content: string;

@@ -1,10 +1,10 @@
 import jwt from 'jsonwebtoken';
 import { AuthResponse, LoginRequest, RegisterRequest } from '@nestchat/shared';
-import { UserModel, UserDocument } from '../user/user.model';
-import { ClientModel } from '../client/client.model';
-import { ClientConfigModel } from '../clientConfig/clientConfig.model';
-import { ApiError } from '../../utils/apiError';
-import { env } from '../../config/env';
+import { UserModel, UserDocument } from '../user/user.model.js';
+import { ClientModel } from '../client/client.model.js';
+import { ClientConfigModel } from '../clientConfig/clientConfig.model.js';
+import { ApiError } from '../../utils/apiError.js';
+import { env } from '../../config/env.js';
 
 export class AuthService {
   private static generateTokens(user: UserDocument, clientId?: string) {

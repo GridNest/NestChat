@@ -1,6 +1,6 @@
 import { UpdateClientModulesRequest } from '@nestchat/shared';
-import { ClientModuleModel, ClientModuleDocument } from './clientModule.model';
-import { ApiError } from '../../utils/apiError';
+import { ClientModuleModel, ClientModuleDocument } from './clientModule.model.js';
+import { ApiError } from '../../utils/apiError.js';
 
 export interface ClientModuleResponse {
   id: string;

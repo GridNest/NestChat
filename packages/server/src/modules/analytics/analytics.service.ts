@@ -1,5 +1,5 @@
-import { Analytics, IAnalytics } from './analytics.model';
-import { ChatAnalytics, IChatAnalytics } from './chatAnalytics.model';
+import { Analytics, IAnalytics } from './analytics.model.js';
+import { ChatAnalytics, IChatAnalytics } from './chatAnalytics.model.js';
 
 export class AnalyticsService {
   async trackVisitor(clientId: string, visitorId: string, metadata?: any): Promise<void> {

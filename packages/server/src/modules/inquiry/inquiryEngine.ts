@@ -1,5 +1,5 @@
-import { InquiryStateModel, InquiryStateDocument } from './inquiryState.model';
-import { LanguageEngine, Language } from '../chat/languageEngine';
+import { InquiryStateModel, InquiryStateDocument } from './inquiryState.model.js';
+import { LanguageEngine, Language } from '../chat/languageEngine.js';
 import { isValidEmail, isValidPhone } from '@nestchat/shared';
 
 export interface InquiryStep {

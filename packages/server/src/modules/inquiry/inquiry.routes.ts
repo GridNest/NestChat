@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { InquiryController } from './inquiry.controller';
-import { validate } from '../../middleware/validate';
-import { authenticate, authorize } from '../../middleware/auth';
-import { chatLimiter, widgetLimiter } from '../../middleware/rateLimiter';
+import { InquiryController } from './inquiry.controller.js';
+import { validate } from '../../middleware/validate.js';
+import { authenticate, authorize } from '../../middleware/auth.js';
+import { chatLimiter, widgetLimiter } from '../../middleware/rateLimiter.js';
 import {
   createInquirySchema,
   updateInquirySchema,
@@ -10,7 +10,7 @@ import {
   listInquirySchema,
   startInquirySchema,
   inquiryMessageSchema,
-} from './inquiry.validation';
+} from './inquiry.validation.js';
 
 const router: Router = Router();
 

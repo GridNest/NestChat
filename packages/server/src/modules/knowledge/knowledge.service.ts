@@ -1,7 +1,7 @@
 import { CreateKnowledgeRequest, UpdateKnowledgeRequest, PaginationQuery } from '@nestchat/shared';
-import { KnowledgeModel, KnowledgeDocument } from './knowledge.model';
-import { ApiError } from '../../utils/apiError';
-import { omitUndefined, slugify } from '../../utils/helpers';
+import { KnowledgeModel, KnowledgeDocument } from './knowledge.model.js';
+import { ApiError } from '../../utils/apiError.js';
+import { omitUndefined, slugify } from '../../utils/helpers.js';
 
 export interface KnowledgeListItem {
   id: string;

@@ -1,6 +1,6 @@
-import { UserModel } from '../user/user.model';
-import { UserRoleModel } from '../userRole/userRole.model';
-import { ApiError } from '../../utils/apiError';
+import { UserModel } from '../user/user.model.js';
+import { UserRoleModel } from '../userRole/userRole.model.js';
+import { ApiError } from '../../utils/apiError.js';
 
 export class UserService {
   static async list(query: { page?: number; limit?: number; search?: string; role?: string }) {

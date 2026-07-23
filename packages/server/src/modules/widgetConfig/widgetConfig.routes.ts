@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { WidgetConfigController } from './widgetConfig.controller';
+import { WidgetConfigController } from './widgetConfig.controller.js';
 
 const router: Router = Router();
 

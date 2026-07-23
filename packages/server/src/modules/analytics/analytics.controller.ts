@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { analyticsService } from './analytics.service';
+import { analyticsService } from './analytics.service.js';
 
 export class AnalyticsController {
   async getDashboardStats(req: Request, res: Response) {
@@ -78,7 +78,7 @@ export class AnalyticsController {
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
 
-      const Analytics = (await import('./analytics.model')).Analytics;
+      const Analytics = (await import('./analytics.model.js')).Analytics;
       
       const globalStats = await Analytics.aggregate([
         {

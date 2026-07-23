@@ -1,7 +1,7 @@
-import { app } from './app';
-import { env, validateEnv } from './config/env';
-import { connectDatabase } from './config/database';
-import { logger } from './utils/logger';
+import { app } from './app.js';
+import { env, validateEnv } from './config/env.js';
+import { connectDatabase } from './config/database.js';
+import { logger } from './utils/logger.js';
 
 async function bootstrap(): Promise<void> {
   try {

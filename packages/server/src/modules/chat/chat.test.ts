@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import { Chat, ChatMessage } from './chat.model';
-import { FAQ } from '../faq/faq.model';
-import { Knowledge } from '../knowledge/knowledge.model';
+import { Chat, ChatMessage } from './chat.model.js';
+import { FAQ } from '../faq/faq.model.js';
+import { Knowledge } from '../knowledge/knowledge.model.js';
 
 let mongoServer: MongoMemoryServer;
 

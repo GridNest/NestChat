@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { RoleService } from './role.service';
+import { RoleService } from './role.service.js';
 
 export class RoleController {
   static async create(req: Request, res: Response, next: NextFunction) {

@@ -1,6 +1,6 @@
 import { Response, NextFunction } from 'express';
-import { UserService } from './user.service';
-import { AuthRequest } from '../../middleware/auth';
+import { UserService } from './user.service.js';
+import { AuthRequest } from '../../middleware/auth.js';
 
 export class UserController {
   static async list(req: AuthRequest, res: Response, next: NextFunction) {

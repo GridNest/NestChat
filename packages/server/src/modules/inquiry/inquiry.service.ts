@@ -1,9 +1,9 @@
 import { CreateInquiryRequest, UpdateInquiryRequest, PaginationQuery } from '@nestchat/shared';
-import { InquiryModel, InquiryDocument } from './inquiry.model';
-import { InquiryStateModel, InquiryStateDocument } from './inquiryState.model';
-import { ExternalApiService } from './externalApiService';
-import { ApiError } from '../../utils/apiError';
-import { omitUndefined } from '../../utils/helpers';
+import { InquiryModel, InquiryDocument } from './inquiry.model.js';
+import { InquiryStateModel, InquiryStateDocument } from './inquiryState.model.js';
+import { ExternalApiService } from './externalApiService.js';
+import { ApiError } from '../../utils/apiError.js';
+import { omitUndefined } from '../../utils/helpers.js';
 
 export interface InquiryListItem {
   id: string;

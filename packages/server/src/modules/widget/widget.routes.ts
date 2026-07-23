@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { WidgetController } from './widget.controller';
-import { widgetLimiter } from '../../middleware/rateLimiter';
+import { WidgetController } from './widget.controller.js';
+import { widgetLimiter } from '../../middleware/rateLimiter.js';
 
 const router: Router = Router();
 

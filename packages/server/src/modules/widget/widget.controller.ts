@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
-import { WidgetConfigService } from '../widgetConfig/widgetConfig.service';
-import { FAQService } from '../faq/faq.service';
-import { KnowledgeService } from '../knowledge/knowledge.service';
-import { ApiResponseHelper } from '../../utils/apiResponse';
+import { WidgetConfigService } from '../widgetConfig/widgetConfig.service.js';
+import { FAQService } from '../faq/faq.service.js';
+import { KnowledgeService } from '../knowledge/knowledge.service.js';
+import { ApiResponseHelper } from '../../utils/apiResponse.js';
 
 export class WidgetController {
   static async getConfig(req: Request, res: Response, next: NextFunction): Promise<void> {

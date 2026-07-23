@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { ClientModel } from '../modules/client/client.model';
+import { ClientModel } from '../modules/client/client.model.js';
 
 const DEV_MODE = process.env.NODE_ENV !== 'production';
 const DEV_DOMAINS = ['localhost', '127.0.0.1', '::1', '::ffff:127.0.0.1'];

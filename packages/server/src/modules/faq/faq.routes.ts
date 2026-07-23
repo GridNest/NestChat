@@ -1,14 +1,14 @@
 import { Router } from 'express';
-import { FAQController } from './faq.controller';
-import { validate } from '../../middleware/validate';
-import { authenticate, authorize } from '../../middleware/auth';
+import { FAQController } from './faq.controller.js';
+import { validate } from '../../middleware/validate.js';
+import { authenticate, authorize } from '../../middleware/auth.js';
 import {
   createFAQSchema,
   updateFAQSchema,
   getFAQSchema,
   listFAQSchema,
   searchFAQSchema,
-} from './faq.validation';
+} from './faq.validation.js';
 
 const router: Router = Router();
 

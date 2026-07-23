@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { SettingsService } from './settings.service';
+import { SettingsService } from './settings.service.js';
 
 export class SettingsController {
   static async get(req: Request, res: Response, next: NextFunction) {
