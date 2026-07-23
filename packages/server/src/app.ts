@@ -21,6 +21,10 @@ import { roleRoutes } from './modules/role/role.routes';
 import { userRoleRoutes } from './modules/userRole/userRole.routes';
 import { websiteConnectorRoutes } from './modules/websiteConnector/websiteConnector.routes';
 import { widgetConfigRoutes } from './modules/widgetConfig/widgetConfig.routes';
+import { adminRoutes } from './modules/admin/admin.routes';
+import { settingsRoutes } from './modules/settings/settings.routes';
+import { notificationRoutes } from './modules/notification/notification.routes';
+import { userRoutes } from './modules/user/user.routes';
 import { logger } from './utils/logger';
 
 const app: Express = express();
@@ -62,6 +66,10 @@ app.use('/api/roles', roleRoutes);
 app.use('/api/user-roles', userRoleRoutes);
 app.use('/api/website-connectors', websiteConnectorRoutes);
 app.use('/api/widget-config', widgetConfigRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/settings', settingsRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/users', userRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
