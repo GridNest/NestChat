@@ -1,4 +1,4 @@
-import { REGEX } from '../constants/regex';
+import { REGEX } from '../constants/regex.js';
 
 export interface ValidationRule {
   required?: boolean;

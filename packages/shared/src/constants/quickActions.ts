@@ -1,4 +1,4 @@
-import { QuickAction } from '../types/clientConfig';
+import { QuickAction } from '../types/clientConfig.js';
 
 export const DEFAULT_QUICK_ACTIONS: QuickAction[] = [
   {

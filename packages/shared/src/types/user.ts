@@ -1,4 +1,4 @@
-import { ClientResponse } from './client';
+import { ClientResponse } from './client.js';
 
 export interface User {
   _id: string;
