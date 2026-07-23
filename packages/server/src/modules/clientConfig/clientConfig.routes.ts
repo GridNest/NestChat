@@ -1,15 +1,11 @@
 import { Router } from 'express';
 import { ClientConfigController } from './clientConfig.controller';
-import { authenticate, authorize } from '../../middleware/auth';
+import { authenticate } from '../../middleware/auth';
 
 const router: Router = Router();
 
-router.get('/widget/:clientId', ClientConfigController.getWidgetConfig);
-
-router.use(authenticate);
-
-router.get('/', authorize('admin'), ClientConfigController.getAll);
-router.get('/:clientId', ClientConfigController.getByClientId);
-router.put('/', ClientConfigController.update);
+router.get('/:clientId', authenticate, ClientConfigController.getByClientId);
+router.put('/:clientId', authenticate, ClientConfigController.update);
+router.delete('/:clientId', authenticate, ClientConfigController.delete);
 
 export const clientConfigRoutes = router;

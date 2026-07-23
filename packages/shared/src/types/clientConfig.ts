@@ -1,18 +1,23 @@
+export type WidgetPosition = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
+export type WidgetStyle = 'bubble' | 'tab' | 'inline';
+export type ThemeMode = 'light' | 'dark' | 'auto';
+
 export interface ClientConfig {
   _id: string;
   clientId: string;
-  logo?: string;
-  brandColor: string;
-  secondaryColor: string;
-  botName: string;
   greetingMessage: string;
-  theme: 'light' | 'dark';
-  position: 'bottom-right' | 'bottom-left';
-  defaultLanguage: 'en' | 'hi';
+  widgetPosition: WidgetPosition;
+  widgetStyle: WidgetStyle;
+  theme: ThemeMode;
+  quickActions: string[];
+  businessHours?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  contactAddress?: string;
+  fallbackMessage: string;
   allowedLanguages: ('en' | 'hi')[];
   inquiryApiUrl?: string;
   inquiryApiKey?: string;
-  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -20,45 +25,76 @@ export interface ClientConfig {
 export interface ClientConfigResponse {
   id: string;
   clientId: string;
-  logo?: string;
-  brandColor: string;
-  secondaryColor: string;
-  botName: string;
   greetingMessage: string;
-  theme: 'light' | 'dark';
-  position: 'bottom-right' | 'bottom-left';
-  defaultLanguage: 'en' | 'hi';
-  allowedLanguages: ('en' | 'hi')[];
-  isActive: boolean;
+  widgetPosition: WidgetPosition;
+  widgetStyle: WidgetStyle;
+  theme: ThemeMode;
+  quickActions: string[];
+  businessHours?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  contactAddress?: string;
+  fallbackMessage: string;
+  allowedLanguages: string[];
 }
 
 export interface UpdateClientConfigRequest {
-  logo?: string;
-  brandColor?: string;
-  secondaryColor?: string;
-  botName?: string;
   greetingMessage?: string;
-  theme?: 'light' | 'dark';
-  position?: 'bottom-right' | 'bottom-left';
-  defaultLanguage?: 'en' | 'hi';
+  widgetPosition?: WidgetPosition;
+  widgetStyle?: WidgetStyle;
+  theme?: ThemeMode;
+  quickActions?: string[];
+  businessHours?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  contactAddress?: string;
+  fallbackMessage?: string;
   allowedLanguages?: ('en' | 'hi')[];
   inquiryApiUrl?: string;
   inquiryApiKey?: string;
-  isActive?: boolean;
 }
 
 export interface WidgetConfigResponse {
-  clientName: string;
-  logo?: string;
-  brandColor: string;
-  secondaryColor: string;
-  botName: string;
-  greetingMessage: string;
-  theme: 'light' | 'dark';
-  position: 'bottom-right' | 'bottom-left';
-  defaultLanguage: 'en' | 'hi';
-  allowedLanguages: ('en' | 'hi')[];
-  quickActions: QuickAction[];
+  client: {
+    clientId: string;
+    name: string;
+    companyName: string;
+    logo?: string;
+    botName: string;
+  };
+  theme: {
+    primaryColor: string;
+    secondaryColor: string;
+    backgroundColor: string;
+    textColor: string;
+    borderColor: string;
+    widgetStyle: string;
+    borderRadius: string;
+    fontFamily: string;
+    fontSize: string;
+    botAvatar?: string;
+    companyLogo?: string;
+    darkMode: string;
+  };
+  config: {
+    greetingMessage: string;
+    widgetPosition: string;
+    widgetStyle: string;
+    theme: string;
+    quickActions: string[];
+    businessHours?: string;
+    contactEmail?: string;
+    contactPhone?: string;
+    contactAddress?: string;
+    fallbackMessage: string;
+    allowedLanguages: string[];
+  };
+  modules: {
+    name: string;
+    enabled: boolean;
+    config: Record<string, any>;
+  }[];
+  language: string;
 }
 
 export interface QuickAction {

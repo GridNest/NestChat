@@ -1,72 +1,69 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
 import { ClientService } from './client.service';
-import { ApiResponseHelper } from '../../utils/apiResponse';
 import { AuthRequest } from '../../middleware/auth';
 
 export class ClientController {
-  static async create(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+  static async create(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      if (!req.user?.id) {
-        ApiResponseHelper.unauthorized(res);
-        return;
-      }
-      const result = await ClientService.create(req.body, req.user.id);
-      ApiResponseHelper.created(res, result);
+      const client = await ClientService.create({
+        ...req.body,
+        createdBy: req.user?.id,
+      });
+      res.status(201).json({ success: true, data: client });
     } catch (error) {
       next(error);
     }
   }
 
-  static async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const result = await ClientService.getById(req.params.id);
-      ApiResponseHelper.success(res, result);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  static async update(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const result = await ClientService.update(req.params.id, req.body);
-      ApiResponseHelper.success(res, result);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  static async delete(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      await ClientService.delete(req.params.id);
-      ApiResponseHelper.success(res, { message: 'Client deleted successfully' });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  static async list(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async list(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const result = await ClientService.list(req.query as any);
-      ApiResponseHelper.paginated(
-        res,
-        result.clients,
-        result.page,
-        result.limit,
-        result.total
-      );
+      res.json({ success: true, ...result });
     } catch (error) {
       next(error);
     }
   }
 
-  static async getMyClient(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+  static async getById(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      if (!req.user?.clientId) {
-        ApiResponseHelper.notFound(res, 'No client associated with this user');
-        return;
-      }
-      const result = await ClientService.getById(req.user.clientId);
-      ApiResponseHelper.success(res, result);
+      const client = await ClientService.getById(req.params.id);
+      res.json({ success: true, data: client });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getByClientId(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const client = await ClientService.getByClientId(req.params.clientId);
+      res.json({ success: true, data: client });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async update(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const client = await ClientService.update(req.params.id, req.body);
+      res.json({ success: true, data: client });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async delete(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      await ClientService.delete(req.params.id);
+      res.json({ success: true, message: 'Client deleted successfully' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getStats(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const stats = await ClientService.getStats();
+      res.json({ success: true, data: stats });
     } catch (error) {
       next(error);
     }

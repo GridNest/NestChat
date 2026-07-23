@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { ClientConfigService } from '../clientConfig/clientConfig.service';
+import { WidgetConfigService } from '../widgetConfig/widgetConfig.service';
 import { FAQService } from '../faq/faq.service';
 import { KnowledgeService } from '../knowledge/knowledge.service';
 import { ApiResponseHelper } from '../../utils/apiResponse';
@@ -8,7 +8,7 @@ export class WidgetController {
   static async getConfig(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { clientId } = req.params;
-      const result = await ClientConfigService.getWidgetConfig(clientId);
+      const result = await WidgetConfigService.loadConfig(clientId);
       ApiResponseHelper.success(res, result);
     } catch (error) {
       next(error);

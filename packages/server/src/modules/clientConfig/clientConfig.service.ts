@@ -1,37 +1,51 @@
-import { UpdateClientConfigRequest, WidgetConfigResponse } from '@nestchat/shared';
+import { UpdateClientConfigRequest } from '@nestchat/shared';
 import { ClientConfigModel, ClientConfigDocument } from './clientConfig.model';
-import { ClientModel } from '../client/client.model';
 import { ApiError } from '../../utils/apiError';
 import { omitUndefined } from '../../utils/helpers';
-import { DEFAULT_QUICK_ACTIONS } from '@nestchat/shared';
 
-export interface ClientConfigListItem {
+export interface ClientConfigResponse {
   id: string;
   clientId: string;
-  logo?: string;
-  brandColor: string;
-  secondaryColor: string;
-  botName: string;
   greetingMessage: string;
-  theme: 'light' | 'dark';
-  position: 'bottom-right' | 'bottom-left';
-  defaultLanguage: 'en' | 'hi';
-  allowedLanguages: ('en' | 'hi')[];
+  widgetPosition: string;
+  widgetStyle: string;
+  theme: string;
+  quickActions: string[];
+  businessHours?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  contactAddress?: string;
+  fallbackMessage: string;
+  allowedLanguages: string[];
   inquiryApiUrl?: string;
   inquiryApiKey?: string;
-  isActive: boolean;
 }
 
 export class ClientConfigService {
-  static async getByClientId(clientId: string): Promise<ClientConfigListItem> {
+  static async getByClientId(clientId: string): Promise<ClientConfigResponse> {
     const config = await ClientConfigModel.findOne({ clientId });
     if (!config) {
-      throw ApiError.notFound('Client config not found');
+      return this.createDefault(clientId);
     }
     return this.formatConfig(config);
   }
 
-  static async update(clientId: string, data: UpdateClientConfigRequest): Promise<ClientConfigListItem> {
+  static async createDefault(clientId: string): Promise<ClientConfigResponse> {
+    const config = await ClientConfigModel.create({
+      clientId,
+      greetingMessage: 'Hello! How can I help you today?',
+      widgetPosition: 'bottom-right',
+      widgetStyle: 'bubble',
+      theme: 'light',
+      quickActions: ['FAQ', 'Contact'],
+      fallbackMessage: 'Let me connect you with our team.',
+      allowedLanguages: ['en'],
+    });
+
+    return this.formatConfig(config);
+  }
+
+  static async update(clientId: string, data: UpdateClientConfigRequest): Promise<ClientConfigResponse> {
     let config = await ClientConfigModel.findOne({ clientId });
     
     if (!config) {
@@ -40,66 +54,40 @@ export class ClientConfigService {
         ...data,
       });
     } else {
-      const updateData = omitUndefined(data as Record<string, any>);
-      Object.assign(config, updateData);
-      await config.save();
+      config = await ClientConfigModel.findByIdAndUpdate(
+        config._id,
+        omitUndefined(data),
+        { new: true }
+      );
     }
 
-    return this.formatConfig(config);
+    return this.formatConfig(config!);
   }
 
-  static async getWidgetConfig(clientId: string): Promise<WidgetConfigResponse> {
-    const [client, config] = await Promise.all([
-      ClientModel.findById(clientId),
-      ClientConfigModel.findOne({ clientId }),
-    ]);
-
-    if (!client) {
-      throw ApiError.notFound('Client not found');
-    }
-
+  static async delete(clientId: string): Promise<void> {
+    const config = await ClientConfigModel.findOneAndDelete({ clientId });
     if (!config) {
-      throw ApiError.notFound('Widget not configured');
+      throw new ApiError(404, 'Client config not found');
     }
-
-    return {
-      clientName: client.name,
-      logo: config.logo,
-      brandColor: config.brandColor,
-      secondaryColor: config.secondaryColor,
-      botName: config.botName,
-      greetingMessage: config.greetingMessage,
-      theme: config.theme,
-      position: config.position,
-      defaultLanguage: config.defaultLanguage,
-      allowedLanguages: config.allowedLanguages,
-      quickActions: DEFAULT_QUICK_ACTIONS,
-    };
   }
 
-  static async getAll(): Promise<ClientConfigListItem[]> {
-    const configs = await ClientConfigModel.find({ isActive: true })
-      .populate('clientId', 'name')
-      .lean();
-    return configs.map(config => this.formatConfig(config as unknown as ClientConfigDocument));
-  }
-
-  private static formatConfig(config: ClientConfigDocument): ClientConfigListItem {
+  private static formatConfig(config: ClientConfigDocument): ClientConfigResponse {
     return {
       id: config._id.toString(),
       clientId: config.clientId.toString(),
-      logo: config.logo,
-      brandColor: config.brandColor,
-      secondaryColor: config.secondaryColor,
-      botName: config.botName,
       greetingMessage: config.greetingMessage,
+      widgetPosition: config.widgetPosition,
+      widgetStyle: config.widgetStyle,
       theme: config.theme,
-      position: config.position,
-      defaultLanguage: config.defaultLanguage,
+      quickActions: config.quickActions,
+      businessHours: config.businessHours,
+      contactEmail: config.contactEmail,
+      contactPhone: config.contactPhone,
+      contactAddress: config.contactAddress,
+      fallbackMessage: config.fallbackMessage,
       allowedLanguages: config.allowedLanguages,
       inquiryApiUrl: config.inquiryApiUrl,
       inquiryApiKey: config.inquiryApiKey,
-      isActive: config.isActive,
     };
   }
 }

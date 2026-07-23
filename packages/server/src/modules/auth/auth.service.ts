@@ -40,9 +40,10 @@ export class AuthService {
     });
 
     const client = await ClientModel.create({
+      clientId: (data.company || data.name).toLowerCase().replace(/\s+/g, '-'),
       name: data.company || data.name,
       email: data.email,
-      company: data.company || data.name,
+      companyName: data.company || data.name,
       phone: data.phone,
       createdBy: user._id,
     });
@@ -68,10 +69,9 @@ export class AuthService {
         id: client._id.toString(),
         name: client.name,
         email: client.email,
-        company: client.company,
+        companyName: client.companyName,
         phone: client.phone,
         website: client.website,
-        industry: client.industry,
         isActive: client.isActive,
         createdAt: client.createdAt,
       },
@@ -114,10 +114,9 @@ export class AuthService {
           id: client._id.toString(),
           name: client.name,
           email: client.email,
-          company: client.company,
+          companyName: client.companyName,
           phone: client.phone,
           website: client.website,
-          industry: client.industry,
           isActive: client.isActive,
           createdAt: client.createdAt,
         };
@@ -188,10 +187,9 @@ export class AuthService {
           id: client._id.toString(),
           name: client.name,
           email: client.email,
-          company: client.company,
+          companyName: client.companyName,
           phone: client.phone,
           website: client.website,
-          industry: client.industry,
           isActive: client.isActive,
           createdAt: client.createdAt,
         };

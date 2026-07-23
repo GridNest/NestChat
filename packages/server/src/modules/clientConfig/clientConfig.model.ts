@@ -1,19 +1,24 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
+export type WidgetPosition = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
+export type WidgetStyle = 'bubble' | 'tab' | 'inline';
+export type ThemeMode = 'light' | 'dark' | 'auto';
+
 export interface ClientConfigDocument extends Document {
   clientId: mongoose.Types.ObjectId;
-  logo?: string;
-  brandColor: string;
-  secondaryColor: string;
-  botName: string;
   greetingMessage: string;
-  theme: 'light' | 'dark';
-  position: 'bottom-right' | 'bottom-left';
-  defaultLanguage: 'en' | 'hi';
+  widgetPosition: WidgetPosition;
+  widgetStyle: WidgetStyle;
+  theme: ThemeMode;
+  quickActions: string[];
+  businessHours?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  contactAddress?: string;
+  fallbackMessage: string;
   allowedLanguages: ('en' | 'hi')[];
   inquiryApiUrl?: string;
   inquiryApiKey?: string;
-  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -26,39 +31,44 @@ const clientConfigSchema = new Schema<ClientConfigDocument>(
       required: true,
       unique: true,
     },
-    logo: {
-      type: String,
-    },
-    brandColor: {
-      type: String,
-      default: '#3B82F6',
-    },
-    secondaryColor: {
-      type: String,
-      default: '#1E40AF',
-    },
-    botName: {
-      type: String,
-      default: 'Assistant',
-    },
     greetingMessage: {
       type: String,
       default: 'Hello! How can I help you today?',
     },
-    theme: {
+    widgetPosition: {
       type: String,
-      enum: ['light', 'dark'],
-      default: 'light',
-    },
-    position: {
-      type: String,
-      enum: ['bottom-right', 'bottom-left'],
+      enum: ['bottom-right', 'bottom-left', 'top-right', 'top-left'],
       default: 'bottom-right',
     },
-    defaultLanguage: {
+    widgetStyle: {
       type: String,
-      enum: ['en', 'hi'],
-      default: 'en',
+      enum: ['bubble', 'tab', 'inline'],
+      default: 'bubble',
+    },
+    theme: {
+      type: String,
+      enum: ['light', 'dark', 'auto'],
+      default: 'light',
+    },
+    quickActions: {
+      type: [String],
+      default: ['FAQ', 'Contact'],
+    },
+    businessHours: {
+      type: String,
+    },
+    contactEmail: {
+      type: String,
+    },
+    contactPhone: {
+      type: String,
+    },
+    contactAddress: {
+      type: String,
+    },
+    fallbackMessage: {
+      type: String,
+      default: 'Let me connect you with our team.',
     },
     allowedLanguages: {
       type: [String],
@@ -70,10 +80,6 @@ const clientConfigSchema = new Schema<ClientConfigDocument>(
     },
     inquiryApiKey: {
       type: String,
-    },
-    isActive: {
-      type: Boolean,
-      default: true,
     },
   },
   {

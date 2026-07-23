@@ -1,44 +1,29 @@
 import { Request, Response, NextFunction } from 'express';
 import { ClientConfigService } from './clientConfig.service';
-import { ApiResponseHelper } from '../../utils/apiResponse';
-import { AuthRequest } from '../../middleware/auth';
 
 export class ClientConfigController {
-  static async getByClientId(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async getByClientId(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await ClientConfigService.getByClientId(req.params.clientId);
-      ApiResponseHelper.success(res, result);
+      const config = await ClientConfigService.getByClientId(req.params.clientId);
+      res.json({ success: true, data: config });
     } catch (error) {
       next(error);
     }
   }
 
-  static async update(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+  static async update(req: Request, res: Response, next: NextFunction) {
     try {
-      if (!req.user?.clientId) {
-        ApiResponseHelper.unauthorized(res);
-        return;
-      }
-      const result = await ClientConfigService.update(req.user.clientId, req.body);
-      ApiResponseHelper.success(res, result);
+      const config = await ClientConfigService.update(req.params.clientId, req.body);
+      res.json({ success: true, data: config });
     } catch (error) {
       next(error);
     }
   }
 
-  static async getWidgetConfig(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async delete(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await ClientConfigService.getWidgetConfig(req.params.clientId);
-      ApiResponseHelper.success(res, result);
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  static async getAll(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const result = await ClientConfigService.getAll();
-      ApiResponseHelper.success(res, result);
+      await ClientConfigService.delete(req.params.clientId);
+      res.json({ success: true, message: 'Client config deleted successfully' });
     } catch (error) {
       next(error);
     }

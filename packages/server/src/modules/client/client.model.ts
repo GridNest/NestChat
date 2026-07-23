@@ -1,12 +1,34 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
+export type WebsiteType = 
+  | 'corporate' 
+  | 'restaurant' 
+  | 'hotel' 
+  | 'school' 
+  | 'hospital' 
+  | 'real_estate' 
+  | 'portfolio' 
+  | 'agency' 
+  | 'landing_page' 
+  | 'ecommerce';
+
+export type ClientStatus = 'active' | 'inactive' | 'suspended';
+
 export interface ClientDocument extends Document {
+  clientId: string;
   name: string;
   email: string;
-  company: string;
+  companyName: string;
   phone?: string;
   website?: string;
-  industry?: string;
+  websiteType: WebsiteType;
+  logo?: string;
+  primaryColor: string;
+  secondaryColor: string;
+  botName: string;
+  defaultLanguage: 'en' | 'hi';
+  timezone: string;
+  status: ClientStatus;
   isActive: boolean;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -15,6 +37,13 @@ export interface ClientDocument extends Document {
 
 const clientSchema = new Schema<ClientDocument>(
   {
+    clientId: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      lowercase: true,
+    },
     name: {
       type: String,
       required: true,
@@ -26,7 +55,7 @@ const clientSchema = new Schema<ClientDocument>(
       lowercase: true,
       trim: true,
     },
-    company: {
+    companyName: {
       type: String,
       required: true,
       trim: true,
@@ -39,9 +68,39 @@ const clientSchema = new Schema<ClientDocument>(
       type: String,
       trim: true,
     },
-    industry: {
+    websiteType: {
       type: String,
-      trim: true,
+      enum: ['corporate', 'restaurant', 'hotel', 'school', 'hospital', 'real_estate', 'portfolio', 'agency', 'landing_page', 'ecommerce'],
+      default: 'corporate',
+    },
+    logo: {
+      type: String,
+    },
+    primaryColor: {
+      type: String,
+      default: '#3B82F6',
+    },
+    secondaryColor: {
+      type: String,
+      default: '#1E40AF',
+    },
+    botName: {
+      type: String,
+      default: 'Assistant',
+    },
+    defaultLanguage: {
+      type: String,
+      enum: ['en', 'hi'],
+      default: 'en',
+    },
+    timezone: {
+      type: String,
+      default: 'Asia/Kolkata',
+    },
+    status: {
+      type: String,
+      enum: ['active', 'inactive', 'suspended'],
+      default: 'active',
     },
     isActive: {
       type: Boolean,
@@ -58,7 +117,9 @@ const clientSchema = new Schema<ClientDocument>(
   }
 );
 
+clientSchema.index({ clientId: 1 });
 clientSchema.index({ email: 1 });
 clientSchema.index({ createdBy: 1 });
+clientSchema.index({ status: 1 });
 
 export const ClientModel = mongoose.model<ClientDocument>('Client', clientSchema);

@@ -1,23 +1,15 @@
 import { Router } from 'express';
 import { ClientController } from './client.controller';
-import { validate } from '../../middleware/validate';
-import { authenticate, authorize } from '../../middleware/auth';
-import {
-  createClientSchema,
-  updateClientSchema,
-  getClientSchema,
-  listClientsSchema,
-} from './client.validation';
+import { authenticate, AuthRequest } from '../../middleware/auth';
 
 const router: Router = Router();
 
-router.use(authenticate);
-
-router.get('/', authorize('admin'), validate(listClientsSchema), ClientController.list);
-router.post('/', authorize('admin'), validate(createClientSchema), ClientController.create);
-router.get('/me', ClientController.getMyClient);
-router.get('/:id', validate(getClientSchema), ClientController.getById);
-router.put('/:id', validate(updateClientSchema), ClientController.update);
-router.delete('/:id', validate(getClientSchema), ClientController.delete);
+router.post('/', authenticate, ClientController.create);
+router.get('/', authenticate, ClientController.list);
+router.get('/stats', authenticate, ClientController.getStats);
+router.get('/clientId/:clientId', authenticate, ClientController.getByClientId);
+router.get('/:id', authenticate, ClientController.getById);
+router.put('/:id', authenticate, ClientController.update);
+router.delete('/:id', authenticate, ClientController.delete);
 
 export const clientRoutes = router;
