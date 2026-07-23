@@ -117,6 +117,12 @@ export function ClientDetail() {
             Edit Client
           </Link>
           <Link
+            to={`/clients/${client.clientId}/widget`}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+          >
+            Widget
+          </Link>
+          <Link
             to={`/clients/${id}/theme`}
             className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
           >

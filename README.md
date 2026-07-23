@@ -1,108 +1,132 @@
-# NestChat
+# NestChat v1.0.0
 
-A multi-tenant SaaS chatbot platform that allows websites to embed a customizable chat widget.
+A production-ready, multi-tenant SaaS chatbot platform that works across multiple websites without modifying source code.
 
-## Features (Version 1)
+## Features
 
-- Floating Chat Widget
-- Mobile Responsive
-- Dark Mode Ready
-- Language Selection (English/Hindi)
-- Website Knowledge Search
-- FAQ Search
-- Conversational Inquiry Engine
-- Admin Dashboard
-- Widget Generator
-- Analytics & Logs
-- Multi-Client Support
+- **Multi-Client Support** - Manage multiple clients from one dashboard
+- **Knowledge Base** - Add website content for chatbot responses
+- **FAQ System** - Create frequently asked questions
+- **Inquiry Capture** - Capture leads through chatbot conversations
+- **Widget Integration** - Easy embed code for any website
+- **Analytics** - Track visitors, chats, and conversions
+- **Admin Dashboard** - Complete management interface
+- **Security** - JWT auth, rate limiting, input sanitization
 
 ## Tech Stack
 
-- **Frontend**: React, Vite, Tailwind CSS, TypeScript
-- **Backend**: Node.js, Express.js, MongoDB Atlas
-- **Auth**: JWT
-- **Deployment**: Render, GitHub
-- **Image Upload**: Cloudinary
+- **Frontend:** React, TypeScript, Tailwind CSS, Vite
+- **Backend:** Node.js, Express.js, TypeScript
+- **Database:** MongoDB Atlas (Mongoose ODM)
+- **Auth:** JWT (JSON Web Tokens)
+- **Deployment:** Render, GitHub Actions
 
-## Project Structure
-
-```
-nestchat/
-├── apps/
-│   ├── widget/         # Embeddable chat widget
-│   ├── web/            # Marketing website
-│   └── admin/          # Admin dashboard
-├── packages/
-│   ├── server/         # Backend API
-│   └── shared/         # Shared types & utils
-├── docs/               # Documentation
-└── scripts/            # Build scripts
-```
-
-## Getting Started
+## Quick Start
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20+
 - pnpm 8+
 - MongoDB Atlas account
 
 ### Installation
 
 ```bash
-# Clone repository
 git clone https://github.com/yourusername/nestchat.git
 cd nestchat
-
-# Install dependencies
 pnpm install
-
-# Set up environment
-cp .env.example packages/server/.env
+cp packages/server/.env.example packages/server/.env
 # Edit .env with your values
-
-# Start development
 pnpm run dev
 ```
 
-### Development URLs
+### Environment Variables
 
-- **Widget**: http://localhost:3001
-- **Admin**: http://localhost:3002
-- **API**: http://localhost:5000
+| Variable | Description | Default |
+| --- | --- | --- |
+| `NODE_ENV` | development/production | development |
+| `PORT` | Server port | 5000 |
+| `MONGODB_URI` | MongoDB Atlas connection string | - |
+| `JWT_SECRET` | Secret key for JWT tokens | - |
+| `JWT_EXPIRES_IN` | Token expiration | 7d |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name | - |
+| `CLOUDINARY_API_KEY` | Cloudinary API key | - |
+| `CLOUDINARY_API_SECRET` | Cloudinary API secret | - |
+| `CORS_ORIGIN` | Frontend URL | http://localhost:3000 |
 
-## Widget Embedding
+## Project Structure
 
-Add this single line to any website:
+```
+nestchat/
+  apps/
+    admin/          # React admin panel
+    widget/         # Widget build output
+  packages/
+    server/         # Express.js backend
+    shared/         # Shared types and utilities
+  docs/             # Documentation
+```
+
+## API Endpoints
+
+| Group | Description |
+| --- | --- |
+| `/api/auth/*` | Authentication |
+| `/api/clients/*` | Client management |
+| `/api/knowledge/*` | Knowledge base |
+| `/api/faqs/*` | FAQ management |
+| `/api/chat/*` | Chat functionality |
+| `/api/inquiry/*` | Inquiry management |
+| `/api/analytics/*` | Analytics data |
+| `/api/reports/*` | Report generation |
+| `/api/health` | Health check |
+| `/api/status` | Service status |
+
+## Widget Integration
+
+Add the following code before the closing `</body>` tag:
 
 ```html
-<script 
-  src="https://your-widget-url.com/widget.js" 
-  data-client-id="CLIENT_ID">
+<script>
+  (function() {
+    var script = document.createElement('script');
+    script.src = 'YOUR_WIDGET_URL/widget.js';
+    script.setAttribute('data-client-id', 'YOUR_CLIENT_ID');
+    document.head.appendChild(script);
+  })();
 </script>
+```
+
+## Deployment
+
+- **Frontend:** Render Static Site
+- **Backend:** Render Web Service
+- **Database:** MongoDB Atlas
+- **CI/CD:** GitHub Actions
+
+## Development
+
+```bash
+pnpm run dev        # Start all services
+pnpm run build      # Build all packages
+pnpm run test       # Run tests
+pnpm run lint       # Lint code
 ```
 
 ## Documentation
 
-- [Architecture](docs/ARCHITECTURE.md)
-- [Folder Structure](docs/FOLDER_STRUCTURE.md)
-- [API Documentation](docs/API.md)
-- [Deployment Guide](docs/DEPLOYMENT.md)
-
-## Version Roadmap
-
-### Version 1 (Current)
-- Rule-based responses
-- Knowledge base search
-- FAQ matching
-- Inquiry collection
-
-### Version 2 (Future)
-- OpenAI integration
-- Gemini integration
-- Claude integration
-- AI-powered responses
+- `docs/ARCHITECTURE.md` - System architecture
+- `docs/FOLDER_STRUCTURE.md` - Folder structure
+- `docs/API.md` - API documentation
+- `docs/DEPLOYMENT.md` - Deployment guide
+- `docs/INTEGRATION.md` - Widget integration guide
+- `docs/SECURITY.md` - Security documentation
+- `docs/TROUBLESHOOTING.md` - Common issues and solutions
 
 ## License
 
-MIT
+MIT License
+
+## Version
+
+v1.0.0 - Initial Production Release

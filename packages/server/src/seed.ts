@@ -2,7 +2,6 @@ import mongoose from 'mongoose';
 import { env } from './config/env';
 import { UserModel } from './modules/user/user.model';
 import { ClientModel } from './modules/client/client.model';
-import { ClientConfigModel } from './modules/clientConfig/clientConfig.model';
 import { logger } from './utils/logger';
 
 async function seed(): Promise<void> {
@@ -10,6 +9,7 @@ async function seed(): Promise<void> {
     await mongoose.connect(env.MONGODB_URI);
     logger.info('Connected to MongoDB');
 
+    // Create Admin User
     const adminExists = await UserModel.findOne({ email: 'admin@nestchat.com' });
     if (!adminExists) {
       const admin = await UserModel.create({
@@ -21,37 +21,44 @@ async function seed(): Promise<void> {
       logger.info('Admin user created:', admin.email);
     }
 
+    // Create Demo Client User
     const demoClientExists = await UserModel.findOne({ email: 'demo@example.com' });
+    let demoUser;
+    
     if (!demoClientExists) {
-      const demoUser = await UserModel.create({
+      demoUser = await UserModel.create({
         email: 'demo@example.com',
         password: 'Demo@123',
         name: 'Demo Client',
-        role: 'client',
+        role: 'admin',
       });
+      logger.info('Demo user created:', demoUser.email);
+    } else {
+      demoUser = demoClientExists;
+    }
 
+    // Create Demo Client
+    const clientExists = await ClientModel.findOne({ clientId: 'demo-client' });
+    if (!clientExists) {
       const demoClient = await ClientModel.create({
-        name: 'GridNest Web Solutions',
+        clientId: 'demo-client',
+        name: 'Demo Client',
         email: 'demo@example.com',
-        company: 'GridNest Web Solutions',
+        companyName: 'Demo Company',
         phone: '+91 98765 43210',
-        website: 'https://gridnest.example.com',
-        industry: 'Technology',
+        website: 'https://demo.example.com',
+        websiteType: 'corporate',
+        botName: 'Demo Assistant',
+        primaryColor: '#3B82F6',
+        secondaryColor: '#1E40AF',
+        defaultLanguage: 'en',
+        timezone: 'Asia/Kolkata',
+        status: 'active',
+        isActive: true,
+        allowedDomains: ['localhost', '127.0.0.1', 'demo.example.com'],
         createdBy: demoUser._id,
       });
-
-      await ClientConfigModel.create({
-        clientId: demoClient._id,
-        botName: 'GridNest Assistant',
-        greetingMessage: 'Hello! Welcome to GridNest Web Solutions. How can I help you today?',
-        brandColor: '#6366F1',
-        secondaryColor: '#4F46E5',
-      });
-
-      demoUser.clientId = demoClient._id;
-      await demoUser.save();
-
-      logger.info('Demo client created:', demoClient.email);
+      logger.info('Demo client created:', demoClient.clientId);
     }
 
     logger.info('Database seeded successfully');

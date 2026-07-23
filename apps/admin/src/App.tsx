@@ -23,6 +23,11 @@ import { UserForm } from './pages/users/UserForm';
 import { SettingsPage } from './pages/settings/SettingsPage';
 import { AuditLogList } from './pages/auditLogs/AuditLogList';
 import { NotificationList } from './pages/notifications/NotificationList';
+import { WidgetGenerator } from './pages/widget/WidgetGenerator';
+import { WidgetPreview } from './pages/widget/WidgetPreview';
+import { AnalyticsDashboard } from './pages/analytics/AnalyticsDashboard';
+import { ReportsPage } from './pages/reports/ReportsPage';
+import { SystemLogsPage } from './pages/logs/SystemLogsPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -84,6 +89,11 @@ function App() {
                     <Route path="/settings" element={<SettingsPage />} />
                     <Route path="/audit-logs" element={<AuditLogList />} />
                     <Route path="/notifications" element={<NotificationList />} />
+                    <Route path="/clients/:clientId/widget" element={<WidgetGenerator />} />
+                    <Route path="/clients/:clientId/widget/preview" element={<WidgetPreview />} />
+                    <Route path="/analytics" element={<AnalyticsDashboard />} />
+                    <Route path="/reports" element={<ReportsPage />} />
+                    <Route path="/system-logs" element={<SystemLogsPage />} />
                   </Routes>
                 </AdminLayout>
               </ProtectedRoute>

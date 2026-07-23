@@ -57,7 +57,7 @@ class AdminApi {
   // Clients
   async getClients(params?: Record<string, string>) {
     const response = await this.client.get('/clients', { params });
-    return response.data;
+    return { data: response.data };
   }
 
   async getClient(id: string) {
@@ -93,7 +93,7 @@ class AdminApi {
 
   // Knowledge
   async getKnowledge(params?: Record<string, string>) {
-    const response = await this.client.get('/knowledge', { params });
+    const response = await this.client.get('/admin/knowledge', { params });
     return response.data;
   }
 
@@ -119,7 +119,7 @@ class AdminApi {
 
   // FAQs
   async getFAQs(params?: Record<string, string>) {
-    const response = await this.client.get('/faqs', { params });
+    const response = await this.client.get('/admin/faqs', { params });
     return response.data;
   }
 
@@ -145,7 +145,7 @@ class AdminApi {
 
   // Chats
   async getChats(params?: Record<string, string>) {
-    const response = await this.client.get('/chat', { params });
+    const response = await this.client.get('/admin/chats', { params });
     return response.data;
   }
 
@@ -156,7 +156,7 @@ class AdminApi {
 
   // Inquiries
   async getInquiries(params?: Record<string, string>) {
-    const response = await this.client.get('/inquiry', { params });
+    const response = await this.client.get('/admin/inquiries', { params });
     return response.data;
   }
 
@@ -172,7 +172,7 @@ class AdminApi {
 
   // Unanswered
   async getUnanswered(params?: Record<string, string>) {
-    const response = await this.client.get('/unanswered', { params });
+    const response = await this.client.get('/admin/unanswered', { params });
     return response.data;
   }
 
@@ -189,7 +189,7 @@ class AdminApi {
   // Users
   async getUsers(params?: Record<string, string>) {
     const response = await this.client.get('/users', { params });
-    return response.data;
+    return { data: response.data };
   }
 
   async getUserById(id: string) {
@@ -247,13 +247,13 @@ class AdminApi {
   // Audit Logs
   async getAuditLogs(params?: Record<string, string>) {
     const response = await this.client.get('/admin/audit-logs', { params });
-    return response.data;
+    return { data: response.data };
   }
 
   // Notifications
   async getNotifications(params?: Record<string, string>) {
     const response = await this.client.get('/notifications', { params });
-    return response.data;
+    return { data: response.data };
   }
 
   async markNotificationAsRead(id: string) {
@@ -275,6 +275,109 @@ class AdminApi {
   async globalSearch(query: string) {
     const response = await this.client.get('/admin/search', { params: { q: query } });
     return response.data;
+  }
+
+  // Widget Generator
+  async getWidgetScript(clientId: string) {
+    const response = await this.client.get(`/widget-generator/${clientId}/script`);
+    return response.data;
+  }
+
+  async regenerateWidgetSecretKey(clientId: string) {
+    const response = await this.client.post(`/widget-generator/${clientId}/secret-key`);
+    return response.data;
+  }
+
+  async updateWidgetSettings(clientId: string, data: Record<string, any>) {
+    const response = await this.client.put(`/widget-generator/${clientId}/settings`, data);
+    return response.data;
+  }
+
+  async updateAllowedDomains(clientId: string, domains: string[]) {
+    const response = await this.client.put(`/widget-generator/${clientId}/domains`, { domains });
+    return response.data;
+  }
+
+  async addAllowedDomain(clientId: string, domain: string) {
+    const response = await this.client.post(`/widget-generator/${clientId}/domains`, { domain });
+    return response.data;
+  }
+
+  async removeAllowedDomain(clientId: string, domain: string) {
+    const response = await this.client.delete(`/widget-generator/${clientId}/domains/${domain}`);
+    return response.data;
+  }
+
+  async getInstallationGuides(clientId: string) {
+    const response = await this.client.get(`/widget-generator/${clientId}/guides`);
+    return response.data;
+  }
+
+  async getWidgetInfo(clientId: string) {
+    const response = await this.client.get(`/widget-generator/${clientId}/info`);
+    return response.data;
+  }
+
+  async getWidgetConfig(clientId: string) {
+    const response = await this.client.get(`/widget-config/${clientId}`);
+    return response.data;
+  }
+
+  // Analytics
+  async getAnalyticsDashboard(days: number = 30) {
+    const clientId = await this.getCurrentClientId();
+    const response = await this.client.get(`/analytics/${clientId}/dashboard`, { params: { days } });
+    return response.data;
+  }
+
+  async getChatAnalytics(params: Record<string, any>) {
+    const clientId = await this.getCurrentClientId();
+    const response = await this.client.get(`/analytics/${clientId}/chats`, { params });
+    return response.data;
+  }
+
+  async getGlobalStats(days: number = 30) {
+    const response = await this.client.get('/analytics/global/stats', { params: { days } });
+    return response.data;
+  }
+
+  // Reports
+  async exportReport(type: string, startDate: string, endDate: string) {
+    const clientId = await this.getCurrentClientId();
+    const response = await this.client.get(`/reports/${clientId}/export`, {
+      params: { type, startDate, endDate },
+      responseType: 'blob',
+    });
+    return response;
+  }
+
+  async getReportPreview(type: string, startDate: string, endDate: string) {
+    const clientId = await this.getCurrentClientId();
+    const response = await this.client.get(`/reports/${clientId}/preview`, {
+      params: { type, startDate, endDate },
+    });
+    return response.data;
+  }
+
+  // System Logs
+  async getSystemLogs(params: Record<string, any>) {
+    const response = await this.client.get('/system-logs', { params });
+    return { data: response.data.data };
+  }
+
+  async getLogStats(startDate: string, endDate: string) {
+    const response = await this.client.get('/system-logs/stats', { params: { startDate, endDate } });
+    return response.data;
+  }
+
+  async cleanupLogs(daysToKeep: number) {
+    const response = await this.client.post('/system-logs/cleanup', { daysToKeep });
+    return response.data;
+  }
+
+  private async getCurrentClientId(): Promise<string> {
+    const response = await this.client.get('/auth/me');
+    return response.data.data?.clientId || response.data.clientId || '';
   }
 }
 

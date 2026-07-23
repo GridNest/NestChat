@@ -50,7 +50,7 @@ export function SettingsPage() {
     try {
       setLoading(true);
       const response = await adminApi.getSettings();
-      setSettings(response.data);
+      setSettings(response);
     } catch (error) {
       console.error('Failed to fetch settings:', error);
     } finally {

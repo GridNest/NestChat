@@ -9,7 +9,9 @@ export function FAQForm() {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [clients, setClients] = useState<Array<{ id: string; name: string }>>([]);
   const [formData, setFormData] = useState({
+    clientId: '',
     question: '',
     answer: '',
     category: '',
@@ -19,16 +21,27 @@ export function FAQForm() {
   });
 
   useEffect(() => {
+    fetchClients();
     if (id) {
       fetchFAQ();
     }
   }, [id]);
+
+  const fetchClients = async () => {
+    try {
+      const response = await adminApi.getClients({ page: '1', limit: '100' });
+      setClients(response.data.clients.map((c: any) => ({ id: c.id, name: c.name })));
+    } catch (error) {
+      console.error('Failed to fetch clients:', error);
+    }
+  };
 
   const fetchFAQ = async () => {
     try {
       setLoading(true);
       const response = await adminApi.getFAQById(id!);
       setFormData({
+        clientId: response.data.clientId || '',
         question: response.data.question || '',
         answer: response.data.answer || '',
         category: response.data.category || '',
@@ -79,6 +92,21 @@ export function FAQForm() {
       </h1>
 
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Client *</label>
+          <select
+            value={formData.clientId}
+            onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
+            required
+            className="w-full px-3 py-2 border rounded-lg"
+          >
+            <option value="">Select a client</option>
+            {clients.map((client) => (
+              <option key={client.id} value={client.id}>{client.name}</option>
+            ))}
+          </select>
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Question *</label>
           <input

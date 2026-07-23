@@ -1,7 +1,8 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-dotenv.config({ path: path.join(__dirname, '../../.env') });
+const envFile = process.env.NODE_ENV === 'production' ? '.env' : '.env.development';
+dotenv.config({ path: path.join(__dirname, `../../${envFile}`) });
 
 export const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
@@ -26,8 +27,8 @@ export const env = {
 };
 
 export function validateEnv() {
-  const required = ['MONGODB_URI', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
-  const missing = required.filter(key => !process.env[key]);
+  const required = ['MONGODB_URI'];
+  const missing = required.filter(key => !process.env[key] && !env[key as keyof typeof env]);
   
   if (missing.length > 0) {
     throw new Error(`Missing required environment variables: ${missing.join(', ')}`);

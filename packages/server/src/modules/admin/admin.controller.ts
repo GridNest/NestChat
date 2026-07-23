@@ -48,6 +48,51 @@ export class AdminController {
     }
   }
 
+  static async listKnowledge(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const result = await AdminDashboardService.listAllKnowledge(req.query as any);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async listFAQs(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const result = await AdminDashboardService.listAllFAQs(req.query as any);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async listChats(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const result = await AdminDashboardService.listAllChats(req.query as any);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async listInquiries(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const result = await AdminDashboardService.listAllInquiries(req.query as any);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async listUnanswered(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const result = await AdminDashboardService.listAllUnanswered(req.query as any);
+      res.json({ success: true, data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async globalSearch(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { q } = req.query;

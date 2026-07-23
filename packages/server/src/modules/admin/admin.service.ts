@@ -81,6 +81,90 @@ export class AdminDashboardService {
     };
   }
 
+  static async listAllKnowledge(query: { page?: number; limit?: number; search?: string; category?: string; status?: string }) {
+    const { page = 1, limit = 10, search, category, status } = query;
+    const skip = (page - 1) * limit;
+    const filter: any = { isDeleted: false };
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { content: { $regex: search, $options: 'i' } },
+      ];
+    }
+    if (category) filter.category = category;
+    if (status) filter.isActive = status === 'published';
+    const [items, total] = await Promise.all([
+      KnowledgeModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('clientId', 'name companyName').lean(),
+      KnowledgeModel.countDocuments(filter),
+    ]);
+    const knowledge = items.map((item: any) => ({ ...item, id: item._id.toString() }));
+    return { knowledge, total, page, limit, pages: Math.ceil(total / limit) };
+  }
+
+  static async listAllFAQs(query: { page?: number; limit?: number; search?: string; category?: string }) {
+    const { page = 1, limit = 10, search, category } = query;
+    const skip = (page - 1) * limit;
+    const filter: any = { isDeleted: false };
+    if (search) {
+      filter.$or = [
+        { question: { $regex: search, $options: 'i' } },
+        { answer: { $regex: search, $options: 'i' } },
+      ];
+    }
+    if (category) filter.category = category;
+    const [items, total] = await Promise.all([
+      FAQModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('clientId', 'name companyName').lean(),
+      FAQModel.countDocuments(filter),
+    ]);
+    const faqs = items.map((item: any) => ({ ...item, id: item._id.toString() }));
+    return { faqs, total, page, limit, pages: Math.ceil(total / limit) };
+  }
+
+  static async listAllChats(query: { page?: number; limit?: number; status?: string }) {
+    const { page = 1, limit = 10, status } = query;
+    const skip = (page - 1) * limit;
+    const filter: any = {};
+    if (status) filter.status = status;
+    const [items, total] = await Promise.all([
+      ChatModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('clientId', 'name companyName').lean(),
+      ChatModel.countDocuments(filter),
+    ]);
+    const chats = items.map((item: any) => ({ ...item, id: item._id.toString() }));
+    return { chats, total, page, limit, pages: Math.ceil(total / limit) };
+  }
+
+  static async listAllInquiries(query: { page?: number; limit?: number; status?: string; search?: string }) {
+    const { page = 1, limit = 10, status, search } = query;
+    const skip = (page - 1) * limit;
+    const filter: any = {};
+    if (status) filter.status = status;
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { service: { $regex: search, $options: 'i' } },
+      ];
+    }
+    const [items, total] = await Promise.all([
+      InquiryModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('clientId', 'name companyName').lean(),
+      InquiryModel.countDocuments(filter),
+    ]);
+    const inquiries = items.map((item: any) => ({ ...item, id: item._id.toString() }));
+    return { inquiries, total, page, limit, pages: Math.ceil(total / limit) };
+  }
+
+  static async listAllUnanswered(query: { page?: number; limit?: number }) {
+    const { page = 1, limit = 10 } = query;
+    const skip = (page - 1) * limit;
+    const { UnansweredModel } = await import('../unanswered/unanswered.model');
+    const [items, total] = await Promise.all([
+      UnansweredModel.find().sort({ createdAt: -1 }).skip(skip).limit(limit).populate('clientId', 'name companyName').lean(),
+      UnansweredModel.countDocuments(),
+    ]);
+    const questions = items.map((item: any) => ({ ...item, id: item._id.toString() }));
+    return { questions, total, page, limit, pages: Math.ceil(total / limit) };
+  }
+
   static async getSystemHealth() {
     const dbState = {
       status: 'connected',
