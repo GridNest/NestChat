@@ -3,19 +3,22 @@ import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
 import { ApiError } from '../utils/apiError.js';
 
-export interface AuthRequest<
+export type AuthRequest<
   P = any,
   ResBody = any,
   ReqBody = any,
   ReqQuery = any
-> extends Request<P, ResBody, ReqBody, ReqQuery> {
+> = Request<P, ResBody, ReqBody, ReqQuery> & {
   user?: {
     id: string;
     email: string;
     role: 'admin' | 'client';
     clientId?: string;
   };
-}
+  body: ReqBody;
+  params: P;
+  query: ReqQuery;
+};
 
 export function authenticate(req: AuthRequest, res: Response, next: NextFunction): void {
   try {
