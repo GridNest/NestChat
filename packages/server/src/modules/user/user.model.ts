@@ -48,7 +48,7 @@ const userSchema = new Schema<UserDocument>(
   }
 );
 
-userSchema.pre('save', async function (next) {
+userSchema.pre('save', async function (this: UserDocument, next: (err?: any) => void) {
   if (!this.isModified('password')) {
     return next();
   }
@@ -62,11 +62,11 @@ userSchema.pre('save', async function (next) {
   }
 });
 
-userSchema.methods.comparePassword = async function (candidatePassword: string): Promise<boolean> {
+userSchema.methods.comparePassword = async function (this: UserDocument, candidatePassword: string): Promise<boolean> {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-userSchema.methods.toJSON = function () {
+userSchema.methods.toJSON = function (this: UserDocument) {
   const obj = this.toObject();
   delete obj.password;
   return obj;

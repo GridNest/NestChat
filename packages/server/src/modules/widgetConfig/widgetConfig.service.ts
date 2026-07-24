@@ -110,7 +110,7 @@ export class WidgetConfigService {
         fallbackMessage: config.fallbackMessage,
         allowedLanguages: config.allowedLanguages,
       },
-      modules: modules.map(mod => ({
+      modules: modules.map((mod: any) => ({
         name: mod.name,
         enabled: mod.enabled,
         config: mod.config,

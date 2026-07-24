@@ -198,7 +198,7 @@ export class InquiryEngine {
   }> {
     state.status = 'cancelled';
     state.cancelledAt = new Date();
-    await state.save();
+    await (state as any).save();
 
     return {
       success: true,
@@ -230,7 +230,7 @@ export class InquiryEngine {
     total: number;
     percentage: number;
   } | null> {
-    return InquiryStateModel.findOne({ chatId, status: 'active' }).then(state => {
+    return InquiryStateModel.findOne({ chatId, status: 'active' }).then((state: any) => {
       if (!state) return null;
       const current = state.completedFields.length;
       const total = INQUIRY_STEPS.filter(s => s.required).length;

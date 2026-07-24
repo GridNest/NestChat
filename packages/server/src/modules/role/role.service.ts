@@ -122,7 +122,7 @@ export class RoleService {
 
   private static formatRole(role: RoleDocument): RoleResponse {
     return {
-      id: role._id.toString(),
+      id: ((role as any)._id || (role as any).id).toString(),
       name: role.name,
       description: role.description,
       permissions: role.permissions,

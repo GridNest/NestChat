@@ -78,7 +78,7 @@ export class UnansweredService {
     ]);
 
     return {
-      items: items.map(item => this.formatItem(item as unknown as UnansweredQuestionDocument)),
+      items: items.map((item: any) => this.formatItem(item as unknown as UnansweredQuestionDocument)),
       total,
       page,
       limit,
@@ -141,7 +141,7 @@ export class UnansweredService {
       total,
       converted,
       pending: total - converted,
-      topQuestions: topQuestions.map(q => ({
+      topQuestions: topQuestions.map((q: any) => ({
         question: q.question,
         count: q.count,
       })),
@@ -150,7 +150,7 @@ export class UnansweredService {
 
   private static formatItem(item: UnansweredQuestionDocument): UnansweredListItem {
     return {
-      id: item._id.toString(),
+      id: ((item as any)._id || (item as any).id).toString(),
       clientId: item.clientId.toString(),
       question: item.question,
       count: item.count,

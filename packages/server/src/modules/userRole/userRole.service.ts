@@ -89,7 +89,7 @@ export class UserRoleService {
 
   private static formatUserRole(userRole: UserRoleDocument): UserRoleResponse {
     return {
-      id: userRole._id.toString(),
+      id: ((userRole as any)._id || (userRole as any).id).toString(),
       userId: userRole.userId.toString(),
       clientId: userRole.clientId.toString(),
       roleId: userRole.roleId.toString(),

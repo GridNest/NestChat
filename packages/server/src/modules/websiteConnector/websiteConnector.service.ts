@@ -75,7 +75,7 @@ export class WebsiteConnectorService {
 
   private static formatConnector(connector: WebsiteConnectorDocument): WebsiteConnectorResponse {
     return {
-      id: connector._id.toString(),
+      id: ((connector as any)._id || (connector as any).id).toString(),
       clientId: connector.clientId.toString(),
       websiteName: connector.websiteName,
       websiteType: connector.websiteType,

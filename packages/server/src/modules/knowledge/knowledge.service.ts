@@ -126,7 +126,7 @@ export class KnowledgeService {
     ]);
 
     return {
-      items: items.map(item => this.formatKnowledge(item as unknown as KnowledgeDocument)),
+      items: items.map((item: any) => this.formatKnowledge(item as unknown as KnowledgeDocument)),
       total,
       page,
       limit,
@@ -143,7 +143,7 @@ export class KnowledgeService {
       .sort({ priority: -1, createdAt: -1 })
       .lean();
 
-    return items.map(item => this.formatKnowledge(item as unknown as KnowledgeDocument));
+    return items.map((item: any) => this.formatKnowledge(item as unknown as KnowledgeDocument));
   }
 
   static async search(clientId: string, query: string, language?: string): Promise<KnowledgeListItem[]> {
@@ -166,7 +166,7 @@ export class KnowledgeService {
       .limit(10)
       .lean();
 
-    return items.map(item => this.formatKnowledge(item as unknown as KnowledgeDocument));
+    return items.map((item: any) => this.formatKnowledge(item as unknown as KnowledgeDocument));
   }
 
   static async getBySlug(clientId: string, slug: string): Promise<KnowledgeListItem | null> {
@@ -190,12 +190,12 @@ export class KnowledgeService {
       .sort({ priority: -1 })
       .lean();
 
-    return items.map(item => this.formatKnowledge(item as unknown as KnowledgeDocument));
+    return items.map((item: any) => this.formatKnowledge(item as unknown as KnowledgeDocument));
   }
 
   private static formatKnowledge(knowledge: KnowledgeDocument): KnowledgeListItem {
     return {
-      id: knowledge._id.toString(),
+      id: ((knowledge as any)._id || (knowledge as any).id).toString(),
       clientId: knowledge.clientId.toString(),
       pageName: knowledge.pageName,
       slug: knowledge.slug,

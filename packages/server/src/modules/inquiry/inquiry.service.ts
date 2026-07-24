@@ -146,7 +146,7 @@ export class InquiryService {
     ]);
 
     return {
-      items: items.map(item => this.formatInquiry(item as unknown as InquiryDocument)),
+      items: items.map((item: any) => this.formatInquiry(item as unknown as InquiryDocument)),
       total,
       page,
       limit,
@@ -174,7 +174,7 @@ export class InquiryService {
 
   private static formatInquiry(inquiry: InquiryDocument): InquiryListItem {
     return {
-      id: inquiry._id.toString(),
+      id: ((inquiry as any)._id || (inquiry as any).id).toString(),
       clientId: inquiry.clientId.toString(),
       chatId: inquiry.chatId?.toString(),
       sessionId: inquiry.sessionId,

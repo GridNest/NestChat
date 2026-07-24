@@ -48,7 +48,7 @@ export class ReportsService {
       'Fallback Count',
     ];
 
-    const data = chats.map(chat => [
+    const data = chats.map((chat: any) => [
       chat.startTime.toISOString().split('T')[0],
       chat.visitorId,
       chat.duration,
@@ -112,7 +112,7 @@ export class ReportsService {
       'Avg Duration (s)',
     ];
 
-    const data = analytics.map(day => {
+    const data = analytics.map((day: any) => {
       const conversionRate = day.metrics.visitors > 0
         ? ((day.metrics.leads / day.metrics.visitors) * 100).toFixed(2)
         : '0.00';

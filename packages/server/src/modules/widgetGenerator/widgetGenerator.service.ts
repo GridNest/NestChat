@@ -108,7 +108,7 @@ export class WidgetGeneratorService {
       throw ApiError.notFound('Client not found');
     }
 
-    client.allowedDomains = client.allowedDomains.filter(d => d !== domain);
+    client.allowedDomains = client.allowedDomains.filter((d: any) => d !== domain);
     await client.save();
 
     return client.allowedDomains;

@@ -8,7 +8,7 @@ export const corsOptions: cors.CorsOptions = {
       return;
     }
 
-    if (env.ALLOWED_ORIGINS.includes(origin) || env.NODE_ENV === 'development') {
+    if (env.ALLOWED_ORIGINS.includes('*') || env.ALLOWED_ORIGINS.includes(origin) || env.NODE_ENV === 'development') {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
