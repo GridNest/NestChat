@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port 3002",
+    "prebuild": "pnpm --filter @nestchat/shared build",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist"

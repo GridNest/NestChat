@@ -5,7 +5,7 @@
   "description": "Multi-tenant SaaS chatbot platform",
   "scripts": {
     "dev": "turbo run dev",
-    "build": "pnpm --filter @nestchat/shared run build && pnpm --filter @nestchat/server run build",
+    "build": "turbo run build",
     "lint": "turbo run lint",
     "clean": "turbo run clean",
     "seed": "pnpm --filter @nestchat/server run seed"
