@@ -21,15 +21,17 @@ export const logger = winston.createLogger({
   format: logFormat,
   defaultMeta: { service: 'nestchat-api' },
   transports: [
-    new winston.transports.File({ filename: 'error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'combined.log' }),
+    new winston.transports.Console({
+      format: env.NODE_ENV === 'production' ? logFormat : consoleFormat,
+    }),
   ],
 });
 
 if (env.NODE_ENV !== 'production') {
   logger.add(
-    new winston.transports.Console({
-      format: consoleFormat,
-    })
+    new winston.transports.File({ filename: 'error.log', level: 'error' })
+  );
+  logger.add(
+    new winston.transports.File({ filename: 'combined.log' })
   );
 }
