@@ -10,7 +10,8 @@
     "clean": "rm -rf dist",
     "lint": "eslint src --ext .ts"
   },
-  "devDependencies": {
+  "dependencies": {
     "typescript": "^5.3.2"
-  }
+  },
+  "devDependencies": {}
 }

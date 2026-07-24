@@ -1,4 +1,5 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import crypto from 'crypto';
 
 export type WebsiteType = 
   | 'corporate' 
@@ -149,7 +150,7 @@ const clientSchema = new Schema<ClientDocument>(
     },
     widgetSecretKey: {
       type: String,
-      default: () => require('crypto').randomBytes(32).toString('hex'),
+      default: () => crypto.randomBytes(32).toString('hex'),
     },
     widgetVersion: {
       type: String,
