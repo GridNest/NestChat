@@ -1,8 +1,26 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 
-const envFile = process.env.NODE_ENV === 'production' ? '.env' : '.env.development';
-dotenv.config({ path: path.join(__dirname, `../../${envFile}`) });
+function loadEnv(): void {
+  const envFile = process.env.NODE_ENV === 'production' ? '.env' : '.env.development';
+
+  const possiblePaths = [
+    path.join(__dirname, `../../${envFile}`),
+    path.join(__dirname, `../../../${envFile}`),
+    path.join(process.cwd(), envFile),
+    path.join(process.cwd(), 'packages/server', envFile),
+  ];
+
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      dotenv.config({ path: p, override: true });
+      return;
+    }
+  }
+}
+
+loadEnv();
 
 export const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
@@ -27,10 +45,25 @@ export const env = {
 };
 
 export function validateEnv() {
-  const required = ['MONGODB_URI'];
-  const missing = required.filter(key => !process.env[key] && !env[key as keyof typeof env]);
-  
+  const required = ['MONGODB_URI', 'JWT_SECRET'];
+  const placeholderValues = [
+    'your-super-secret-jwt-key-change-this',
+    'your-super-secret-jwt-key-change-this-in-production',
+    'fallback-secret-change-in-production',
+    'fallback-refresh-secret',
+    'dev-jwt-secret-key-nestchat-2024',
+    'dev-refresh-secret-key-nestchat-2024',
+  ];
+
+  const missing = required.filter(key => {
+    const val = process.env[key];
+    return !val || placeholderValues.includes(val);
+  });
+
   if (missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+    console.warn(`[WARN] Some environment variables are missing or using placeholder values: ${missing.join(', ')}`);
+    if (env.NODE_ENV === 'production') {
+      throw new Error(`Missing or placeholder environment variables in production: ${missing.join(', ')}`);
+    }
   }
 }

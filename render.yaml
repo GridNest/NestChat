@@ -1,0 +1,54 @@
+# NestChat Render Deployment Configuration
+# Deploy using: https://render.com/docs/infrastructure-as-code
+
+definitions:
+  - name: nestchat-api
+    type: web
+    region: oregon
+    plan: free
+    runtime: node
+    buildCommand: pnpm install && pnpm run build
+    startCommand: cd packages/server && node dist/index.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 30d
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: https://nestchat-admin.onrender.com,https://nestchat-web.onrender.com
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "900000"
+      - key: RATE_LIMIT_MAX
+        value: "200"
+
+  - name: nestchat-admin
+    type: static
+    region: oregon
+    buildCommand: pnpm install && cd apps/admin && pnpm run build
+    publishPath: apps/admin/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://nestchat-api.onrender.com/api
+
+  - name: nestchat-web
+    type: static
+    region: oregon
+    buildCommand: pnpm install && cd apps/web && pnpm run build
+    publishPath: apps/web/dist

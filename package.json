@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
+    "start": "cd packages/server && node dist/index.js",
     "lint": "turbo run lint",
     "clean": "turbo run clean",
-    "seed": "pnpm --filter @nestchat/server run seed"
+    "seed": "pnpm --filter @nestchat/server run seed",
+    "postinstall": "pnpm --filter @nestchat/shared build"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
