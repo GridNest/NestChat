@@ -110,8 +110,8 @@
     if (!container) {
       container = document.createElement('div');
       container.id = WIDGET_CONTAINER_ID;
-      container.style.cssText = 'position: fixed; z-index: 2147483647; pointer-events: none;';
-      document.body.appendChild(container);
+      container.style.cssText = 'position: fixed; bottom: 0; right: 0; width: 0; height: 0; z-index: 2147483647; pointer-events: none; overflow: visible;';
+      (document.body || document.documentElement).appendChild(container);
     }
 
     // Check if shadow DOM already exists
@@ -122,7 +122,7 @@
 
     const shadowHost = document.createElement('div');
     shadowHost.id = SHADOW_DOM_ID;
-    shadowHost.style.cssText = 'all: initial; pointer-events: none;';
+    shadowHost.style.cssText = 'position: fixed; bottom: 0; right: 0; width: 0; height: 0; pointer-events: none; overflow: visible;';
     container.appendChild(shadowHost);
 
     return shadowHost.attachShadow({ mode: 'open' });
