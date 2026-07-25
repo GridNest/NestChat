@@ -1,6 +1,15 @@
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
+import dns from 'dns';
+
+// Resolve DNS SRV records using public DNS servers to prevent querySrv ECONNREFUSED
+try {
+  dns.setDefaultResultOrder?.('ipv4first');
+  dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+} catch (err) {
+  // Ignore if custom DNS fallback cannot be set
+}
 
 function loadEnv(): void {
   const envFile = process.env.NODE_ENV === 'production' ? '.env' : '.env.development';

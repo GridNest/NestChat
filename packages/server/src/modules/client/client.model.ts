@@ -167,7 +167,6 @@ const clientSchema = new Schema<ClientDocument>(
   }
 );
 
-clientSchema.index({ clientId: 1 });
 clientSchema.index({ email: 1 });
 clientSchema.index({ createdBy: 1 });
 clientSchema.index({ status: 1 });
