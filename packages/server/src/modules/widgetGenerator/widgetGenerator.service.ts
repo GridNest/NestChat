@@ -1,5 +1,6 @@
 import { ClientModel } from '../client/client.model.js';
 import { ApiError } from '../../utils/apiError.js';
+import { env } from '../../config/env.js';
 import crypto from 'crypto';
 
 export interface WidgetScript {
@@ -23,9 +24,9 @@ export class WidgetGeneratorService {
     }
 
     const script = `<script
-  src="http://localhost:5000/widget.js"
+  src="${env.API_URL}/widget.js"
   data-client-id="${client.clientId}"
-  data-api-url="http://localhost:5000/api"
+  data-api-url="${env.API_URL}/api"
   data-widget-version="${client.widgetVersion}"
   defer>
 </script>`;
@@ -120,7 +121,7 @@ export class WidgetGeneratorService {
       throw ApiError.notFound('Client not found');
     }
 
-    const scriptTag = `<script src="http://localhost:5000/widget.js" data-client-id="${client.clientId}" data-api-url="http://localhost:5000/api" defer></script>`;
+    const scriptTag = `<script src="${env.API_URL}/widget.js" data-client-id="${client.clientId}" data-api-url="${env.API_URL}/api" defer></script>`;
 
     return [
       {
@@ -150,8 +151,9 @@ import { useEffect } from 'react';
 function App() {
   useEffect(() => {
     const script = document.createElement('script');
-    script.src = 'http://localhost:5000/widget.js';
+    script.src = '${env.API_URL}/widget.js';
     script.setAttribute('data-client-id', '${client.clientId}');
+    script.setAttribute('data-api-url', '${env.API_URL}/api');
     script.defer = true;
     document.body.appendChild(script);
   }, []);
@@ -171,8 +173,9 @@ export default function RootLayout({ children }) {
       <body>
         {children}
         <Script
-          src="http://localhost:5000/widget.js"
+          src="${env.API_URL}/widget.js"
           data-client-id="${client.clientId}"
+          data-api-url="${env.API_URL}/api"
           strategy="lazyOnload"
         />
       </body>
@@ -188,7 +191,7 @@ export default function RootLayout({ children }) {
 // Or use wp_footer hook in functions.php
 
 function add_nestchat_widget() {
-    echo '<script src="http://localhost:5000/widget.js" data-client-id="${client.clientId}" defer></script>';
+    echo '<script src="${env.API_URL}/widget.js" data-client-id="${client.clientId}" data-api-url="${env.API_URL}/api" defer></script>';
 }
 add_action('wp_footer', 'add_nestchat_widget');
 ?>`,
@@ -197,11 +200,11 @@ add_action('wp_footer', 'add_nestchat_widget');
         platform: 'Laravel',
         instructions: 'Add the script in your layout file (resources/views/layouts/app.blade.php).',
         code: `{{-- Add before closing </body> tag --}}
-<script src="http://localhost:5000/widget.js" data-client-id="${client.clientId}" defer></script>
+<script src="${env.API_URL}/widget.js" data-client-id="${client.clientId}" data-api-url="${env.API_URL}/api" defer></script>
 
 {{-- Or use @push directive --}}
 @push('scripts')
-<script src="http://localhost:5000/widget.js" data-client-id="${client.clientId}" defer></script>
+<script src="${env.API_URL}/widget.js" data-client-id="${client.clientId}" data-api-url="${env.API_URL}/api" defer></script>
 @endpush`,
       },
       {
@@ -215,7 +218,7 @@ add_action('wp_footer', 'add_nestchat_widget');
 <body>
   <!-- Your website content -->
 
-  <script src="http://localhost:5000/widget.js" data-client-id="${client.clientId}" defer></script>
+  <script src="${env.API_URL}/widget.js" data-client-id="${client.clientId}" data-api-url="${env.API_URL}/api" defer></script>
 </body>
 </html>`,
       },
@@ -233,8 +236,9 @@ add_action('wp_footer', 'add_nestchat_widget');
 export default {
   mounted() {
     const script = document.createElement('script');
-    script.src = 'http://localhost:5000/widget.js';
+    script.src = '${env.API_URL}/widget.js';
     script.setAttribute('data-client-id', '${client.clientId}');
+    script.setAttribute('data-api-url', '${env.API_URL}/api');
     script.defer = true;
     document.body.appendChild(script);
   }
@@ -245,7 +249,7 @@ export default {
         platform: 'Angular',
         instructions: 'Add the script in your index.html file.',
         code: `<!-- Add to src/index.html before closing </body> -->
-<script src="http://localhost:5000/widget.js" data-client-id="${client.clientId}" defer></script>`,
+<script src="${env.API_URL}/widget.js" data-client-id="${client.clientId}" data-api-url="${env.API_URL}/api" defer></script>`,
       },
     ];
   }
