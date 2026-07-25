@@ -35,7 +35,7 @@ services:
       - key: RATE_LIMIT_MAX
         value: "200"
 
-  - type: static
+  - type: static_site
     name: nestchat-admin
     region: oregon
     buildCommand: pnpm install && cd apps/admin && pnpm run build
@@ -44,7 +44,7 @@ services:
       - key: VITE_API_URL
         value: https://nestchat-api.onrender.com/api
 
-  - type: static
+  - type: static_site
     name: nestchat-web
     region: oregon
     buildCommand: pnpm install && cd apps/web && pnpm run build
