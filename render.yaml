@@ -29,7 +29,7 @@ services:
       - key: CLOUDINARY_API_SECRET
         sync: false
       - key: ALLOWED_ORIGINS
-        value: https://nestchat-admin.onrender.com,https://nestchat-web.onrender.com
+        value: "*"
       - key: RATE_LIMIT_WINDOW_MS
         value: "900000"
       - key: RATE_LIMIT_MAX
@@ -40,6 +40,10 @@ services:
     runtime: static
     buildCommand: pnpm install && cd apps/admin && pnpm run build
     staticPublishPath: apps/admin/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
     envVars:
       - key: VITE_API_URL
         value: https://nestchat-api.onrender.com/api
