@@ -84,6 +84,7 @@ app.use('/api/system-logs', systemLogRoutes);
 app.get('/widget.js', (req, res) => {
   res.setHeader('Content-Type', 'application/javascript');
   res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   res.sendFile(path.join(__dirname, '../../widget/src/widget.js'));
 });
 
