@@ -49,7 +49,10 @@ export interface WidgetConfig {
 
 export class WidgetConfigService {
   static async loadConfig(clientId: string): Promise<WidgetConfig> {
-    const client = await ClientModel.findOne({ clientId, isActive: true });
+    const client = await ClientModel.findOne({ 
+      clientId: clientId.trim().toLowerCase(), 
+      isActive: true 
+    });
     if (!client) {
       throw new ApiError(404, 'Client not found or inactive');
     }
@@ -60,9 +63,19 @@ export class WidgetConfigService {
       ClientModuleModel.find({ clientId: client._id }),
     ]);
 
-    if (!config) {
-      throw new ApiError(404, 'Client configuration not found');
-    }
+    const activeConfig = config || {
+      greetingMessage: 'Hello! How can I assist you today?',
+      widgetPosition: 'bottom-right',
+      widgetStyle: 'bubble',
+      theme: 'light',
+      quickActions: ['Menu', 'Reservations', 'Hours'],
+      businessHours: '12:00 PM - 11:30 PM',
+      contactEmail: client.email,
+      contactPhone: client.phone || '',
+      contactAddress: '',
+      fallbackMessage: 'Let me connect you with our team.',
+      allowedLanguages: [client.defaultLanguage || 'en'],
+    };
 
     return {
       client: {
@@ -86,29 +99,29 @@ export class WidgetConfigService {
         companyLogo: theme.companyLogo,
         darkMode: theme.darkMode,
       } : {
-        primaryColor: client.primaryColor,
-        secondaryColor: client.secondaryColor,
+        primaryColor: client.primaryColor || '#3B82F6',
+        secondaryColor: client.secondaryColor || '#1E40AF',
         backgroundColor: '#FFFFFF',
         textColor: '#1F2937',
         borderColor: '#E5E7EB',
-        widgetStyle: config.widgetStyle,
+        widgetStyle: activeConfig.widgetStyle,
         borderRadius: '12px',
         fontFamily: 'Inter, sans-serif',
         fontSize: '14px',
-        darkMode: config.theme,
+        darkMode: activeConfig.theme,
       },
       config: {
-        greetingMessage: config.greetingMessage,
-        widgetPosition: config.widgetPosition,
-        widgetStyle: config.widgetStyle,
-        theme: config.theme,
-        quickActions: config.quickActions,
-        businessHours: config.businessHours,
-        contactEmail: config.contactEmail,
-        contactPhone: config.contactPhone,
-        contactAddress: config.contactAddress,
-        fallbackMessage: config.fallbackMessage,
-        allowedLanguages: config.allowedLanguages,
+        greetingMessage: activeConfig.greetingMessage,
+        widgetPosition: activeConfig.widgetPosition,
+        widgetStyle: activeConfig.widgetStyle,
+        theme: activeConfig.theme,
+        quickActions: activeConfig.quickActions,
+        businessHours: activeConfig.businessHours,
+        contactEmail: activeConfig.contactEmail,
+        contactPhone: activeConfig.contactPhone,
+        contactAddress: activeConfig.contactAddress,
+        fallbackMessage: activeConfig.fallbackMessage,
+        allowedLanguages: activeConfig.allowedLanguages,
       },
       modules: modules.map((mod: any) => ({
         name: mod.name,

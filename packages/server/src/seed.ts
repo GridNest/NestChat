@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { env } from './config/env.js';
 import { UserModel } from './modules/user/user.model.js';
 import { ClientModel } from './modules/client/client.model.js';
+import { ClientConfigModel } from './modules/clientConfig/clientConfig.model.js';
 import { logger } from './utils/logger.js';
 
 async function seed(): Promise<void> {
@@ -37,28 +38,64 @@ async function seed(): Promise<void> {
       demoUser = demoClientExists;
     }
 
-    // Create Demo Client
-    const clientExists = await ClientModel.findOne({ clientId: 'demo-client' });
-    if (!clientExists) {
-      const demoClient = await ClientModel.create({
+    // Create or update clients
+    const clientsToSeed = [
+      {
         clientId: 'demo-client',
         name: 'Demo Client',
-        email: 'demo@example.com',
         companyName: 'Demo Company',
-        phone: '+91 98765 43210',
-        website: 'https://demo.example.com',
-        websiteType: 'corporate',
-        botName: 'Demo Assistant',
-        primaryColor: '#3B82F6',
-        secondaryColor: '#1E40AF',
-        defaultLanguage: 'en',
-        timezone: 'Asia/Kolkata',
-        status: 'active',
-        isActive: true,
-        allowedDomains: ['localhost', '127.0.0.1', 'demo.example.com'],
-        createdBy: demoUser._id,
-      });
-      logger.info('Demo client created:', demoClient.clientId);
+      },
+      {
+        clientId: 'vishal-sahu',
+        name: 'Vishal Sahu',
+        companyName: 'Luxe Restaurant',
+      },
+      {
+        clientId: 'vishal',
+        name: 'Vishal',
+        companyName: 'Luxe Restaurant',
+      },
+    ];
+
+    for (const cData of clientsToSeed) {
+      let client = await ClientModel.findOne({ clientId: cData.clientId });
+      if (!client) {
+        client = await ClientModel.create({
+          clientId: cData.clientId,
+          name: cData.name,
+          email: 'demo@example.com',
+          companyName: cData.companyName,
+          phone: '+91 98765 43210',
+          website: 'https://demo.example.com',
+          websiteType: 'corporate',
+          botName: 'Assistant',
+          primaryColor: '#3B82F6',
+          secondaryColor: '#1E40AF',
+          defaultLanguage: 'en',
+          timezone: 'Asia/Kolkata',
+          status: 'active',
+          isActive: true,
+          allowedDomains: [],
+          createdBy: demoUser._id,
+        });
+        logger.info('Client created:', client.clientId);
+      }
+
+      // Ensure ClientConfig document exists for each client
+      const configExists = await ClientConfigModel.findOne({ clientId: client._id });
+      if (!configExists) {
+        await ClientConfigModel.create({
+          clientId: client._id,
+          greetingMessage: 'Hello! Welcome to Luxe Restaurant. How can I help you today?',
+          widgetPosition: 'bottom-right',
+          widgetStyle: 'bubble',
+          theme: 'light',
+          quickActions: ['Menu', 'Reservations', 'Opening Hours'],
+          fallbackMessage: 'Let me connect you with our team.',
+          allowedLanguages: ['en'],
+        });
+        logger.info('ClientConfig created for:', client.clientId);
+      }
     }
 
     logger.info('Database seeded successfully');
