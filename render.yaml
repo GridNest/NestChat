@@ -1,9 +1,6 @@
-# NestChat Render Deployment Configuration
-# Deploy using: https://render.com/docs/infrastructure-as-code
-
-definitions:
-  - name: nestchat-api
-    type: web
+services:
+  - type: web
+    name: nestchat-api
     region: oregon
     plan: free
     runtime: node
@@ -38,8 +35,8 @@ definitions:
       - key: RATE_LIMIT_MAX
         value: "200"
 
-  - name: nestchat-admin
-    type: static
+  - type: static
+    name: nestchat-admin
     region: oregon
     buildCommand: pnpm install && cd apps/admin && pnpm run build
     publishPath: apps/admin/dist
@@ -47,8 +44,8 @@ definitions:
       - key: VITE_API_URL
         value: https://nestchat-api.onrender.com/api
 
-  - name: nestchat-web
-    type: static
+  - type: static
+    name: nestchat-web
     region: oregon
     buildCommand: pnpm install && cd apps/web && pnpm run build
     publishPath: apps/web/dist
