@@ -34,7 +34,7 @@ loadEnv();
 export const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: parseInt(process.env.PORT || '5000', 10),
-  API_URL: process.env.API_URL || 'http://localhost:5000',
+  API_URL: process.env.API_URL || process.env.RENDER_EXTERNAL_URL || 'http://localhost:5000',
 
   MONGODB_URI: process.env.MONGODB_URI || 'mongodb://localhost:27017/nestchat',
 
