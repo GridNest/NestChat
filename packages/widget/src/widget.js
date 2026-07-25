@@ -110,7 +110,7 @@
     if (!container) {
       container = document.createElement('div');
       container.id = WIDGET_CONTAINER_ID;
-      container.style.cssText = 'position: fixed; bottom: 0; right: 0; width: 0; height: 0; z-index: 2147483647; pointer-events: none; overflow: visible;';
+      container.style.cssText = 'position: fixed; bottom: 0; right: 0; width: 0; height: 0; z-index: 2147483647;';
       (document.body || document.documentElement).appendChild(container);
     }
 
@@ -122,14 +122,14 @@
 
     const shadowHost = document.createElement('div');
     shadowHost.id = SHADOW_DOM_ID;
-    shadowHost.style.cssText = 'position: fixed; bottom: 0; right: 0; width: 0; height: 0; pointer-events: none; overflow: visible;';
+    shadowHost.style.cssText = 'position: fixed; bottom: 0; right: 0; width: 0; height: 0;';
     container.appendChild(shadowHost);
 
     return shadowHost.attachShadow({ mode: 'open' });
   }
 
   // Inject CSS into shadow DOM
-  function injectStyles(shadowRoot, theme) {
+  function injectStyles(shadowRoot, theme, widgetPosition) {
     const style = document.createElement('style');
     style.textContent = `
       * {
@@ -141,7 +141,7 @@
 
       .nestchat-widget {
         position: fixed;
-        ${theme.position === 'bottom-left' ? 'left: 20px;' : 'right: 20px;'}
+        ${widgetPosition === 'bottom-left' ? 'left: 20px;' : 'right: 20px;'}
         bottom: 20px;
         width: ${theme.width || '380px'};
         height: ${theme.height || '520px'};
@@ -167,7 +167,7 @@
 
       .nestchat-bubble {
         position: fixed;
-        ${theme.position === 'bottom-left' ? 'left: 20px;' : 'right: 20px;'}
+        ${widgetPosition === 'bottom-left' ? 'left: 20px;' : 'right: 20px;'}
         bottom: 20px;
         width: 60px;
         height: 60px;
@@ -610,7 +610,7 @@
       shadowRoot.appendChild(widgetContent);
 
       // Inject styles
-      injectStyles(shadowRoot, config.theme || {});
+      injectStyles(shadowRoot, config.theme || {}, config.config?.widgetPosition);
 
       // Initialize chat
       initChat(shadowRoot, config);
