@@ -38,7 +38,6 @@ services:
   - type: web
     name: nestchat-admin
     runtime: static
-    region: oregon
     buildCommand: pnpm install && cd apps/admin && pnpm run build
     staticPublishPath: apps/admin/dist
     envVars:
@@ -48,6 +47,5 @@ services:
   - type: web
     name: nestchat-web
     runtime: static
-    region: oregon
     buildCommand: pnpm install && cd apps/web && pnpm run build
     staticPublishPath: apps/web/dist
