@@ -14,7 +14,7 @@ function loadEnv(): void {
 
   for (const p of possiblePaths) {
     if (fs.existsSync(p)) {
-      dotenv.config({ path: p, override: true });
+      dotenv.config({ path: p });
       return;
     }
   }
