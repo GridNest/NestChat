@@ -457,14 +457,14 @@
   // Initialize chat functionality
   function initChat(shadowRoot, config) {
     const API_BASE = getApiBaseUrl();
-    const widget = shadowRoot.getElementById('nestchat-widget');
-    const bubble = shadowRoot.getElementById('nestchat-bubble');
-    const closeBtn = shadowRoot.getElementById('nestchat-close');
-    const input = shadowRoot.getElementById('nestchat-input');
-    const sendBtn = shadowRoot.getElementById('nestchat-send');
-    const messagesContainer = shadowRoot.getElementById('nestchat-messages');
-    const quickActions = shadowRoot.getElementById('nestchat-quick-actions');
-    const badge = shadowRoot.getElementById('nestchat-badge');
+    const widget = shadowRoot.querySelector('#nestchat-widget');
+    const bubble = shadowRoot.querySelector('#nestchat-bubble');
+    const closeBtn = shadowRoot.querySelector('#nestchat-close');
+    const input = shadowRoot.querySelector('#nestchat-input');
+    const sendBtn = shadowRoot.querySelector('#nestchat-send');
+    const messagesContainer = shadowRoot.querySelector('#nestchat-messages');
+    const quickActions = shadowRoot.querySelector('#nestchat-quick-actions');
+    const badge = shadowRoot.querySelector('#nestchat-badge');
 
     let isOpen = false;
     let conversationId = null;
@@ -603,11 +603,14 @@
       // Create shadow DOM
       const shadowRoot = createShadowDOM();
 
+      // Create widget HTML wrapper
+      const widgetContent = document.createElement('div');
+      widgetContent.className = 'nestchat-wrapper';
+      widgetContent.innerHTML = createWidgetHTML(config);
+      shadowRoot.appendChild(widgetContent);
+
       // Inject styles
       injectStyles(shadowRoot, config.theme || {});
-
-      // Create widget HTML
-      shadowRoot.innerHTML += createWidgetHTML(config);
 
       // Initialize chat
       initChat(shadowRoot, config);
