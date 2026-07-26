@@ -40,11 +40,26 @@ export class ResponseEngine {
       };
     }
 
-    const match = await KnowledgeEngine.search({
+    let match = await KnowledgeEngine.search({
       clientId,
       language,
       query,
     });
+
+    if (!match.found && conversationHistory && conversationHistory.length > 0) {
+      const lastUserMsg = conversationHistory.filter(m => m.sender === 'user').pop();
+      if (lastUserMsg && lastUserMsg.content && lastUserMsg.content.trim() !== query.trim()) {
+        const contextualQuery = `${lastUserMsg.content.trim()} ${query.trim()}`;
+        const contextMatch = await KnowledgeEngine.search({
+          clientId,
+          language,
+          query: contextualQuery,
+        });
+        if (contextMatch.found) {
+          match = contextMatch;
+        }
+      }
+    }
 
     if (match.found) {
       return this.buildMatchResponse(match, language);
