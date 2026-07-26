@@ -24,20 +24,28 @@ export interface KnowledgeEngineOptions {
 }
 
 export class KnowledgeEngine {
-  private static async resolveClientIds(clientId: string): Promise<any[]> {
-    const ids: any[] = [clientId];
-    if (clientId && !mongoose.Types.ObjectId.isValid(clientId)) {
-      const client = await ClientModel.findOne({ clientId: clientId.trim().toLowerCase() }).lean();
-      if (client) {
-        ids.push(client._id);
-      }
-    } else if (clientId && mongoose.Types.ObjectId.isValid(clientId)) {
-      const client = await ClientModel.findById(clientId).lean();
-      if (client) {
-        ids.push(client.clientId);
+  private static async resolveClientIds(clientId: string): Promise<mongoose.Types.ObjectId[]> {
+    if (!clientId) return [];
+    const validIds: mongoose.Types.ObjectId[] = [];
+    
+    if (mongoose.Types.ObjectId.isValid(clientId)) {
+      validIds.push(new mongoose.Types.ObjectId(clientId));
+    }
+    
+    const client = await ClientModel.findOne({
+      $or: [
+        { clientId: clientId.trim().toLowerCase() },
+        ...(mongoose.Types.ObjectId.isValid(clientId) ? [{ _id: new mongoose.Types.ObjectId(clientId) }] : [])
+      ]
+    }).lean();
+
+    if (client) {
+      if (!validIds.some(id => id.toString() === client._id.toString())) {
+        validIds.push(client._id as mongoose.Types.ObjectId);
       }
     }
-    return ids;
+
+    return validIds;
   }
 
   static async search(options: KnowledgeEngineOptions): Promise<KnowledgeMatch> {

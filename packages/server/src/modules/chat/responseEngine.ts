@@ -5,6 +5,8 @@ import { InquiryEngine } from '../inquiry/inquiryEngine.js';
 import { GroqService } from './groqService.js';
 import { FAQModel } from '../faq/faq.model.js';
 import { KnowledgeModel } from '../knowledge/knowledge.model.js';
+import { ClientModel } from '../client/client.model.js';
+import mongoose from 'mongoose';
 
 export interface BotResponse {
   content: string;
@@ -71,9 +73,21 @@ export class ResponseEngine {
 
     // Layer 3: Groq AI Generation with full business, FAQ & KB context
     try {
+      let clientObjIds: any[] = [];
+      if (mongoose.Types.ObjectId.isValid(clientId)) {
+        clientObjIds.push(new mongoose.Types.ObjectId(clientId));
+      } else {
+        const client = await ClientModel.findOne({ clientId: clientId.trim().toLowerCase() }).lean();
+        if (client) clientObjIds.push(client._id);
+      }
+
+      const queryFilter = clientObjIds.length > 0
+        ? { clientId: { $in: clientObjIds }, isActive: true, isDeleted: false }
+        : { isActive: true, isDeleted: false };
+
       const [faqs, knowledgeItems] = await Promise.all([
-        FAQModel.find({ isActive: true, isDeleted: false }).limit(10).lean(),
-        KnowledgeModel.find({ isActive: true, isDeleted: false }).limit(10).lean(),
+        FAQModel.find(queryFilter).limit(10).lean(),
+        KnowledgeModel.find(queryFilter).limit(10).lean(),
       ]);
 
       const groqResult = await GroqService.generateCompletion({
