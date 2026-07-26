@@ -1,15 +1,21 @@
+import http from 'http';
 import { app } from './app.js';
 import { env, validateEnv } from './config/env.js';
 import { connectDatabase } from './config/database.js';
+import { initializeSocket } from './modules/socket/socket.service.js';
 import { logger } from './utils/logger.js';
 
 async function bootstrap(): Promise<void> {
   try {
     validateEnv();
-    
+
     await connectDatabase();
-    
-    app.listen(env.PORT, () => {
+
+    const httpServer = http.createServer(app);
+
+    initializeSocket(httpServer);
+
+    httpServer.listen(env.PORT, () => {
       logger.info(`Server running on port ${env.PORT}`);
       logger.info(`Environment: ${env.NODE_ENV}`);
       logger.info(`API URL: ${env.API_URL}`);

@@ -6,13 +6,14 @@ import { InquiryEngine } from '../inquiry/inquiryEngine.js';
 import { InquiryService } from '../inquiry/inquiry.service.js';
 import { UnansweredService } from '../unanswered/unanswered.service.js';
 import { ApiError } from '../../utils/apiError.js';
+import { emitToUser, emitToClient } from '../socket/socket.service.js';
 import mongoose from 'mongoose';
 
 export interface ChatSession {
   chatId: string;
   sessionId: string;
   visitorId: string;
-  language: Language;
+  language: string;
   status: 'active' | 'ended';
   startedAt: Date;
 }
@@ -20,9 +21,9 @@ export interface ChatSession {
 export interface ChatMessageItem {
   id: string;
   chatId: string;
-  sender: 'user' | 'bot';
+  sender: 'user' | 'bot' | 'agent';
   content: string;
-  messageType: 'text' | 'quickAction' | 'inquiry' | 'system';
+  messageType: 'text' | 'quickAction' | 'inquiry' | 'system' | 'agent';
   timestamp: Date;
   metadata?: {
     matchedType?: string;
@@ -85,7 +86,7 @@ export class ChatService {
 
     const clientName = await this.getClientName(data.clientId);
     const welcomeContent = ResponseEngine.getWelcomeResponse(
-      data.language || 'en',
+      (data.language || 'en') as any,
       clientName
     );
 
@@ -186,7 +187,7 @@ export class ChatService {
     } else {
       botResponse = await ResponseEngine.generateResponse({
         clientId: data.clientId,
-        language: data.language || chat.language,
+        language: (data.language || chat.language) as any,
         query: data.content,
         clientName: await this.getClientName(data.clientId),
         conversationHistory: await this.getRecentHistory(chat._id.toString(), 5),
@@ -198,7 +199,7 @@ export class ChatService {
           sessionId: data.sessionId,
           clientId: data.clientId,
           visitorId: chat.visitorId,
-          language: data.language || chat.language,
+          language: (data.language || chat.language) as any,
         });
 
         const firstQuestion = await InquiryEngine.getFirstQuestion(chat._id.toString());
@@ -241,9 +242,18 @@ export class ChatService {
 
     await ChatModel.findByIdAndUpdate(chat._id, { $inc: { messageCount: 2 } });
 
+    const userMsg = this.formatMessage(userMessage);
+    const botMsg = this.formatMessage(botMessage);
+
+    emitToClient(chat.clientId.toString(), 'chat:message', {
+      chatId: chat._id.toString(),
+      userMessage: userMsg,
+      botMessage: botMsg,
+    });
+
     return {
-      userMessage: this.formatMessage(userMessage),
-      botMessage: this.formatMessage(botMessage),
+      userMessage: userMsg,
+      botMessage: botMsg,
     };
   }
 
@@ -270,6 +280,46 @@ export class ChatService {
       sender: msg.sender,
       content: msg.content,
     }));
+  }
+
+  static async sendAgentMessage(chatId: string, userId: string, content: string): Promise<ChatMessageItem> {
+    const chat = await ChatModel.findById(chatId);
+    if (!chat) throw ApiError.notFound('Chat not found');
+
+    const message = await ChatMessageModel.create({
+      chatId: chat._id,
+      sender: 'agent',
+      content,
+      messageType: 'agent',
+      metadata: { matchedType: undefined, matchedId: userId },
+    });
+
+    await ChatModel.findByIdAndUpdate(chat._id, { $inc: { messageCount: 1 } });
+    const result = this.formatMessage(message);
+    emitToClient(chat.clientId.toString(), 'chat:agentMessage', {
+      chatId: chat._id.toString(),
+      message: result,
+    });
+    return result;
+  }
+
+  static async getChatById(chatId: string): Promise<any> {
+    const chat = await ChatModel.findById(chatId).populate('assignedTo').lean();
+    if (!chat) throw ApiError.notFound('Chat not found');
+    const messages = await ChatMessageModel.find({ chatId })
+      .sort({ timestamp: 1 })
+      .lean();
+    return {
+      ...chat,
+      id: chat._id.toString(),
+      assignedAgent: chat.assignedTo ? (chat.assignedTo as any)?.name || 'Assigned' : null,
+      messages: messages.map(m => ({
+        id: m._id.toString(),
+        sender: m.sender,
+        content: m.content,
+        timestamp: m.timestamp,
+      })),
+    };
   }
 
   static async endSession(sessionId: string): Promise<void> {
@@ -314,7 +364,7 @@ export class ChatService {
       chatId: chat._id.toString(),
       sessionId: chat.sessionId,
       visitorId: chat.visitorId,
-      language: chat.language,
+      language: chat.language as string,
       status: chat.status,
       startedAt: chat.startedAt,
     };

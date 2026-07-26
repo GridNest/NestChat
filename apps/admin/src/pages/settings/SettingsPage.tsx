@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useToast } from '../../components/ui/Toast';
 import { adminApi } from '../../services/api';
+import { LANGUAGES, LanguageCode } from '@nestchat/shared';
 
 interface Settings {
   companyName: string;
@@ -254,39 +255,29 @@ export function SettingsPage() {
                 onChange={(e) => setSettings({ ...settings, defaultLanguage: e.target.value })}
                 className="w-full px-3 py-2 border rounded-lg"
               >
-                <option value="en">English</option>
-                <option value="hi">Hindi</option>
+                {Object.entries(LANGUAGES).map(([code, lang]) => (
+                  <option key={code} value={code}>{lang.name} ({lang.nativeName})</option>
+                ))}
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Allowed Languages</label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={settings.allowedLanguages.includes('en')}
-                    onChange={(e) => {
-                      const langs = e.target.checked
-                        ? [...settings.allowedLanguages, 'en']
-                        : settings.allowedLanguages.filter(l => l !== 'en');
-                      setSettings({ ...settings, allowedLanguages: langs });
-                    }}
-                  />
-                  English
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={settings.allowedLanguages.includes('hi')}
-                    onChange={(e) => {
-                      const langs = e.target.checked
-                        ? [...settings.allowedLanguages, 'hi']
-                        : settings.allowedLanguages.filter(l => l !== 'hi');
-                      setSettings({ ...settings, allowedLanguages: langs });
-                    }}
-                  />
-                  Hindi
-                </label>
+              <div className="flex flex-wrap gap-3">
+                {Object.entries(LANGUAGES).map(([code, lang]) => (
+                  <label key={code} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={settings.allowedLanguages.includes(code)}
+                      onChange={(e) => {
+                        const langs = e.target.checked
+                          ? [...settings.allowedLanguages, code]
+                          : settings.allowedLanguages.filter(l => l !== code);
+                        setSettings({ ...settings, allowedLanguages: langs });
+                      }}
+                    />
+                    {lang.name}
+                  </label>
+                ))}
               </div>
             </div>
           </div>

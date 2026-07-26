@@ -51,12 +51,20 @@ export const MESSAGES = {
 
 export type MessageLanguage = keyof typeof MESSAGES;
 
-export function getMessage(lang: MessageLanguage, key: keyof typeof MESSAGES.en, vars?: Record<string, string>): string {
-  let message: string = MESSAGES[lang][key];
+const MESSAGE_CACHE = new Map<string, string>();
+
+export function getMessage(lang: string, key: keyof typeof MESSAGES.en, vars?: Record<string, string>): string {
+  const cacheKey = `${lang}:${key}`;
+  let message = MESSAGE_CACHE.get(cacheKey);
+  if (!message) {
+    const langMessages = (MESSAGES as any)[lang];
+    message = (langMessages?.[key] ?? MESSAGES.en[key]) as string;
+    MESSAGE_CACHE.set(cacheKey, message);
+  }
   if (vars) {
     Object.entries(vars).forEach(([varKey, value]) => {
-      message = message.replace(`{${varKey}}`, value);
+      message = (message as string).replace(`{${varKey}}`, value);
     });
   }
-  return message;
+  return message as string;
 }

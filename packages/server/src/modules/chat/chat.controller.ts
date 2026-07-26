@@ -3,6 +3,16 @@ import { ChatService } from './chat.service.js';
 import { ApiResponseHelper } from '../../utils/apiResponse.js';
 
 export class ChatController {
+  static async getChatById(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const result = await ChatService.getChatById(id);
+      ApiResponseHelper.success(res, result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async startChat(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await ChatService.startSession(req.body);

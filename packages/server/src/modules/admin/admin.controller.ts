@@ -66,6 +66,19 @@ export class AdminController {
     }
   }
 
+  static async exportFAQs(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { FAQService } = await import('../faq/faq.service.js');
+      const { status, category, ids } = req.query as any;
+      const csv = await FAQService.exportToCsv(undefined, { status, category, ids: ids ? ids.split(',') : undefined });
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename=faqs-export-${Date.now()}.csv`);
+      res.send(csv);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async listChats(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const result = await AdminDashboardService.listAllChats(req.query as any);

@@ -7,7 +7,7 @@ export interface Knowledge {
   content: string;
   metaDescription?: string;
   tags: string[];
-  language: 'en' | 'hi' | 'both';
+  language: string;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -21,7 +21,7 @@ export interface KnowledgeResponse {
   content: string;
   metaDescription?: string;
   tags: string[];
-  language: 'en' | 'hi' | 'both';
+  language: string;
   isActive: boolean;
 }
 
@@ -33,7 +33,7 @@ export interface CreateKnowledgeRequest {
   content: string;
   metaDescription?: string;
   tags: string[];
-  language?: 'en' | 'hi' | 'both';
+  language?: string;
 }
 
 export interface UpdateKnowledgeRequest {
@@ -43,6 +43,6 @@ export interface UpdateKnowledgeRequest {
   content?: string;
   metaDescription?: string;
   tags?: string[];
-  language?: 'en' | 'hi' | 'both';
+  language?: string;
   isActive?: boolean;
 }

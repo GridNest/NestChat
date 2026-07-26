@@ -96,4 +96,67 @@ export class FAQController {
       next(error);
     }
   }
+
+  static async bulkDelete(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { ids } = req.body;
+      await FAQService.bulkDelete(ids);
+      ApiResponseHelper.success(res, { message: `${ids.length} FAQs deleted` });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async bulkUpdateStatus(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { ids, status } = req.body;
+      await FAQService.bulkUpdateStatus(ids, status);
+      ApiResponseHelper.success(res, { message: `${ids.length} FAQs updated to ${status}` });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async downloadTemplate(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const csv = FAQService.generateCsvTemplate();
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=faq-import-template.csv');
+      res.send(csv);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async exportCsv(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { clientId } = req.params;
+      const csv = await FAQService.exportToCsv(clientId, req.query as any);
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename=faqs-${clientId}-${Date.now()}.csv`);
+      res.send(csv);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async importPreview(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { csv } = req.body;
+      const preview = await FAQService.importPreview(csv);
+      ApiResponseHelper.success(res, preview);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async importCsv(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { csv } = req.body;
+      const result = await FAQService.importFromCsv(csv);
+      ApiResponseHelper.success(res, result);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

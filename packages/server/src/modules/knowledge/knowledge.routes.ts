@@ -28,7 +28,17 @@ router.get(
   KnowledgeController.getBySlug
 );
 
+router.get(
+  '/:clientId/categories',
+  KnowledgeController.getCategories
+);
+
 router.use(authenticate);
+
+router.get(
+  '/template/download',
+  KnowledgeController.downloadTemplate
+);
 
 router.get(
   '/:clientId',
@@ -41,6 +51,42 @@ router.post(
   authorize('admin'),
   validate(createKnowledgeSchema),
   KnowledgeController.create
+);
+
+router.post(
+  '/bulk-delete',
+  authorize('admin'),
+  KnowledgeController.bulkDelete
+);
+
+router.post(
+  '/bulk-status',
+  authorize('admin'),
+  KnowledgeController.bulkUpdateStatus
+);
+
+router.post(
+  '/import/preview',
+  authorize('admin'),
+  KnowledgeController.importPreview
+);
+
+router.post(
+  '/import',
+  authorize('admin'),
+  KnowledgeController.importCsv
+);
+
+router.get(
+  '/export/all',
+  authorize('admin'),
+  KnowledgeController.exportAllCsv
+);
+
+router.get(
+  '/export/:clientId',
+  authorize('admin'),
+  KnowledgeController.exportCsv
 );
 
 router.get(

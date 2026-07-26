@@ -15,9 +15,20 @@ export interface ClientConfig {
   contactPhone?: string;
   contactAddress?: string;
   fallbackMessage: string;
-  allowedLanguages: ('en' | 'hi')[];
+  humanHandoverMessage: string;
+  allowedLanguages: string[];
   inquiryApiUrl?: string;
   inquiryApiKey?: string;
+  whatsapp?: string;
+  collectVisitorName: boolean;
+  collectEmail: boolean;
+  collectPhone: boolean;
+  enableChatHistory: boolean;
+  enableFAQs: boolean;
+  enableKnowledgeBase: boolean;
+  enableInquiryForm: boolean;
+  enableLiveAgent: boolean;
+  enableAnalytics: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,7 +46,18 @@ export interface ClientConfigResponse {
   contactPhone?: string;
   contactAddress?: string;
   fallbackMessage: string;
+  humanHandoverMessage: string;
   allowedLanguages: string[];
+  whatsapp?: string;
+  collectVisitorName: boolean;
+  collectEmail: boolean;
+  collectPhone: boolean;
+  enableChatHistory: boolean;
+  enableFAQs: boolean;
+  enableKnowledgeBase: boolean;
+  enableInquiryForm: boolean;
+  enableLiveAgent: boolean;
+  enableAnalytics: boolean;
 }
 
 export interface UpdateClientConfigRequest {
@@ -49,9 +71,20 @@ export interface UpdateClientConfigRequest {
   contactPhone?: string;
   contactAddress?: string;
   fallbackMessage?: string;
+  humanHandoverMessage?: string;
   allowedLanguages?: ('en' | 'hi')[];
   inquiryApiUrl?: string;
   inquiryApiKey?: string;
+  whatsapp?: string;
+  collectVisitorName?: boolean;
+  collectEmail?: boolean;
+  collectPhone?: boolean;
+  enableChatHistory?: boolean;
+  enableFAQs?: boolean;
+  enableKnowledgeBase?: boolean;
+  enableInquiryForm?: boolean;
+  enableLiveAgent?: boolean;
+  enableAnalytics?: boolean;
 }
 
 export interface WidgetConfigResponse {
@@ -87,7 +120,18 @@ export interface WidgetConfigResponse {
     contactPhone?: string;
     contactAddress?: string;
     fallbackMessage: string;
+    humanHandoverMessage: string;
     allowedLanguages: string[];
+    whatsapp?: string;
+    collectVisitorName: boolean;
+    collectEmail: boolean;
+    collectPhone: boolean;
+    enableChatHistory: boolean;
+    enableFAQs: boolean;
+    enableKnowledgeBase: boolean;
+    enableInquiryForm: boolean;
+    enableLiveAgent: boolean;
+    enableAnalytics: boolean;
   };
   modules: {
     name: string;
@@ -95,6 +139,7 @@ export interface WidgetConfigResponse {
     config: Record<string, any>;
   }[];
   language: string;
+  translations: Record<string, Record<string, string>>;
 }
 
 export interface QuickAction {

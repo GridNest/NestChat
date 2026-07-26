@@ -11,6 +11,7 @@ router.get('/audit-logs', authenticate, AdminController.getAuditLogs);
 router.get('/search', authenticate, AdminController.globalSearch);
 router.get('/knowledge', authenticate, AdminController.listKnowledge);
 router.get('/faqs', authenticate, AdminController.listFAQs);
+router.get('/faqs/export', authenticate, AdminController.exportFAQs);
 router.get('/chats', authenticate, AdminController.listChats);
 router.get('/inquiries', authenticate, AdminController.listInquiries);
 router.get('/unanswered', authenticate, AdminController.listUnanswered);

@@ -90,4 +90,88 @@ export class KnowledgeController {
       next(error);
     }
   }
+
+  static async getCategories(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { clientId } = req.params;
+      const result = await KnowledgeService.getCategories(clientId);
+      ApiResponseHelper.success(res, result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async bulkDelete(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { ids } = req.body;
+      await KnowledgeService.bulkDelete(ids);
+      ApiResponseHelper.success(res, { message: `${ids.length} articles deleted` });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async bulkUpdateStatus(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { ids, status } = req.body;
+      await KnowledgeService.bulkUpdateStatus(ids, status);
+      ApiResponseHelper.success(res, { message: `${ids.length} articles updated` });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async downloadTemplate(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const csv = KnowledgeService.generateCsvTemplate();
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=knowledge-import-template.csv');
+      res.send(csv);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async exportCsv(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { clientId } = req.params;
+      const csv = await KnowledgeService.exportToCsv(clientId, req.query as any);
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename=knowledge-${clientId}-${Date.now()}.csv`);
+      res.send(csv);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async exportAllCsv(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const csv = await KnowledgeService.exportToCsv(undefined, req.query as any);
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename=knowledge-all-${Date.now()}.csv`);
+      res.send(csv);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async importPreview(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { csv } = req.body;
+      const preview = await KnowledgeService.importPreview(csv);
+      ApiResponseHelper.success(res, preview);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async importCsv(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { csv } = req.body;
+      const result = await KnowledgeService.importFromCsv(csv);
+      ApiResponseHelper.success(res, result);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

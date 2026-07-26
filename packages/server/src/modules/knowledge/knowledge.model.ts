@@ -63,7 +63,6 @@ const knowledgeSchema = new Schema<KnowledgeDocument>(
     },
     language: {
       type: String,
-      enum: ['en', 'hi', 'both'],
       default: 'en',
     },
     priority: {

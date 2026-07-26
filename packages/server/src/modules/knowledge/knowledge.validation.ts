@@ -9,8 +9,9 @@ export const createKnowledgeSchema = z.object({
     metaDescription: z.string().max(500).optional(),
     tags: z.array(z.string()).optional().default([]),
     category: z.string().max(50).optional().default('general'),
-    language: z.enum(['en', 'hi', 'both']).optional().default('en'),
+    language: z.string().optional().default('en'),
     priority: z.number().int().min(0).max(100).optional().default(0),
+    status: z.enum(['published', 'draft']).optional().default('draft'),
   }),
 });
 
@@ -25,9 +26,10 @@ export const updateKnowledgeSchema = z.object({
     metaDescription: z.string().max(500).optional(),
     tags: z.array(z.string()).optional(),
     category: z.string().max(50).optional(),
-    language: z.enum(['en', 'hi', 'both']).optional(),
+    language: z.string().optional(),
     priority: z.number().int().min(0).max(100).optional(),
     isActive: z.boolean().optional(),
+    status: z.enum(['published', 'draft']).optional(),
   }),
 });
 
@@ -45,6 +47,8 @@ export const listKnowledgeSchema = z.object({
     page: z.string().optional(),
     limit: z.string().optional(),
     search: z.string().optional(),
+    category: z.string().optional(),
+    status: z.enum(['published', 'draft']).optional(),
     sort: z.enum(['title', 'pageName', 'priority', 'createdAt', 'updatedAt']).optional(),
     order: z.enum(['asc', 'desc']).optional(),
   }),
@@ -56,6 +60,6 @@ export const searchKnowledgeSchema = z.object({
   }),
   query: z.object({
     q: z.string().optional(),
-    language: z.enum(['en', 'hi', 'both']).optional(),
+    language: z.string().optional(),
   }),
 });

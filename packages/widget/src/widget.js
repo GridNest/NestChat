@@ -222,6 +222,7 @@
         display: flex;
         align-items: center;
         gap: 12px;
+        --primary-color: ${theme.primaryColor || '#3B82F6'};
       }
 
       .nestchat-avatar {
@@ -265,6 +266,33 @@
 
       .nestchat-close:hover {
         opacity: 1;
+      }
+
+      .nestchat-lang-switcher {
+        display: flex;
+        gap: 4px;
+        margin-right: 8px;
+      }
+
+      .nestchat-lang-btn {
+        background: rgba(255,255,255,0.2);
+        border: none;
+        color: white;
+        cursor: pointer;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+        transition: background 0.2s;
+      }
+
+      .nestchat-lang-btn:hover {
+        background: rgba(255,255,255,0.35);
+      }
+
+      .nestchat-lang-btn.active {
+        background: white;
+        color: var(--primary-color, #3B82F6);
+        font-weight: 600;
       }
 
       .nestchat-messages {
@@ -421,6 +449,7 @@
             <h3>${client.botName || 'Assistant'}</h3>
             <p>${client.companyName || 'Online'}</p>
           </div>
+          <div class="nestchat-lang-switcher" id="nestchat-lang-switcher"></div>
           <button class="nestchat-close" id="nestchat-close">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M18 6L6 18M6 6l12 12"/>
@@ -440,7 +469,7 @@
           </div>
         ` : ''}
         <div class="nestchat-input-area">
-          <input type="text" class="nestchat-input" id="nestchat-input" placeholder="Type your message..." />
+          <input type="text" class="nestchat-input" id="nestchat-input" placeholder="${config.translations?.[config.language]?.typeMessage || (config.language === 'hi' ? 'Apna message likhein...' : 'Type your message...')}" />
           <button class="nestchat-send" id="nestchat-send">
             <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
@@ -468,6 +497,26 @@
 
     let isOpen = false;
     let conversationId = null;
+    let currentLanguage = config.language || 'en';
+
+    // Language switcher
+    const allowedLangs = config.config?.allowedLanguages || ['en'];
+    if (allowedLangs.length > 1) {
+      const langSwitcher = shadowRoot.querySelector('#nestchat-lang-switcher');
+      allowedLangs.forEach(lang => {
+        const btn = document.createElement('button');
+        btn.className = 'nestchat-lang-btn' + (lang === currentLanguage ? ' active' : '');
+        btn.textContent = lang.toUpperCase();
+        btn.addEventListener('click', () => {
+          currentLanguage = lang;
+          langSwitcher.querySelectorAll('.nestchat-lang-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          const placeholder = shadowRoot.querySelector('#nestchat-input');
+          if (placeholder) placeholder.placeholder = config.translations?.[lang]?.typeMessage || (lang === 'hi' ? 'Apna message likhein...' : 'Type your message...');
+        });
+        langSwitcher.appendChild(btn);
+      });
+    }
 
     // Toggle widget
     function toggleWidget() {
@@ -517,6 +566,7 @@
             clientId: config.client.clientId,
             message: text,
             conversationId: conversationId,
+            language: currentLanguage,
           }),
         });
 

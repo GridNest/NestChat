@@ -26,6 +26,11 @@ router.post(
 );
 
 router.get(
+  '/detail/:id',
+  ChatController.getChatById
+);
+
+router.get(
   '/:sessionId',
   validate(getChatHistorySchema),
   ChatController.getHistory

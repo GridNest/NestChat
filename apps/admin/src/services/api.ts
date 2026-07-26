@@ -97,8 +97,20 @@ class AdminApi {
     return response.data;
   }
 
+  async getKnowledgeByClient(clientId: string, params?: Record<string, string>) {
+    const response = await this.client.get(`/knowledge/${clientId}`, { params });
+    return response.data;
+  }
+
+  async getKnowledgeCategories(clientId: string) {
+    const response = await this.client.get(`/knowledge/${clientId}/categories`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('nestchat_admin_token')}` },
+    });
+    return response.data;
+  }
+
   async getKnowledgeById(id: string) {
-    const response = await this.client.get(`/knowledge/${id}`);
+    const response = await this.client.get(`/knowledge/detail/${id}`);
     return response.data.data;
   }
 
@@ -117,6 +129,45 @@ class AdminApi {
     return response.data;
   }
 
+  async bulkDeleteKnowledge(ids: string[]) {
+    const response = await this.client.post('/knowledge/bulk-delete', { ids });
+    return response.data;
+  }
+
+  async bulkUpdateKnowledgeStatus(ids: string[], status: 'published' | 'draft') {
+    const response = await this.client.post('/knowledge/bulk-status', { ids, status });
+    return response.data;
+  }
+
+  async downloadKnowledgeTemplate() {
+    const response = await this.client.get('/knowledge/template/download', { responseType: 'blob' });
+    const url = URL.createObjectURL(response.data);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'knowledge-import-template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    return response.data;
+  }
+
+  async exportKnowledge(params?: Record<string, string>) {
+    const response = await this.client.get('/knowledge/export/all', {
+      params,
+      responseType: 'blob',
+    });
+    return response;
+  }
+
+  async previewKnowledgeImport(csv: string) {
+    const response = await this.client.post('/knowledge/import/preview', { csv });
+    return response.data;
+  }
+
+  async importKnowledge(csv: string) {
+    const response = await this.client.post('/knowledge/import', { csv });
+    return response.data;
+  }
+
   // FAQs
   async getFAQs(params?: Record<string, string>) {
     const response = await this.client.get('/admin/faqs', { params });
@@ -124,7 +175,7 @@ class AdminApi {
   }
 
   async getFAQById(id: string) {
-    const response = await this.client.get(`/faqs/${id}`);
+    const response = await this.client.get(`/faqs/detail/${id}`);
     return response.data.data;
   }
 
@@ -143,6 +194,46 @@ class AdminApi {
     return response.data;
   }
 
+  async bulkDeleteFAQs(ids: string[]) {
+    const response = await this.client.post('/faqs/bulk-delete', { ids });
+    return response.data;
+  }
+
+  async bulkUpdateFAQStatus(ids: string[], status: 'published' | 'draft') {
+    const response = await this.client.post('/faqs/bulk-status', { ids, status });
+    return response.data;
+  }
+
+  async downloadFAQTemplate() {
+    const response = await this.client.get('/faqs/template/download', { responseType: 'blob' });
+    const blob = new Blob([response.data], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'faq-import-template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    return response.data;
+  }
+
+  async exportFAQs(params?: Record<string, string>) {
+    const response = await this.client.get('/admin/faqs/export', {
+      params,
+      responseType: 'blob',
+    });
+    return response;
+  }
+
+  async previewFAQImport(csv: string) {
+    const response = await this.client.post('/faqs/import/preview', { csv });
+    return response.data;
+  }
+
+  async importFAQs(csv: string) {
+    const response = await this.client.post('/faqs/import', { csv });
+    return response.data;
+  }
+
   // Chats
   async getChats(params?: Record<string, string>) {
     const response = await this.client.get('/admin/chats', { params });
@@ -150,8 +241,8 @@ class AdminApi {
   }
 
   async getChatById(id: string) {
-    const response = await this.client.get(`/chat/${id}`);
-    return response.data.data;
+    const response = await this.client.get(`/chat/detail/${id}`);
+    return response.data;
   }
 
   // Inquiries
@@ -277,6 +368,17 @@ class AdminApi {
     return response.data;
   }
 
+  // Client Config
+  async resetClientConfig(clientId: string) {
+    const response = await this.client.post(`/client-configs/${clientId}/reset`);
+    return response.data;
+  }
+
+  async getClientConfigPreview(clientId: string) {
+    const response = await this.client.get(`/client-configs/${clientId}/preview`);
+    return response.data;
+  }
+
   // Widget Generator
   async getWidgetScript(clientId: string) {
     const response = await this.client.get(`/widget-generator/${clientId}/script`);
@@ -375,9 +477,85 @@ class AdminApi {
     return response.data;
   }
 
-  private async getCurrentClientId(): Promise<string> {
+  async getTranslations(clientId: string, language?: string) {
+    const params = language ? { language } : undefined;
+    const response = await this.client.get(`/translations/${clientId}`, { params });
+    return response.data;
+  }
+
+  async getTranslationsMap(clientId: string) {
+    const response = await this.client.get(`/translations/${clientId}/map`);
+    return response.data;
+  }
+
+  async upsertTranslation(clientId: string, language: string, key: string, value: string) {
+    const response = await this.client.post(`/translations/${clientId}`, { language, key, value });
+    return response.data;
+  }
+
+  async bulkUpsertTranslations(clientId: string, translations: Array<{ language: string; key: string; value: string }>) {
+    const response = await this.client.post(`/translations/${clientId}/bulk`, { translations });
+    return response.data;
+  }
+
+  async deleteTranslation(clientId: string, language: string, key: string) {
+    const response = await this.client.delete(`/translations/${clientId}`, { params: { language, key } });
+    return response.data;
+  }
+
+  async deleteTranslationLanguage(clientId: string, language: string) {
+    const response = await this.client.delete(`/translations/${clientId}/language/${language}`);
+    return response.data;
+  }
+
+  async getCurrentClientId(): Promise<string> {
     const response = await this.client.get('/auth/me');
     return response.data.data?.clientId || response.data.clientId || '';
+  }
+
+  async getAgentStatus() {
+    const response = await this.client.get('/agents/status');
+    return response.data;
+  }
+
+  async setAgentStatus(status: 'online' | 'offline' | 'away') {
+    const response = await this.client.put('/agents/status', { status });
+    return response.data;
+  }
+
+  async getAssignedChats() {
+    const response = await this.client.get('/agents/chats');
+    return response.data;
+  }
+
+  async assignChatToSelf(chatId: string) {
+    const response = await this.client.post('/agents/chats/assign', { chatId });
+    return response.data;
+  }
+
+  async sendAgentMessage(chatId: string, content: string) {
+    const response = await this.client.post('/agents/chats/send', { chatId, content });
+    return response.data;
+  }
+
+  async getAgentList(clientId: string) {
+    const response = await this.client.get(`/agents/client/${clientId}`);
+    return response.data;
+  }
+
+  async getAvailableAgents(clientId: string) {
+    const response = await this.client.get(`/agents/client/${clientId}/available`);
+    return response.data;
+  }
+
+  async assignChatToAgent(chatId: string, userId: string) {
+    const response = await this.client.post('/agents/assign', { chatId, userId });
+    return response.data;
+  }
+
+  async getAgentStats(clientId: string) {
+    const response = await this.client.get(`/agents/client/${clientId}/stats`);
+    return response.data;
   }
 }
 

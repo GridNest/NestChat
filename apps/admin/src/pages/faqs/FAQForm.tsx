@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useToast } from '../../components/ui/Toast';
+import { Modal } from '../../components/ui/Modal';
 import { adminApi } from '../../services/api';
 
 export function FAQForm() {
@@ -9,7 +10,9 @@ export function FAQForm() {
   const { addToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [clients, setClients] = useState<Array<{ id: string; name: string }>>([]);
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     clientId: '',
     question: '',
@@ -18,21 +21,20 @@ export function FAQForm() {
     priority: 0,
     language: 'en',
     keywords: '',
+    status: 'published' as 'published' | 'draft',
   });
 
   useEffect(() => {
     fetchClients();
-    if (id) {
-      fetchFAQ();
-    }
+    if (id) fetchFAQ();
   }, [id]);
 
   const fetchClients = async () => {
     try {
       const response = await adminApi.getClients({ page: '1', limit: '100' });
       setClients(response.data.clients.map((c: any) => ({ id: c.id, name: c.name })));
-    } catch (error) {
-      console.error('Failed to fetch clients:', error);
+    } catch {
+      console.error('Failed to fetch clients');
     }
   };
 
@@ -40,16 +42,19 @@ export function FAQForm() {
     try {
       setLoading(true);
       const response = await adminApi.getFAQById(id!);
+      const data = response;
       setFormData({
-        clientId: response.data.clientId || '',
-        question: response.data.question || '',
-        answer: response.data.answer || '',
-        category: response.data.category || '',
-        priority: response.data.priority || 0,
-        language: response.data.language || 'en',
-        keywords: response.data.keywords?.join(', ') || '',
+        clientId: data.clientId || '',
+        question: data.question || '',
+        answer: data.answer || '',
+        category: data.category || '',
+        priority: data.priority || 0,
+        language: data.language || 'en',
+        keywords: (data.keywords || []).join(', '),
+        status: data.status || (data.isActive ? 'published' : 'draft'),
       });
-    } catch (error) {
+      setLastUpdated(data.updatedAt ? new Date(data.updatedAt).toLocaleString() : null);
+    } catch {
       addToast('error', 'Failed to fetch FAQ');
     } finally {
       setLoading(false);
@@ -74,7 +79,7 @@ export function FAQForm() {
         addToast('success', 'FAQ created successfully');
       }
       navigate('/faqs');
-    } catch (error) {
+    } catch {
       addToast('error', 'Failed to save FAQ');
     } finally {
       setSaving(false);
@@ -85,94 +90,123 @@ export function FAQForm() {
     return <div className="text-center py-8">Loading...</div>;
   }
 
+  const inputClass = 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500';
+  const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
+
   return (
     <div className="max-w-3xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">
         {id ? 'Edit FAQ' : 'New FAQ'}
       </h1>
 
+      {lastUpdated && (
+        <div className="mb-4 p-3 bg-gray-50 rounded-lg text-sm text-gray-600">
+          Last updated: {lastUpdated}
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Client *</label>
-          <select
-            value={formData.clientId}
-            onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
-            required
-            className="w-full px-3 py-2 border rounded-lg"
-          >
-            <option value="">Select a client</option>
-            {clients.map((client) => (
-              <option key={client.id} value={client.id}>{client.name}</option>
-            ))}
-          </select>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className={labelClass}>Client *</label>
+            <select
+              value={formData.clientId}
+              onChange={(e) => setFormData({ ...formData, clientId: e.target.value })}
+              required
+              className={inputClass}
+            >
+              <option value="">Select a client</option>
+              {clients.map((client) => (
+                <option key={client.id} value={client.id}>{client.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className={labelClass}>Status</label>
+            <select
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value as 'published' | 'draft' })}
+              className={inputClass}
+            >
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+            </select>
+          </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Question *</label>
+          <label className={labelClass}>Question *</label>
           <input
             type="text"
             value={formData.question}
             onChange={(e) => setFormData({ ...formData, question: e.target.value })}
             required
-            className="w-full px-3 py-2 border rounded-lg"
+            maxLength={500}
+            className={inputClass}
           />
+          <span className="text-xs text-gray-500">{formData.question.length}/500</span>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Answer *</label>
+          <label className={labelClass}>Answer *</label>
           <textarea
             value={formData.answer}
             onChange={(e) => setFormData({ ...formData, answer: e.target.value })}
             required
             rows={6}
-            className="w-full px-3 py-2 border rounded-lg"
+            className={inputClass}
           />
+          <span className="text-xs text-gray-500">{formData.answer.length} characters</span>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+            <label className={labelClass}>Category</label>
             <input
               type="text"
+              list="faq-category-suggestions"
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg"
+              className={inputClass}
             />
+            <datalist id="faq-category-suggestions">
+              {availableCategories.map(cat => <option key={cat} value={cat} />)}
+            </datalist>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+            <label className={labelClass}>Priority</label>
             <input
               type="number"
               value={formData.priority}
               onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) || 0 })}
-              className="w-full px-3 py-2 border rounded-lg"
+              min={0}
+              max={100}
+              className={inputClass}
             />
           </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Language</label>
+            <label className={labelClass}>Language</label>
             <select
               value={formData.language}
               onChange={(e) => setFormData({ ...formData, language: e.target.value })}
-              className="w-full px-3 py-2 border rounded-lg"
+              className={inputClass}
             >
               <option value="en">English</option>
               <option value="hi">Hindi</option>
               <option value="both">Both</option>
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Keywords (comma separated)</label>
-            <input
-              type="text"
-              value={formData.keywords}
-              onChange={(e) => setFormData({ ...formData, keywords: e.target.value })}
-              placeholder="keyword1, keyword2"
-              className="w-full px-3 py-2 border rounded-lg"
-            />
-          </div>
+        </div>
+
+        <div>
+          <label className={labelClass}>Keywords / Tags (comma separated)</label>
+          <input
+            type="text"
+            value={formData.keywords}
+            onChange={(e) => setFormData({ ...formData, keywords: e.target.value })}
+            placeholder="tag1, tag2, tag3"
+            className={inputClass}
+          />
         </div>
 
         <div className="flex gap-4 pt-4">

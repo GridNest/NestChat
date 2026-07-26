@@ -1,5 +1,6 @@
 import { UpdateClientConfigRequest } from '@nestchat/shared';
 import { ClientConfigModel, ClientConfigDocument } from './clientConfig.model.js';
+import { ClientModel } from '../client/client.model.js';
 import { ApiError } from '../../utils/apiError.js';
 import { omitUndefined } from '../../utils/helpers.js';
 
@@ -16,9 +17,20 @@ export interface ClientConfigResponse {
   contactPhone?: string;
   contactAddress?: string;
   fallbackMessage: string;
+  humanHandoverMessage: string;
   allowedLanguages: string[];
   inquiryApiUrl?: string;
   inquiryApiKey?: string;
+  whatsapp?: string;
+  collectVisitorName: boolean;
+  collectEmail: boolean;
+  collectPhone: boolean;
+  enableChatHistory: boolean;
+  enableFAQs: boolean;
+  enableKnowledgeBase: boolean;
+  enableInquiryForm: boolean;
+  enableLiveAgent: boolean;
+  enableAnalytics: boolean;
 }
 
 export class ClientConfigService {
@@ -39,7 +51,17 @@ export class ClientConfigService {
       theme: 'light',
       quickActions: ['FAQ', 'Contact'],
       fallbackMessage: 'Let me connect you with our team.',
+      humanHandoverMessage: 'Let me connect you with our team.',
       allowedLanguages: ['en'],
+      collectVisitorName: false,
+      collectEmail: false,
+      collectPhone: false,
+      enableChatHistory: true,
+      enableFAQs: true,
+      enableKnowledgeBase: true,
+      enableInquiryForm: true,
+      enableLiveAgent: true,
+      enableAnalytics: true,
     });
 
     return this.formatConfig(config);
@@ -71,6 +93,27 @@ export class ClientConfigService {
     }
   }
 
+  static async getPreviewData(clientId: string): Promise<Record<string, any>> {
+    const client = await ClientModel.findById(clientId);
+    const config = await ClientConfigModel.findOne({ clientId });
+
+    if (!client) {
+      throw ApiError.notFound('Client not found');
+    }
+
+    return {
+      client: {
+        name: client.name,
+        companyName: client.companyName,
+        logo: client.logo,
+        botName: client.botName,
+        primaryColor: client.primaryColor,
+        secondaryColor: client.secondaryColor,
+      },
+      config: config ? this.formatConfig(config) : null,
+    };
+  }
+
   private static formatConfig(config: ClientConfigDocument): ClientConfigResponse {
     return {
       id: config._id.toString(),
@@ -85,9 +128,20 @@ export class ClientConfigService {
       contactPhone: config.contactPhone,
       contactAddress: config.contactAddress,
       fallbackMessage: config.fallbackMessage,
+      humanHandoverMessage: config.humanHandoverMessage,
       allowedLanguages: config.allowedLanguages,
       inquiryApiUrl: config.inquiryApiUrl,
       inquiryApiKey: config.inquiryApiKey,
+      whatsapp: config.whatsapp,
+      collectVisitorName: config.collectVisitorName,
+      collectEmail: config.collectEmail,
+      collectPhone: config.collectPhone,
+      enableChatHistory: config.enableChatHistory,
+      enableFAQs: config.enableFAQs,
+      enableKnowledgeBase: config.enableKnowledgeBase,
+      enableInquiryForm: config.enableInquiryForm,
+      enableLiveAgent: config.enableLiveAgent,
+      enableAnalytics: config.enableAnalytics,
     };
   }
 }

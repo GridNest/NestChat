@@ -2,9 +2,9 @@ import mongoose, { Document, Schema } from 'mongoose';
 
 export interface ChatMessageDocument extends Document {
   chatId: mongoose.Types.ObjectId;
-  sender: 'user' | 'bot';
+  sender: 'user' | 'bot' | 'agent';
   content: string;
-  messageType: 'text' | 'quickAction' | 'inquiry' | 'system';
+  messageType: 'text' | 'quickAction' | 'inquiry' | 'system' | 'agent';
   metadata?: {
     matchedType?: 'faq' | 'knowledge' | 'quickAction' | 'unknown';
     matchedId?: string;
@@ -25,7 +25,7 @@ const chatMessageSchema = new Schema<ChatMessageDocument>(
     },
     sender: {
       type: String,
-      enum: ['user', 'bot'],
+      enum: ['user', 'bot', 'agent'],
       required: true,
     },
     content: {
@@ -34,7 +34,7 @@ const chatMessageSchema = new Schema<ChatMessageDocument>(
     },
     messageType: {
       type: String,
-      enum: ['text', 'quickAction', 'inquiry', 'system'],
+      enum: ['text', 'quickAction', 'inquiry', 'system', 'agent'],
       default: 'text',
     },
     metadata: {

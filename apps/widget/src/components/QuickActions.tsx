@@ -16,14 +16,16 @@ export function QuickActions({ actions }: QuickActionsProps) {
           ? action.labelHi
           : action.label;
 
+        const primaryColor = clientConfig?.theme?.primaryColor || '#3B82F6';
+
         return (
           <button
             key={action.id}
             onClick={() => handleQuickAction(action.action)}
             className="px-3 py-1.5 text-sm border rounded-full hover:bg-gray-50 transition-colors"
             style={{
-              borderColor: clientConfig?.brandColor || '#3B82F6',
-              color: clientConfig?.brandColor || '#3B82F6',
+              borderColor: primaryColor,
+              color: primaryColor,
             }}
           >
             {label}

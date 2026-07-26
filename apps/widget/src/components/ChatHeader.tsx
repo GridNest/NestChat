@@ -1,46 +1,56 @@
 import React from 'react';
 import { useWidgetStore } from '../store/chatStore';
+import { LANGUAGES } from '@nestchat/shared';
+
+const LANG_BY_CODE = Object.fromEntries(Object.entries(LANGUAGES).map(([k, v]) => [k, v]));
 
 export function ChatHeader() {
   const { clientConfig, closeWidget, language, setLanguage } = useWidgetStore();
 
   if (!clientConfig) return null;
 
+  const allowedLanguages = clientConfig.config.allowedLanguages || [];
+  const primaryColor = clientConfig.theme.primaryColor || '#3B82F6';
+
   return (
     <div
       className="p-4 text-white flex items-center justify-between"
-      style={{ backgroundColor: clientConfig.brandColor }}
+      style={{ backgroundColor: primaryColor }}
     >
       <div className="flex items-center gap-3">
-        {clientConfig.logo && (
+        {clientConfig.client.logo && (
           <img
-            src={clientConfig.logo}
-            alt={clientConfig.clientName}
+            src={clientConfig.client.logo}
+            alt={clientConfig.client.name}
             className="w-10 h-10 rounded-full object-cover"
           />
         )}
         <div>
-          <h3 className="font-semibold">{clientConfig.botName}</h3>
-          <p className="text-xs opacity-90">{clientConfig.clientName}</p>
+          <h3 className="font-semibold">{clientConfig.client.botName}</h3>
+          <p className="text-xs opacity-90">{clientConfig.client.name}</p>
         </div>
       </div>
 
       <div className="flex items-center gap-2">
-        {clientConfig.allowedLanguages.length > 1 && (
+        {allowedLanguages.length > 1 && (
           <div className="flex gap-1">
-            {clientConfig.allowedLanguages.map((lang) => (
-              <button
-                key={lang}
-                onClick={() => setLanguage(lang)}
-                className={`px-2 py-1 text-xs rounded ${
-                  language === lang
-                    ? 'bg-white text-blue-600'
-                    : 'bg-white/20 hover:bg-white/30'
-                }`}
-              >
-                {lang === 'en' ? 'EN' : 'HI'}
-              </button>
-            ))}
+            {allowedLanguages.map((lang) => {
+              const langInfo = (LANGUAGES as Record<string, { code: string; name: string; nativeName: string }>)[lang];
+              return (
+                <button
+                  key={lang}
+                  onClick={() => setLanguage(lang)}
+                  className={`px-2 py-1 text-xs rounded ${
+                    language === lang
+                      ? 'bg-white text-blue-600'
+                      : 'bg-white/20 hover:bg-white/30'
+                  }`}
+                  title={langInfo?.name || lang.toUpperCase()}
+                >
+                  {lang.toUpperCase()}
+                </button>
+              );
+            })}
           </div>
         )}
         

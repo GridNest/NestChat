@@ -7,6 +7,7 @@ export interface FAQ {
   answerHi?: string;
   keywords: string[];
   priority: number;
+  language?: 'en' | 'hi' | 'both';
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -20,6 +21,7 @@ export interface FAQResponse {
   answerHi?: string;
   keywords: string[];
   priority: number;
+  language?: string;
   isActive: boolean;
 }
 
@@ -31,6 +33,7 @@ export interface CreateFAQRequest {
   answerHi?: string;
   keywords: string[];
   priority?: number;
+  language?: 'en' | 'hi' | 'both';
 }
 
 export interface UpdateFAQRequest {
@@ -40,5 +43,6 @@ export interface UpdateFAQRequest {
   answerHi?: string;
   keywords?: string[];
   priority?: number;
+  language?: 'en' | 'hi' | 'both';
   isActive?: boolean;
 }

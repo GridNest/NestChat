@@ -10,8 +10,10 @@ export interface ChatDocument extends Document {
     url?: string;
     ip?: string;
   };
-  language: 'en' | 'hi';
+  language: string;
   status: 'active' | 'ended';
+  assignedTo?: mongoose.Types.ObjectId;
+  priority: 'low' | 'normal' | 'high';
   startedAt: Date;
   endedAt?: Date;
   messageCount: number;
@@ -52,6 +54,16 @@ const chatSchema = new Schema<ChatDocument>(
       type: String,
       enum: ['active', 'ended'],
       default: 'active',
+    },
+    assignedTo: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      index: true,
+    },
+    priority: {
+      type: String,
+      enum: ['low', 'normal', 'high'],
+      default: 'normal',
     },
     startedAt: {
       type: Date,

@@ -1,6 +1,6 @@
-import { MESSAGES, MessageLanguage, getMessage } from '@nestchat/shared';
+import { MESSAGES, getMessage, LanguageCode } from '@nestchat/shared';
 
-export type Language = 'en' | 'hi';
+export type Language = LanguageCode;
 
 export interface LanguageDetectionResult {
   language: Language;
@@ -69,7 +69,7 @@ export class LanguageEngine {
   }
 
   static getMessage(lang: Language, key: keyof typeof MESSAGES.en, vars?: Record<string, string>): string {
-    return getMessage(lang as MessageLanguage, key, vars);
+    return getMessage(lang, key, vars);
   }
 
   static getWelcomeMessage(lang: Language, botName: string): string {

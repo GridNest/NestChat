@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { WidgetState, Message, WidgetConfig } from '../types';
+import { WidgetState, Message, ServerWidgetConfig } from '../types';
 import { createApiClient } from '../services/api';
 
 function generateId(): string {
@@ -7,11 +7,11 @@ function generateId(): string {
 }
 
 interface WidgetStore extends WidgetState {
-  setConfig: (config: WidgetConfig) => void;
+  setConfig: (config: ServerWidgetConfig) => void;
   toggleWidget: () => void;
   openWidget: () => void;
   closeWidget: () => void;
-  setLanguage: (lang: 'en' | 'hi') => void;
+  setLanguage: (lang: string) => void;
   addMessage: (message: Message) => void;
   setTyping: (typing: boolean) => void;
   setCurrentView: (view: 'chat' | 'inquiry') => void;
@@ -34,33 +34,33 @@ export const useWidgetStore = create<WidgetStore>((set, get) => ({
   inquiryStep: '',
   inquiryData: {},
 
-  setConfig: (config) => set({ clientConfig: config, language: config.defaultLanguage }),
-  
+  setConfig: (config) => set({ clientConfig: config, language: config.language }),
+
   toggleWidget: () => set((state) => ({ isOpen: !state.isOpen })),
-  
+
   openWidget: () => set({ isOpen: true }),
-  
+
   closeWidget: () => set({ isOpen: false }),
-  
+
   setLanguage: (lang) => set({ language: lang }),
-  
+
   addMessage: (message) => set((state) => ({
     messages: [...state.messages, message],
   })),
-  
+
   setTyping: (typing) => set({ isTyping: typing }),
-  
+
   setCurrentView: (view) => set({ currentView: view }),
-  
+
   setInquiryStep: (step) => set({ inquiryStep: step }),
-  
+
   setInquiryData: (data) => set({ inquiryData: data }),
 
   initializeChat: async (clientId: string) => {
     try {
       const api = createApiClient(clientId);
       const config = await api.getConfig();
-      set({ clientConfig: config });
+      set({ clientConfig: config, language: config.language });
 
       const visitorId = localStorage.getItem('nestchat_visitor_id') || generateId();
       localStorage.setItem('nestchat_visitor_id', visitorId);
@@ -97,8 +97,7 @@ export const useWidgetStore = create<WidgetStore>((set, get) => ({
     }));
 
     try {
-      const clientId = clientConfig.clientName;
-      const api = createApiClient(clientId);
+      const api = createApiClient(clientConfig.client.clientId);
       const response = await api.sendMessage(chatId, sessionId, content, language);
 
       set((state) => ({
@@ -115,12 +114,9 @@ export const useWidgetStore = create<WidgetStore>((set, get) => ({
     const { clientConfig } = get();
     if (!clientConfig) return;
 
-    const actionObj = clientConfig.quickActions.find((a) => a.action === action);
+    const actionObj = clientConfig.config.quickActions.find((a) => a === action);
     if (actionObj) {
-      const label = get().language === 'hi' && actionObj.labelHi
-        ? actionObj.labelHi
-        : actionObj.label;
-      get().sendMessage(label);
+      get().sendMessage(actionObj);
     }
   },
 }));

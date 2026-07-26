@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useWidgetStore } from '../store/chatStore';
+import { getWidgetTranslation } from '../types';
 
 export function ChatInput() {
   const [input, setInput] = useState('');
@@ -13,7 +14,8 @@ export function ChatInput() {
     }
   };
 
-  const placeholder = language === 'hi' ? 'Apna message likhein...' : 'Type your message...';
+  const placeholder = getWidgetTranslation(clientConfig, language, 'typeMessage', 'Type your message...');
+  const primaryColor = clientConfig?.theme?.primaryColor || '#3B82F6';
 
   return (
     <form onSubmit={handleSubmit} className="p-4 border-t bg-gray-50">
@@ -29,7 +31,7 @@ export function ChatInput() {
           type="submit"
           disabled={!input.trim()}
           className="px-4 py-2 text-white rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ backgroundColor: clientConfig?.brandColor || '#3B82F6' }}
+          style={{ backgroundColor: primaryColor }}
         >
           <svg
             className="w-5 h-5"

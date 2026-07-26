@@ -8,6 +8,7 @@ export interface FAQDocument extends Document {
   answerHi?: string;
   keywords: string[];
   priority: number;
+  language: 'en' | 'hi' | 'both';
   isActive: boolean;
   isDeleted: boolean;
   createdAt: Date;
@@ -48,6 +49,11 @@ const faqSchema = new Schema<FAQDocument>(
     priority: {
       type: Number,
       default: 0,
+    },
+    language: {
+      type: String,
+      enum: ['en', 'hi', 'both'],
+      default: 'en',
     },
     isActive: {
       type: Boolean,

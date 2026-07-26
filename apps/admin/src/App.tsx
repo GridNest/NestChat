@@ -28,6 +28,8 @@ import { WidgetPreview } from './pages/widget/WidgetPreview';
 import { AnalyticsDashboard } from './pages/analytics/AnalyticsDashboard';
 import { ReportsPage } from './pages/reports/ReportsPage';
 import { SystemLogsPage } from './pages/logs/SystemLogsPage';
+import { ClientConfiguration } from './pages/clients/ClientConfiguration';
+import { TranslationsPage } from './pages/translations/TranslationsPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore();
@@ -72,6 +74,7 @@ function App() {
                     <Route path="/clients/:id" element={<ClientDetail />} />
                     <Route path="/clients/:id/edit" element={<ClientCreate />} />
                     <Route path="/clients/:id/theme" element={<ClientTheme />} />
+                    <Route path="/clients/:id/config" element={<ClientConfiguration />} />
                     <Route path="/knowledge" element={<KnowledgeList />} />
                     <Route path="/knowledge/new" element={<KnowledgeForm />} />
                     <Route path="/knowledge/:id/edit" element={<KnowledgeForm />} />
@@ -86,6 +89,7 @@ function App() {
                     <Route path="/users" element={<UserList />} />
                     <Route path="/users/new" element={<UserForm />} />
                     <Route path="/users/:id/edit" element={<UserForm />} />
+                    <Route path="/translations" element={<TranslationsPage />} />
                     <Route path="/settings" element={<SettingsPage />} />
                     <Route path="/audit-logs" element={<AuditLogList />} />
                     <Route path="/notifications" element={<NotificationList />} />

@@ -16,9 +16,20 @@ export interface ClientConfigDocument extends Document {
   contactPhone?: string;
   contactAddress?: string;
   fallbackMessage: string;
+  humanHandoverMessage: string;
   allowedLanguages: ('en' | 'hi')[];
   inquiryApiUrl?: string;
   inquiryApiKey?: string;
+  whatsapp?: string;
+  collectVisitorName: boolean;
+  collectEmail: boolean;
+  collectPhone: boolean;
+  enableChatHistory: boolean;
+  enableFAQs: boolean;
+  enableKnowledgeBase: boolean;
+  enableInquiryForm: boolean;
+  enableLiveAgent: boolean;
+  enableAnalytics: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -72,7 +83,6 @@ const clientConfigSchema = new Schema<ClientConfigDocument>(
     },
     allowedLanguages: {
       type: [String],
-      enum: ['en', 'hi'],
       default: ['en'],
     },
     inquiryApiUrl: {
@@ -80,6 +90,49 @@ const clientConfigSchema = new Schema<ClientConfigDocument>(
     },
     inquiryApiKey: {
       type: String,
+    },
+    humanHandoverMessage: {
+      type: String,
+      default: 'Let me connect you with our team.',
+    },
+    whatsapp: {
+      type: String,
+    },
+    collectVisitorName: {
+      type: Boolean,
+      default: false,
+    },
+    collectEmail: {
+      type: Boolean,
+      default: false,
+    },
+    collectPhone: {
+      type: Boolean,
+      default: false,
+    },
+    enableChatHistory: {
+      type: Boolean,
+      default: true,
+    },
+    enableFAQs: {
+      type: Boolean,
+      default: true,
+    },
+    enableKnowledgeBase: {
+      type: Boolean,
+      default: true,
+    },
+    enableInquiryForm: {
+      type: Boolean,
+      default: true,
+    },
+    enableLiveAgent: {
+      type: Boolean,
+      default: true,
+    },
+    enableAnalytics: {
+      type: Boolean,
+      default: true,
     },
   },
   {

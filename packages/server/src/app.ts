@@ -33,6 +33,8 @@ import { analyticsRoutes } from './modules/analytics/analytics.routes.js';
 import { reportsRoutes } from './modules/reports/reports.routes.js';
 import { healthRoutes } from './modules/health/health.routes.js';
 import { systemLogRoutes } from './modules/systemLog/systemLog.routes.js';
+import { translationRoutes } from './modules/translation/translation.routes.js';
+import { agentRoutes } from './modules/agent/agent.routes.js';
 import { logger } from './utils/logger.js';
 
 const app: Express = express();
@@ -80,6 +82,8 @@ app.use('/api/widget-generator', widgetGeneratorRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/system-logs', systemLogRoutes);
+app.use('/api/translations', translationRoutes);
+app.use('/api/agents', agentRoutes);
 
 app.get('/widget.js', (req, res) => {
   res.setHeader('Content-Type', 'application/javascript');

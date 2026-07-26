@@ -5,7 +5,7 @@ export const startChatSchema = z.object({
     clientId: z.string().min(1, 'Client ID is required'),
     sessionId: z.string().min(1, 'Session ID is required'),
     visitorId: z.string().min(1, 'Visitor ID is required'),
-    language: z.enum(['en', 'hi']).optional().default('en'),
+    language: z.string().optional().default('en'),
     visitorInfo: z.object({
       userAgent: z.string().optional(),
       referrer: z.string().optional(),
@@ -20,7 +20,7 @@ export const sendMessageSchema = z.object({
     sessionId: z.string().min(1, 'Session ID is required'),
     clientId: z.string().min(1, 'Client ID is required'),
     content: z.string().min(1, 'Message content is required').max(5000),
-    language: z.enum(['en', 'hi']).optional(),
+    language: z.string().optional(),
   }),
 });
 

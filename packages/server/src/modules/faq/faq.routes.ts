@@ -33,7 +33,17 @@ router.get(
   FAQController.search
 );
 
+router.get(
+  '/:clientId/categories',
+  FAQController.getCategories
+);
+
 router.use(authenticate);
+
+router.get(
+  '/template/download',
+  FAQController.downloadTemplate
+);
 
 router.get(
   '/:clientId',
@@ -46,6 +56,36 @@ router.post(
   authorize('admin'),
   validate(createFAQSchema),
   FAQController.create
+);
+
+router.post(
+  '/bulk-delete',
+  authorize('admin'),
+  FAQController.bulkDelete
+);
+
+router.post(
+  '/bulk-status',
+  authorize('admin'),
+  FAQController.bulkUpdateStatus
+);
+
+router.post(
+  '/import/preview',
+  authorize('admin'),
+  FAQController.importPreview
+);
+
+router.post(
+  '/import',
+  authorize('admin'),
+  FAQController.importCsv
+);
+
+router.get(
+  '/export/:clientId',
+  authorize('admin'),
+  FAQController.exportCsv
 );
 
 router.get(

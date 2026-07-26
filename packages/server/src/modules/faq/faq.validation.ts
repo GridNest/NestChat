@@ -7,8 +7,10 @@ export const createFAQSchema = z.object({
     question: z.string().min(1, 'Question is required').max(500),
     answer: z.string().min(1, 'Answer is required'),
     answerHi: z.string().max(1000).optional(),
+    language: z.enum(['en', 'hi', 'both']).optional().default('en'),
     keywords: z.array(z.string()).optional().default([]),
     priority: z.number().int().min(0).max(100).optional().default(0),
+    status: z.enum(['published', 'draft']).optional().default('published'),
   }),
 });
 
@@ -21,9 +23,11 @@ export const updateFAQSchema = z.object({
     question: z.string().min(1).max(500).optional(),
     answer: z.string().min(1).optional(),
     answerHi: z.string().max(1000).optional(),
+    language: z.enum(['en', 'hi', 'both']).optional(),
     keywords: z.array(z.string()).optional(),
     priority: z.number().int().min(0).max(100).optional(),
     isActive: z.boolean().optional(),
+    status: z.enum(['published', 'draft']).optional(),
   }),
 });
 
@@ -42,8 +46,9 @@ export const listFAQSchema = z.object({
     limit: z.string().optional(),
     search: z.string().optional(),
     category: z.string().optional(),
-    sort: z.enum(['question', 'category', 'priority', 'createdAt', 'updatedAt']).optional(),
+    sort: z.enum(['question', 'category', 'priority', 'language', 'createdAt', 'updatedAt']).optional(),
     order: z.enum(['asc', 'desc']).optional(),
+    language: z.string().optional(),
   }),
 });
 
