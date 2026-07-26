@@ -1,4 +1,4 @@
-import { WidgetConfig, Message, StartChatResponse, ChatResponse } from '../types';
+import { ServerWidgetConfig, Message, StartChatResponse, ChatResponse } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -27,8 +27,8 @@ class WidgetApi {
     return data.data;
   }
 
-  async getConfig(): Promise<WidgetConfig> {
-    return this.fetch<WidgetConfig>(`/widget/${this.clientId}/config`);
+  async getConfig(): Promise<ServerWidgetConfig> {
+    return this.fetch<ServerWidgetConfig>(`/widget/${this.clientId}/config`);
   }
 
   async startChat(sessionId: string, visitorId: string, language: string): Promise<StartChatResponse> {

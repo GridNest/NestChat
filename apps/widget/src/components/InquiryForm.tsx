@@ -69,9 +69,9 @@ export function InquiryForm() {
         timestamp: new Date(),
       });
 
-      const api = createApiClient(clientConfig.clientName);
+      const api = createApiClient(clientConfig.client.clientId);
       await api.submitInquiry({
-        clientId: clientConfig.clientName,
+        clientId: clientConfig.client.clientId,
         sessionId,
         chatId: chatId || '',
         ...data,
@@ -156,7 +156,7 @@ export function InquiryForm() {
           <button
             type="submit"
             className="flex-1 px-4 py-2 text-white rounded-lg transition-colors text-sm disabled:opacity-50"
-            style={{ backgroundColor: clientConfig?.brandColor || '#3B82F6' }}
+            style={{ backgroundColor: clientConfig?.theme?.primaryColor || '#3B82F6' }}
             disabled={isSubmitting}
           >
             {isSubmitting 

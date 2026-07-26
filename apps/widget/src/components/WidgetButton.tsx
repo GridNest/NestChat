@@ -9,7 +9,7 @@ export function WidgetButton() {
       onClick={toggleWidget}
       className="fixed bottom-6 right-6 w-14 h-14 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center z-50"
       style={{
-        backgroundColor: clientConfig?.brandColor || '#3B82F6',
+        backgroundColor: clientConfig?.theme?.primaryColor || '#3B82F6',
       }}
     >
       {isOpen ? (

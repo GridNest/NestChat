@@ -20,7 +20,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
         }`}
         style={
           !isBot
-            ? { backgroundColor: clientConfig?.brandColor || '#3B82F6' }
+            ? { backgroundColor: clientConfig?.theme?.primaryColor || '#3B82F6' }
             : undefined
         }
       >
