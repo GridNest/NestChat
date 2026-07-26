@@ -58,6 +58,17 @@ export class ChatService {
     session: ChatSession;
     welcomeMessage: ChatMessageItem;
   }> {
+    const ClientModel = mongoose.model('Client');
+    let clientDoc: any = null;
+    if (mongoose.Types.ObjectId.isValid(data.clientId)) {
+      clientDoc = await ClientModel.findById(data.clientId).lean();
+    }
+    if (!clientDoc) {
+      clientDoc = await ClientModel.findOne({ clientId: data.clientId.trim().toLowerCase() }).lean();
+    }
+
+    const resolvedClientId = clientDoc ? clientDoc._id : data.clientId;
+
     const existingChat = await ChatModel.findOne({
       sessionId: data.sessionId,
       status: 'active',
@@ -76,7 +87,7 @@ export class ChatService {
     }
 
     const chat = await ChatModel.create({
-      clientId: data.clientId,
+      clientId: resolvedClientId,
       sessionId: data.sessionId,
       visitorId: data.visitorId,
       language: data.language || 'en',
@@ -84,7 +95,7 @@ export class ChatService {
       status: 'active',
     });
 
-    const clientName = await this.getClientName(data.clientId);
+    const clientName = clientDoc ? (clientDoc.name || clientDoc.companyName || 'NestChat') : await this.getClientName(data.clientId);
     const welcomeContent = ResponseEngine.getWelcomeResponse(
       (data.language || 'en') as any,
       clientName
@@ -341,8 +352,14 @@ export class ChatService {
   private static async getClientName(clientId: string): Promise<string> {
     try {
       const ClientModel = mongoose.model('Client');
-      const client = await ClientModel.findById(clientId).lean();
-      return (client as any)?.name || 'NestChat';
+      let client: any = null;
+      if (mongoose.Types.ObjectId.isValid(clientId)) {
+        client = await ClientModel.findById(clientId).lean();
+      }
+      if (!client) {
+        client = await ClientModel.findOne({ clientId: clientId.trim().toLowerCase() }).lean();
+      }
+      return (client as any)?.name || (client as any)?.companyName || 'NestChat';
     } catch {
       return 'NestChat';
     }

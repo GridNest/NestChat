@@ -1,6 +1,8 @@
+import mongoose from 'mongoose';
 import { SearchService, SearchResult, SearchOptions } from './searchService.js';
 import { FAQModel } from '../faq/faq.model.js';
 import { KnowledgeModel } from '../knowledge/knowledge.model.js';
+import { ClientModel } from '../client/client.model.js';
 import { normalizeQuestion, extractKeywords, calculateSimilarity } from '@nestchat/shared';
 import { DEFAULT_QUICK_ACTIONS } from '@nestchat/shared';
 
@@ -22,6 +24,22 @@ export interface KnowledgeEngineOptions {
 }
 
 export class KnowledgeEngine {
+  private static async resolveClientIds(clientId: string): Promise<any[]> {
+    const ids: any[] = [clientId];
+    if (clientId && !mongoose.Types.ObjectId.isValid(clientId)) {
+      const client = await ClientModel.findOne({ clientId: clientId.trim().toLowerCase() }).lean();
+      if (client) {
+        ids.push(client._id);
+      }
+    } else if (clientId && mongoose.Types.ObjectId.isValid(clientId)) {
+      const client = await ClientModel.findById(clientId).lean();
+      if (client) {
+        ids.push(client.clientId);
+      }
+    }
+    return ids;
+  }
+
   static async search(options: KnowledgeEngineOptions): Promise<KnowledgeMatch> {
     const { clientId, language, query } = options;
 
@@ -50,8 +68,10 @@ export class KnowledgeEngine {
     const normalizedQuery = normalizeQuestion(query).trim().toLowerCase();
     const queryKeywords = extractKeywords(normalizedQuery);
 
+    const clientIds = await this.resolveClientIds(clientId);
+
     const faqs = await FAQModel.find({
-      clientId,
+      clientId: { $in: clientIds },
       isActive: true,
       isDeleted: false,
     }).lean();
@@ -145,8 +165,10 @@ export class KnowledgeEngine {
     const normalizedQuery = normalizeQuestion(query);
     const queryKeywords = extractKeywords(normalizedQuery);
 
+    const clientIds = await this.resolveClientIds(clientId);
+
     const knowledgeItems = await KnowledgeModel.find({
-      clientId,
+      clientId: { $in: clientIds },
       isActive: true,
       isDeleted: false,
     }).lean();
