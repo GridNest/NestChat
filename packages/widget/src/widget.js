@@ -495,9 +495,67 @@
     const quickActions = shadowRoot.querySelector('#nestchat-quick-actions');
     const badge = shadowRoot.querySelector('#nestchat-badge');
 
+    function generateId() {
+      return 'nc_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+    }
+
+    function getVisitorId() {
+      try {
+        let vId = localStorage.getItem('nestchat_visitor_id');
+        if (!vId) {
+          vId = generateId();
+          localStorage.setItem('nestchat_visitor_id', vId);
+        }
+        return vId;
+      } catch (e) {
+        return generateId();
+      }
+    }
+
+    function getSessionId() {
+      try {
+        let sId = sessionStorage.getItem('nestchat_session_id');
+        if (!sId) {
+          sId = generateId();
+          sessionStorage.setItem('nestchat_session_id', sId);
+        }
+        return sId;
+      } catch (e) {
+        return generateId();
+      }
+    }
+
     let isOpen = false;
-    let conversationId = null;
+    let chatId = null;
+    let sessionId = getSessionId();
+    let visitorId = getVisitorId();
     let currentLanguage = config.language || 'en';
+
+    async function startSession() {
+      try {
+        const response = await fetch(`${API_BASE}/chat/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            clientId: config.client.clientId,
+            sessionId: sessionId,
+            visitorId: visitorId,
+            language: currentLanguage,
+          }),
+        });
+        const data = await response.json();
+        if (data.success && data.data && data.data.session) {
+          chatId = data.data.session.chatId;
+          return true;
+        }
+      } catch (err) {
+        console.error('[NestChat] Failed to start chat session:', err);
+      }
+      return false;
+    }
+
+    // Initialize session
+    startSession();
 
     // Language switcher
     const allowedLangs = config.config?.allowedLanguages || ['en'];
@@ -551,10 +609,19 @@
 
     // Send message to server
     async function sendMessage(text) {
-      if (!text.trim()) return;
+      if (!text || !text.trim()) return;
 
-      addMessage(text, 'user');
-      input.value = '';
+      const userText = text.trim();
+      addMessage(userText, 'user');
+      if (input) input.value = '';
+
+      if (!chatId) {
+        const ok = await startSession();
+        if (!ok || !chatId) {
+          addMessage(config.config?.fallbackMessage || 'Sorry, something went wrong starting the chat session.');
+          return;
+        }
+      }
 
       try {
         const response = await fetch(`${API_BASE}/chat/message`, {
@@ -563,22 +630,22 @@
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            chatId: chatId,
+            sessionId: sessionId,
             clientId: config.client.clientId,
-            message: text,
-            conversationId: conversationId,
+            content: userText,
             language: currentLanguage,
           }),
         });
 
         const data = await response.json();
         
-        if (data.success) {
-          conversationId = data.data.conversationId;
+        if (data.success && data.data && data.data.botMessage) {
           setTimeout(() => {
-            addMessage(data.data.response || 'I received your message.');
-          }, 500);
+            addMessage(data.data.botMessage.content || 'I received your message.');
+          }, 300);
         } else {
-          addMessage(config.config?.fallbackMessage || 'Sorry, something went wrong. Please try again.');
+          addMessage(data.error?.message || config.config?.fallbackMessage || 'Sorry, something went wrong. Please try again.');
         }
       } catch (error) {
         console.error('[NestChat] Error:', error);

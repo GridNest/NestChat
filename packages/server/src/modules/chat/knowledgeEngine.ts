@@ -47,7 +47,7 @@ export class KnowledgeEngine {
     query: string,
     language: string
   ): Promise<KnowledgeMatch> {
-    const normalizedQuery = normalizeQuestion(query);
+    const normalizedQuery = normalizeQuestion(query).trim().toLowerCase();
     const queryKeywords = extractKeywords(normalizedQuery);
 
     const faqs = await FAQModel.find({
@@ -55,6 +55,40 @@ export class KnowledgeEngine {
       isActive: true,
       isDeleted: false,
     }).lean();
+
+    // Check for general FAQ requests (e.g. clicking "FAQ" button or typing "FAQ" / "faqs")
+    const isGeneralFaqQuery = ['faq', 'faqs', "faq's", 'frequently asked questions', 'questions'].includes(normalizedQuery);
+
+    if (isGeneralFaqQuery) {
+      if (faqs.length > 0) {
+        const faqList = faqs.map((f, i) => {
+          const q = f.question;
+          const a = language === 'hi' && f.answerHi ? f.answerHi : f.answer;
+          return `❓ **${q}**\n💡 ${a}`;
+        }).join('\n\n');
+
+        const header = language === 'hi'
+          ? '📋 **Frequently Asked Questions (FAQs):**\n\n'
+          : '📋 **Frequently Asked Questions (FAQs):**\n\n';
+        
+        return {
+          found: true,
+          type: 'faq',
+          answer: `${header}${faqList}`,
+          confidence: 1,
+        };
+      } else {
+        const noFaqMsg = language === 'hi'
+          ? 'Abhi koi FAQs uplabdh nahi hain. Aap koi bhi sawal puch sakte hain!'
+          : 'No FAQs are available at the moment. Please feel free to ask your question!';
+        return {
+          found: true,
+          type: 'faq',
+          answer: noFaqMsg,
+          confidence: 1,
+        };
+      }
+    }
 
     let bestMatch: any = null;
     let bestScore = 0;
