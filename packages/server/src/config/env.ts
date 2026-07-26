@@ -47,6 +47,8 @@ export const env = {
   CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY || '',
   CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET || '',
 
+  GROQ_API_KEY: process.env.GROQ_API_KEY || '',
+
   ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000', 'http://localhost:3002'],
 
   RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),
@@ -54,7 +56,7 @@ export const env = {
 };
 
 export function validateEnv() {
-  const required = ['MONGODB_URI', 'JWT_SECRET'];
+  const required = ['MONGODB_URI', 'JWT_SECRET', 'GROQ_API_KEY'];
   const placeholderValues = [
     'your-super-secret-jwt-key-change-this',
     'your-super-secret-jwt-key-change-this-in-production',

@@ -2,6 +2,9 @@ import { KnowledgeMatch, KnowledgeEngine } from './knowledgeEngine.js';
 import { LanguageEngine, Language } from './languageEngine.js';
 import { DEFAULT_QUICK_ACTIONS } from '@nestchat/shared';
 import { InquiryEngine } from '../inquiry/inquiryEngine.js';
+import { GroqService } from './groqService.js';
+import { FAQModel } from '../faq/faq.model.js';
+import { KnowledgeModel } from '../knowledge/knowledge.model.js';
 
 export interface BotResponse {
   content: string;
@@ -61,10 +64,43 @@ export class ResponseEngine {
       }
     }
 
+    // Layer 1 & Layer 2: Deterministic FAQ and Knowledge Base Match
     if (match.found) {
       return this.buildMatchResponse(match, language);
     }
 
+    // Layer 3: Groq AI Generation with full business, FAQ & KB context
+    try {
+      const [faqs, knowledgeItems] = await Promise.all([
+        FAQModel.find({ isActive: true, isDeleted: false }).limit(10).lean(),
+        KnowledgeModel.find({ isActive: true, isDeleted: false }).limit(10).lean(),
+      ]);
+
+      const groqResult = await GroqService.generateCompletion({
+        clientName,
+        companyName: clientName,
+        language,
+        query,
+        faqs: faqs.map(f => ({ question: f.question, answer: f.answer })),
+        knowledgeItems: knowledgeItems.map(k => ({ title: k.title, content: k.content })),
+        conversationHistory,
+      });
+
+      if (groqResult && !groqResult.isUnknown && groqResult.content) {
+        return {
+          content: groqResult.content,
+          messageType: 'text',
+          metadata: {
+            matchedType: 'knowledge',
+            confidence: groqResult.confidence,
+          },
+        };
+      }
+    } catch (err) {
+      // Fallback cleanly to Inquiry flow on AI failure
+    }
+
+    // Layer 4: Fallback to Inquiry Collection Flow
     return this.buildUnknownResponse(language, query);
   }
 
