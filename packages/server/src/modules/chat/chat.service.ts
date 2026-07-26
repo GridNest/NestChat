@@ -134,6 +134,8 @@ export class ChatService {
       throw ApiError.notFound('Chat session not found or ended');
     }
 
+    const targetClientId = chat.clientId.toString();
+
     const userMessage = await ChatMessageModel.create({
       chatId: chat._id,
       sender: 'user',
@@ -162,7 +164,7 @@ export class ChatService {
         };
       } else if (inquiryResult.isComplete && inquiryResult.data) {
         await InquiryService.create({
-          clientId: data.clientId,
+          clientId: targetClientId,
           chatId: chat._id.toString(),
           sessionId: data.sessionId,
           visitorId: chat.visitorId,
@@ -197,10 +199,10 @@ export class ChatService {
       }
     } else {
       botResponse = await ResponseEngine.generateResponse({
-        clientId: data.clientId,
+        clientId: targetClientId,
         language: (data.language || chat.language) as any,
         query: data.content,
-        clientName: await this.getClientName(data.clientId),
+        clientName: await this.getClientName(data.clientId || targetClientId),
         conversationHistory: await this.getRecentHistory(chat._id.toString(), 5),
       });
 
@@ -208,7 +210,7 @@ export class ChatService {
         await InquiryEngine.createState({
           chatId: chat._id.toString(),
           sessionId: data.sessionId,
-          clientId: data.clientId,
+          clientId: targetClientId,
           visitorId: chat.visitorId,
           language: (data.language || chat.language) as any,
         });
@@ -228,7 +230,7 @@ export class ChatService {
 
       if (botResponse.metadata.matchedType === 'unknown') {
         await UnansweredService.track({
-          clientId: data.clientId,
+          clientId: targetClientId,
           question: data.content,
           sessionId: data.sessionId,
           visitorId: chat.visitorId,
@@ -256,11 +258,19 @@ export class ChatService {
     const userMsg = this.formatMessage(userMessage);
     const botMsg = this.formatMessage(botMessage);
 
-    emitToClient(chat.clientId.toString(), 'chat:message', {
+    emitToClient(targetClientId, 'chat:message', {
       chatId: chat._id.toString(),
       userMessage: userMsg,
       botMessage: botMsg,
     });
+
+    if (data.clientId && data.clientId !== targetClientId) {
+      emitToClient(data.clientId, 'chat:message', {
+        chatId: chat._id.toString(),
+        userMessage: userMsg,
+        botMessage: botMsg,
+      });
+    }
 
     return {
       userMessage: userMsg,

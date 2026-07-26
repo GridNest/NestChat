@@ -103,29 +103,41 @@ export class ResponseEngine {
 
   private static getQuickActionResponse(actionId: string, language: Language): string {
     const responses: Record<string, { en: string; hi: string }> = {
+      menu: {
+        en: '🍽️ **Luxe Restaurant Menu Highlights:**\n\n• Truffle Infused Risotto - $34\n• Wagyu Beef Tenderloin - $58\n• Pan-Seared Chilean Sea Bass - $46\n• Artisanal Tiramisu - $16\n\nWould you like to reserve a table or view our full menu?',
+        hi: '🍽️ **Luxe Restaurant Menu Highlights:**\n\n• Truffle Infused Risotto - $34\n• Wagyu Beef Tenderloin - $58\n• Pan-Seared Chilean Sea Bass - $46\n• Artisanal Tiramisu - $16\n\nKya aap table reserve karna chahte hain?',
+      },
+      reservations: {
+        en: '🍷 **Table Reservations:**\n\nYou can reserve a table by contacting us directly or letting us know your preferred date, time, and number of guests!',
+        hi: '🍷 **Table Reservations:**\n\nAap humse sampark karke ya apni pasand ki date aur time batakar table reserve kar sakte hain!',
+      },
+      hours: {
+        en: '⏰ **Opening Hours:**\n\nMonday - Sunday: 12:00 PM - 11:30 PM\nDinner Service: 5:00 PM - 11:00 PM',
+        hi: '⏰ **Khulne ka Samay:**\n\nSomvar - Ravivar: 12:00 PM - 11:30 PM',
+      },
       services: {
-        en: 'We offer the following services:\n\n1. Web Development\n2. Mobile App Development\n3. UI/UX Design\n4. Digital Marketing\n5. SEO Optimization\n\nWould you like to know more about any specific service?',
-        hi: 'Hum ye sevayein dete hain:\n\n1. Web Development\n2. Mobile App Development\n3. UI/UX Design\n4. Digital Marketing\n5. SEO Optimization\n\nKya aap kisi specific service ke baare mein jaanna chahte hain?',
+        en: 'We offer the following services:\n\n1. Gourmet Dining & Fine Wines\n2. Private Event Catering\n3. Table Reservations\n4. Chef Special Tasting Menus\n\nWould you like to know more about any specific service?',
+        hi: 'Hum ye sevayein dete hain:\n\n1. Gourmet Dining & Fine Wines\n2. Private Event Catering\n3. Table Reservations\n4. Chef Special Tasting Menus',
       },
       pricing: {
-        en: 'Our pricing starts at:\n\n• Basic Plan: $99/month\n• Pro Plan: $199/month\n• Enterprise: Custom pricing\n\nWould you like to know more about any specific plan?',
-        hi: 'Humari pricing aise shuru hoti hai:\n\n• Basic Plan: $99/month\n• Pro Plan: $199/month\n• Enterprise: Custom pricing\n\nKya aap kisi specific plan ke baare mein jaanna chahte hain?',
+        en: 'Our menu items range from $16 to $60 per dish. We also offer tasting menus starting at $95 per guest.',
+        hi: 'Humare menu items $16 se $60 ke beech hain.',
       },
       portfolio: {
-        en: 'You can view our portfolio at:\n\n🌐 www.example.com/portfolio\n\nWe have completed 100+ projects across various industries.\n\nWould you like to see specific project examples?',
-        hi: 'Aap humara portfolio yahan dekh sakte hain:\n\n🌐 www.example.com/portfolio\n\nHumne vibhinna industries mein 100+ projects complete kiye hain.\n\nKya aap specific project examples dekhna chahte hain?',
+        en: 'You can view our dishes and gallery on our website under the GALLERY section!',
+        hi: 'Aap humare dishes website ke GALLERY section mein dekh sakte hain!',
       },
       book_consultation: {
-        en: 'I can help you book a consultation.\n\nPlease share your details:\n• Name\n• Email\n• Phone\n• Preferred time\n\nOur team will contact you within 24 hours.',
-        hi: 'Main aapki consultation book karne mein madad kar sakta hu.\n\nKripya apni details share karein:\n• Naam\n• Email\n• Phone\n• Pasand ka time\n\nHamari team 24 ghante mein aapse contact karegi.',
+        en: 'I can help you book a table or event consultation.\n\nPlease share your details:\n• Name\n• Email\n• Phone\n• Date & Time\n\nOur team will confirm your booking within 24 hours.',
+        hi: 'Main aapki table reservation mein madad kar sakta hu.\n\nKripya apni details share karein:\n• Naam\n• Email\n• Phone\n• Date & Time',
       },
       contact: {
-        en: 'You can reach us at:\n\n📧 Email: info@example.com\n📞 Phone: +1 234 567 890\n📍 Address: 123 Main Street, City\n\nOffice Hours: Mon-Fri, 9AM-6PM',
-        hi: 'Aap humse yahan sampark kar sakte hain:\n\n📧 Email: info@example.com\n📞 Phone: +1 234 567 890\n📍 Address: 123 Main Street, City\n\nOffice Hours: Mon-Fri, 9AM-6PM',
+        en: 'You can reach Luxe Restaurant at:\n\n📧 Email: contact@luxerestaurant.com\n📞 Phone: +1 234 567 890\n📍 Address: Gourmet Avenue, City\n\nOpening Hours: Mon-Sun, 12PM-11:30PM',
+        hi: 'Aap humse yahan sampark kar sakte hain:\n\n📧 Email: contact@luxerestaurant.com\n📞 Phone: +1 234 567 890\n📍 Address: Gourmet Avenue, City\n\nOpening Hours: Mon-Sun, 12PM-11:30PM',
       },
       get_quote: {
-        en: 'I can help you get a quote.\n\nPlease share your requirements:\n• Project type\n• Budget range\n• Timeline\n\nOur team will provide a detailed quote within 24 hours.',
-        hi: 'Main aapki quote lene mein madad kar sakta hu.\n\nKripya apni requirements share karein:\n• Project type\n• Budget range\n• Timeline\n\nHamari team 24 ghante mein detailed quote provide karegi.',
+        en: 'I can help you get a catering quote.\n\nPlease share your requirements:\n• Guest count\n• Event type\n• Preferred date',
+        hi: 'Main aapki catering quote lene mein madad kar sakta hu.',
       },
     };
 

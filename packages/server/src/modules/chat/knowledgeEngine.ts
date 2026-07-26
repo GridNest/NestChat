@@ -114,8 +114,8 @@ export class KnowledgeEngine {
     let bestScore = 0;
 
     for (const faq of faqs) {
-      const questionText = faq.question.toLowerCase();
-      const keywordsText = faq.keywords.join(' ').toLowerCase();
+      const questionText = (faq.question || '').toLowerCase();
+      const keywordsText = (faq.keywords || []).join(' ').toLowerCase();
       const combinedText = `${questionText} ${keywordsText}`;
 
       const similarity = calculateSimilarity(query, combinedText);
@@ -177,9 +177,9 @@ export class KnowledgeEngine {
     let bestScore = 0;
 
     for (const kb of knowledgeItems) {
-      const titleText = kb.title.toLowerCase();
-      const contentText = kb.content.toLowerCase();
-      const tagsText = kb.tags.join(' ').toLowerCase();
+      const titleText = (kb.title || '').toLowerCase();
+      const contentText = (kb.content || '').toLowerCase();
+      const tagsText = (kb.tags || []).join(' ').toLowerCase();
       const combinedText = `${titleText} ${contentText} ${tagsText}`;
 
       const similarity = calculateSimilarity(query, combinedText);
@@ -224,7 +224,38 @@ export class KnowledgeEngine {
     query: string,
     language: string
   ): KnowledgeMatch {
-    const normalizedQuery = normalizeQuestion(query);
+    const normalizedQuery = normalizeQuestion(query).trim().toLowerCase();
+
+    const customActionMap: Record<string, string> = {
+      'menu': 'menu',
+      'reservations': 'reservations',
+      'reservation': 'reservations',
+      'table': 'reservations',
+      'opening hours': 'hours',
+      'hours': 'hours',
+      'timing': 'hours',
+      'contact': 'contact',
+      'contact us': 'contact',
+      'phone': 'contact',
+      'email': 'contact',
+      'services': 'services',
+      'pricing': 'pricing',
+      'portfolio': 'portfolio',
+      'quote': 'get_quote',
+      'consultation': 'book_consultation',
+    };
+
+    for (const [key, actionId] of Object.entries(customActionMap)) {
+      if (normalizedQuery === key || normalizedQuery.includes(key)) {
+        return {
+          found: true,
+          type: 'quickAction',
+          confidence: 0.95,
+          matchedId: actionId,
+          matchedTitle: key,
+        };
+      }
+    }
 
     for (const action of DEFAULT_QUICK_ACTIONS) {
       const actionLabel = (language === 'hi' && action.labelHi ? action.labelHi : action.label).toLowerCase();

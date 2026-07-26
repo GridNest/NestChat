@@ -1,6 +1,8 @@
+import mongoose from 'mongoose';
 import { CreateInquiryRequest, UpdateInquiryRequest, PaginationQuery } from '@nestchat/shared';
 import { InquiryModel, InquiryDocument } from './inquiry.model.js';
 import { InquiryStateModel, InquiryStateDocument } from './inquiryState.model.js';
+import { ClientModel } from '../client/client.model.js';
 import { ExternalApiService } from './externalApiService.js';
 import { ApiError } from '../../utils/apiError.js';
 import { omitUndefined } from '../../utils/helpers.js';
@@ -29,9 +31,20 @@ export interface InquiryListItem {
 }
 
 export class InquiryService {
+  private static async resolveClientId(clientId: string): Promise<any> {
+    if (!clientId) return clientId;
+    if (mongoose.Types.ObjectId.isValid(clientId)) {
+      return clientId;
+    }
+    const client = await ClientModel.findOne({ clientId: clientId.trim().toLowerCase() }).lean();
+    return client ? client._id : clientId;
+  }
+
   static async create(data: CreateInquiryRequest & { chatId?: string; visitorId?: string; language?: string }): Promise<InquiryListItem> {
+    const resolvedClientId = await this.resolveClientId(data.clientId);
+
     const inquiry = await InquiryModel.create({
-      clientId: data.clientId,
+      clientId: resolvedClientId,
       chatId: data.chatId,
       sessionId: data.sessionId,
       visitorId: data.visitorId,

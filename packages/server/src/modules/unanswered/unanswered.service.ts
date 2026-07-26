@@ -1,5 +1,7 @@
+import mongoose from 'mongoose';
 import { UnansweredModel, UnansweredQuestionDocument } from './unanswered.model.js';
 import { FAQModel } from '../faq/faq.model.js';
+import { ClientModel } from '../client/client.model.js';
 import { ApiError } from '../../utils/apiError.js';
 import { normalizeQuestion } from '@nestchat/shared';
 
@@ -16,6 +18,15 @@ export interface UnansweredListItem {
 }
 
 export class UnansweredService {
+  private static async resolveClientId(clientId: string): Promise<any> {
+    if (!clientId) return clientId;
+    if (mongoose.Types.ObjectId.isValid(clientId)) {
+      return clientId;
+    }
+    const client = await ClientModel.findOne({ clientId: clientId.trim().toLowerCase() }).lean();
+    return client ? client._id : clientId;
+  }
+
   static async track(data: {
     clientId: string;
     question: string;
@@ -23,9 +34,10 @@ export class UnansweredService {
     visitorId: string;
   }): Promise<void> {
     const normalized = normalizeQuestion(data.question);
+    const resolvedClientId = await this.resolveClientId(data.clientId);
 
     const existing = await UnansweredModel.findOne({
-      clientId: data.clientId,
+      clientId: resolvedClientId,
       question: { $regex: new RegExp(`^${normalized.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
     });
 
@@ -37,7 +49,7 @@ export class UnansweredService {
     }
 
     await UnansweredModel.create({
-      clientId: data.clientId,
+      clientId: resolvedClientId,
       question: data.question,
       sessionId: data.sessionId,
       visitorId: data.visitorId,
