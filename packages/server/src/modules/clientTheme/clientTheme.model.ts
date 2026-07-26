@@ -82,8 +82,6 @@ const clientThemeSchema = new Schema<ClientThemeDocument>(
   }
 );
 
-clientThemeSchema.index({ clientId: 1 });
-
 export const ClientThemeModel = mongoose.model<ClientThemeDocument>(
   'ClientTheme',
   clientThemeSchema

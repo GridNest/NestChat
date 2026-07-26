@@ -23,14 +23,12 @@ const systemLogSchema = new Schema<ISystemLog>(
     level: { 
       type: String, 
       enum: ['info', 'warn', 'error', 'fatal'], 
-      required: true, 
-      index: true 
+      required: true 
     },
     category: { 
       type: String, 
       enum: ['system', 'api', 'security', 'widget', 'database', 'auth'], 
-      required: true, 
-      index: true 
+      required: true 
     },
     message: { type: String, required: true },
     details: Schema.Types.Mixed,
@@ -44,7 +42,7 @@ const systemLogSchema = new Schema<ISystemLog>(
     url: String,
     statusCode: Number,
     duration: Number,
-    timestamp: { type: Date, default: Date.now, index: true },
+    timestamp: { type: Date, default: Date.now },
   },
   {
     timestamps: false,

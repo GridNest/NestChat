@@ -32,7 +32,6 @@ const inquiryStateSchema = new Schema<InquiryStateDocument>(
     chatId: {
       type: String,
       required: true,
-      index: true,
     },
     sessionId: {
       type: String,

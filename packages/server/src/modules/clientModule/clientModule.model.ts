@@ -50,7 +50,6 @@ const clientModuleSchema = new Schema<ClientModuleDocument>(
   }
 );
 
-clientModuleSchema.index({ clientId: 1 });
 clientModuleSchema.index({ clientId: 1, name: 1 }, { unique: true });
 
 export const ClientModuleModel = mongoose.model<ClientModuleDocument>(

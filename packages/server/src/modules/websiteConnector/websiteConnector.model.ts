@@ -102,8 +102,6 @@ const websiteConnectorSchema = new Schema<WebsiteConnectorDocument>(
   }
 );
 
-websiteConnectorSchema.index({ clientId: 1 });
-
 export const WebsiteConnectorModel = mongoose.model<WebsiteConnectorDocument>(
   'WebsiteConnector',
   websiteConnectorSchema

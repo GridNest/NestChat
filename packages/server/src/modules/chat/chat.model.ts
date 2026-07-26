@@ -27,17 +27,14 @@ const chatSchema = new Schema<ChatDocument>(
       type: Schema.Types.ObjectId,
       ref: 'Client',
       required: true,
-      index: true,
     },
     sessionId: {
       type: String,
       required: true,
-      index: true,
     },
     visitorId: {
       type: String,
       required: true,
-      index: true,
     },
     visitorInfo: {
       userAgent: String,

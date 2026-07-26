@@ -140,8 +140,6 @@ const clientConfigSchema = new Schema<ClientConfigDocument>(
   }
 );
 
-clientConfigSchema.index({ clientId: 1 });
-
 export const ClientConfigModel = mongoose.model<ClientConfigDocument>(
   'ClientConfig',
   clientConfigSchema

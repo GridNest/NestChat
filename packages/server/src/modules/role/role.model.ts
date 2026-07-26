@@ -49,6 +49,4 @@ const roleSchema = new Schema<RoleDocument>(
   }
 );
 
-roleSchema.index({ name: 1 });
-
 export const RoleModel = mongoose.model<RoleDocument>('Role', roleSchema);

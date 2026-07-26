@@ -25,7 +25,6 @@ const knowledgeSchema = new Schema<KnowledgeDocument>(
       type: Schema.Types.ObjectId,
       ref: 'Client',
       required: true,
-      index: true,
     },
     pageName: {
       type: String,

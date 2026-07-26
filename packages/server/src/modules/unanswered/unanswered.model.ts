@@ -20,7 +20,6 @@ const unansweredSchema = new Schema<UnansweredQuestionDocument>(
       type: Schema.Types.ObjectId,
       ref: 'Client',
       required: true,
-      index: true,
     },
     question: {
       type: String,

@@ -15,7 +15,6 @@ const translationSchema = new Schema<TranslationDocument>(
       type: Schema.Types.ObjectId,
       ref: 'Client',
       required: true,
-      index: true,
     },
     language: {
       type: String,

@@ -27,7 +27,7 @@ export interface IChatAnalytics extends Document {
 const chatAnalyticsSchema = new Schema<IChatAnalytics>(
   {
     conversationId: { type: Schema.Types.ObjectId, ref: 'Chat', required: true, index: true },
-    clientId: { type: Schema.Types.ObjectId, ref: 'Client', required: true, index: true },
+    clientId: { type: Schema.Types.ObjectId, ref: 'Client', required: true },
     visitorId: { type: String, required: true, index: true },
     startTime: { type: Date, required: true },
     endTime: Date,

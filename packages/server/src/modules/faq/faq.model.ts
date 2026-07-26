@@ -21,7 +21,6 @@ const faqSchema = new Schema<FAQDocument>(
       type: Schema.Types.ObjectId,
       ref: 'Client',
       required: true,
-      index: true,
     },
     category: {
       type: String,

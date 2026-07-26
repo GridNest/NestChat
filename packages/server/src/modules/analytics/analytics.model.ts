@@ -29,7 +29,7 @@ export interface IAnalytics extends Document {
 
 const analyticsSchema = new Schema<IAnalytics>(
   {
-    clientId: { type: Schema.Types.ObjectId, ref: 'Client', required: true, index: true },
+    clientId: { type: Schema.Types.ObjectId, ref: 'Client', required: true },
     date: { type: Date, required: true, index: true },
     period: { type: String, enum: ['daily', 'weekly', 'monthly'], required: true },
     metrics: {

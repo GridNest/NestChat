@@ -30,7 +30,6 @@ const inquirySchema = new Schema<InquiryDocument>(
       type: Schema.Types.ObjectId,
       ref: 'Client',
       required: true,
-      index: true,
     },
     chatId: {
       type: Schema.Types.ObjectId,
@@ -119,6 +118,5 @@ const inquirySchema = new Schema<InquiryDocument>(
 
 inquirySchema.index({ clientId: 1, createdAt: -1 });
 inquirySchema.index({ clientId: 1, status: 1 });
-inquirySchema.index({ sessionId: 1 });
 
 export const InquiryModel = mongoose.model<InquiryDocument>('Inquiry', inquirySchema);
