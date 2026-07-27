@@ -2,9 +2,10 @@ import { ChatModel, ChatDocument } from './chat.model.js';
 import { ChatMessageModel, ChatMessageDocument } from './chatMessage.model.js';
 import { ResponseEngine, BotResponse } from './responseEngine.js';
 import { LanguageEngine, Language } from './languageEngine.js';
-import { InquiryEngine } from '../inquiry/inquiryEngine.js';
+import { InquiryEngine, INQUIRY_STEPS } from '../inquiry/inquiryEngine.js';
 import { InquiryService } from '../inquiry/inquiry.service.js';
 import { UnansweredService } from '../unanswered/unanswered.service.js';
+import { NotificationService } from '../notification/notification.service.js';
 import { ApiError } from '../../utils/apiError.js';
 import { emitToUser, emitToClient } from '../socket/socket.service.js';
 import mongoose from 'mongoose';
@@ -163,7 +164,7 @@ export class ChatService {
           },
         };
       } else if (inquiryResult.isComplete && inquiryResult.data) {
-        await InquiryService.create({
+        const inquiry = await InquiryService.create({
           clientId: targetClientId,
           chatId: chat._id.toString(),
           sessionId: data.sessionId,
@@ -171,13 +172,26 @@ export class ChatService {
           name: inquiryResult.data.name || '',
           email: inquiryResult.data.email || '',
           phone: inquiryResult.data.phone || '',
-          country: inquiryResult.data.country,
-          state: inquiryResult.data.state,
-          service: inquiryResult.data.service || '',
-          details: inquiryResult.data.details || '',
-          company: inquiryResult.data.company,
+          service: 'chat_inquiry',
+          details: inquiryResult.data.message || inquiryResult.data.details || '',
           language: chat.language,
         });
+
+        try {
+          const ClientModel = mongoose.model('Client');
+          const clientDoc = await ClientModel.findById(targetClientId).lean();
+          if (clientDoc) {
+            await NotificationService.create({
+              userId: (clientDoc as any).createdBy?.toString() || '',
+              type: 'inquiry',
+              title: 'New Inquiry Received',
+              message: `New inquiry from ${inquiryResult.data.name || 'Unknown'}`,
+              data: { inquiryId: inquiry.id, clientId: targetClientId },
+            });
+          }
+        } catch (notifErr) {
+          // Notification failure is non-critical
+        }
 
         botResponse = {
           content: inquiryResult.message,
@@ -213,19 +227,8 @@ export class ChatService {
           clientId: targetClientId,
           visitorId: chat.visitorId,
           language: (data.language || chat.language) as any,
+          currentStep: '__consent__',
         });
-
-        const firstQuestion = await InquiryEngine.getFirstQuestion(chat._id.toString());
-        if (firstQuestion) {
-          botResponse = {
-            content: `${botResponse.content}\n\n${firstQuestion}`,
-            messageType: 'inquiry',
-            metadata: {
-              matchedType: 'inquiry_trigger',
-              confidence: 1,
-            },
-          };
-        }
       }
 
       if (botResponse.metadata.matchedType === 'unknown') {

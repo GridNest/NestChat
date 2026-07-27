@@ -3,6 +3,7 @@ import { app } from './app.js';
 import { env, validateEnv } from './config/env.js';
 import { connectDatabase } from './config/database.js';
 import { initializeSocket } from './modules/socket/socket.service.js';
+import { seed } from './seed.js';
 import { logger } from './utils/logger.js';
 
 async function bootstrap(): Promise<void> {
@@ -10,6 +11,7 @@ async function bootstrap(): Promise<void> {
     validateEnv();
 
     await connectDatabase();
+    await seed();
 
     const httpServer = http.createServer(app);
 

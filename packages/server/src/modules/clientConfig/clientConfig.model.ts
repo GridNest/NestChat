@@ -30,6 +30,8 @@ export interface ClientConfigDocument extends Document {
   enableInquiryForm: boolean;
   enableLiveAgent: boolean;
   enableAnalytics: boolean;
+  enableAI: boolean;
+  enableWebsiteSync: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -133,6 +135,14 @@ const clientConfigSchema = new Schema<ClientConfigDocument>(
     enableAnalytics: {
       type: Boolean,
       default: true,
+    },
+    enableAI: {
+      type: Boolean,
+      default: true,
+    },
+    enableWebsiteSync: {
+      type: Boolean,
+      default: false,
     },
   },
   {

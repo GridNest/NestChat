@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { SearchService, SearchResult, SearchOptions } from './searchService.js';
 import { FAQModel } from '../faq/faq.model.js';
 import { KnowledgeModel } from '../knowledge/knowledge.model.js';
+import { WebsiteContentModel } from '../websiteContent/websiteContent.model.js';
 import { ClientModel } from '../client/client.model.js';
 import { normalizeQuestion, extractKeywords, calculateSimilarity } from '@nestchat/shared';
 import { DEFAULT_QUICK_ACTIONS } from '@nestchat/shared';
@@ -56,6 +57,9 @@ export class KnowledgeEngine {
 
     const knowledgeMatch = await this.matchKnowledge(clientId, query, language);
     if (knowledgeMatch.found) return knowledgeMatch;
+
+    const webMatch = await this.matchWebsiteContent(clientId, query, language);
+    if (webMatch.found) return webMatch;
 
     const quickActionMatch = this.matchQuickAction(query, language);
     if (quickActionMatch.found) return quickActionMatch;
@@ -207,6 +211,70 @@ export class KnowledgeEngine {
       if (totalScore > bestScore && totalScore > 0.25) {
         bestScore = totalScore;
         bestMatch = kb;
+      }
+    }
+
+    if (bestMatch) {
+      return {
+        found: true,
+        type: 'knowledge',
+        answer: bestMatch.content,
+        confidence: bestScore,
+        matchedId: bestMatch._id.toString(),
+        matchedTitle: bestMatch.title,
+      };
+    }
+
+    return {
+      found: false,
+      type: 'unknown',
+      confidence: 0,
+    };
+  }
+
+  private static async matchWebsiteContent(
+    clientId: string,
+    query: string,
+    language: string
+  ): Promise<KnowledgeMatch> {
+    const normalizedQuery = normalizeQuestion(query).trim().toLowerCase();
+    const queryKeywords = extractKeywords(normalizedQuery);
+
+    const clientIds = await this.resolveClientIds(clientId);
+
+    const webItems = await WebsiteContentModel.find({
+      clientId: { $in: clientIds },
+      isActive: true,
+      isDeleted: false,
+    }).lean();
+
+    let bestMatch: any = null;
+    let bestScore = 0;
+
+    for (const item of webItems) {
+      const titleText = (item.title || '').toLowerCase();
+      const contentText = (item.content || '').toLowerCase();
+      const sectionText = (item.section || '').toLowerCase();
+      const combinedText = `${titleText} ${contentText} ${sectionText}`;
+
+      const similarity = calculateSimilarity(query, combinedText);
+
+      let keywordScore = 0;
+      for (const keyword of queryKeywords) {
+        if (combinedText.includes(keyword)) {
+          keywordScore += 1;
+        }
+      }
+      keywordScore = queryKeywords.length > 0 ? keywordScore / queryKeywords.length : 0;
+
+      const titleMatch = titleText.includes(normalizedQuery) ? 0.3 : 0;
+      const exactContentMatch = contentText.includes(normalizedQuery) ? 0.2 : 0;
+
+      const totalScore = (similarity * 0.3) + (keywordScore * 0.3) + titleMatch + exactContentMatch;
+
+      if (totalScore > bestScore && totalScore > 0.2) {
+        bestScore = totalScore;
+        bestMatch = item;
       }
     }
 

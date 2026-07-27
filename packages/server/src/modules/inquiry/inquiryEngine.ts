@@ -41,41 +41,19 @@ export const INQUIRY_STEPS: InquiryStep[] = [
     validationMessageHi: 'Kripya sahi phone number daalein',
   },
   {
-    field: 'country',
-    messageKey: 'inquiryCountry',
-    messageKeyHi: 'inquiryCountry',
-    required: true,
-  },
-  {
-    field: 'state',
-    messageKey: 'inquiryState',
-    messageKeyHi: 'inquiryState',
-    required: true,
-  },
-  {
-    field: 'service',
-    messageKey: 'inquiryService',
-    messageKeyHi: 'inquiryService',
-    required: true,
-  },
-  {
-    field: 'details',
+    field: 'message',
     messageKey: 'inquiryDetails',
     messageKeyHi: 'inquiryDetails',
     required: true,
-    validate: (value) => value.trim().length >= 10,
-    validationMessage: 'Please provide at least 10 characters',
-    validationMessageHi: 'Kripya kam se kam 10 characters batayein',
-  },
-  {
-    field: 'company',
-    messageKey: 'inquiryCompany',
-    messageKeyHi: 'inquiryCompany',
-    required: false,
+    validate: (value) => value.trim().length >= 5,
+    validationMessage: 'Please provide at least 5 characters',
+    validationMessageHi: 'Kripya kam se kam 5 characters batayein',
   },
 ];
 
-export const CANCEL_KEYWORDS = ['cancel', 'restart', 'start over', 'exit', 'quit', 'band karo', 'rok do'];
+export const CANCEL_KEYWORDS = ['cancel', 'restart', 'start over', 'exit', 'quit', 'band karo', 'rok do', 'nahi', 'no thanks', "no, don't", "don't", 'no'];
+
+const CONSENT_KEYWORDS = ['yes', 'haan', 'hmm', 'ok', 'sure', 'okay', 'haa', 'haanji', 'theek hai', 'haye', 'plz', 'please'];
 
 export class InquiryEngine {
   static async createState(data: {
@@ -84,6 +62,8 @@ export class InquiryEngine {
     clientId: string;
     visitorId: string;
     language: Language;
+    data?: Record<string, string>;
+    currentStep?: string;
   }): Promise<InquiryStateDocument> {
     const existing = await InquiryStateModel.findOne({
       chatId: data.chatId,
@@ -95,11 +75,15 @@ export class InquiryEngine {
     }
 
     return InquiryStateModel.create({
-      ...data,
-      currentStep: 'name',
+      chatId: data.chatId,
+      sessionId: data.sessionId,
+      clientId: data.clientId,
+      visitorId: data.visitorId,
+      language: data.language,
+      currentStep: data.currentStep || 'name',
       completedFields: [],
       skippedFields: [],
-      data: {},
+      data: data.data || {},
       status: 'active',
       startedAt: new Date(),
     });
@@ -113,6 +97,11 @@ export class InquiryEngine {
     return InquiryStateModel.findOne({ sessionId, status: 'active' });
   }
 
+  static isConsentResponse(input: string): boolean {
+    const normalized = input.toLowerCase().trim();
+    return CONSENT_KEYWORDS.some(keyword => normalized === keyword || normalized.startsWith(keyword));
+  }
+
   static async processInput(
     chatId: string,
     input: string
@@ -122,6 +111,7 @@ export class InquiryEngine {
     nextStep?: string;
     isComplete?: boolean;
     isCancelled?: boolean;
+    isPendingConsent?: boolean;
     data?: Record<string, string>;
   }> {
     const state = await InquiryStateModel.findOne({ chatId, status: 'active' });
@@ -135,6 +125,34 @@ export class InquiryEngine {
     const normalizedInput = input.toLowerCase().trim();
     if (CANCEL_KEYWORDS.some(keyword => normalizedInput.includes(keyword))) {
       return this.cancelInquiry(state);
+    }
+
+    // Check if we're waiting for consent first
+    if (state.currentStep === '__consent__') {
+      if (this.isConsentResponse(input)) {
+        state.currentStep = 'name';
+        await state.save();
+        const firstStep = INQUIRY_STEPS[0];
+        const message = LanguageEngine.getMessage(state.language, firstStep.messageKey as any);
+        return {
+          success: true,
+          message,
+          nextStep: 'name',
+          isComplete: false,
+        };
+      } else {
+        state.status = 'cancelled';
+        state.cancelledAt = new Date();
+        await state.save();
+        const message = state.language === 'hi'
+          ? 'Koi baat nahi! Agar aapko kuch aur chahiye toh bataayein.'
+          : 'No problem! Let me know if you need anything else.';
+        return {
+          success: true,
+          message,
+          isCancelled: true,
+        };
+      }
     }
 
     const currentStepConfig = INQUIRY_STEPS.find(s => s.field === state.currentStep);
@@ -218,6 +236,12 @@ export class InquiryEngine {
   static async getCurrentQuestion(chatId: string): Promise<string | null> {
     const state = await InquiryStateModel.findOne({ chatId, status: 'active' });
     if (!state) return null;
+
+    if (state.currentStep === '__consent__') {
+      return state.language === 'hi'
+        ? 'Kya aap chahte hain ki main aapki baat humari team tak pahuncha doon? (Haan/Nahi)'
+        : 'Would you like me to connect you with our team? (Yes/No)';
+    }
 
     const currentStep = INQUIRY_STEPS.find(s => s.field === state.currentStep);
     if (!currentStep) return null;

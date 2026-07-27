@@ -50,6 +50,8 @@ export interface WidgetConfig {
     enableInquiryForm: boolean;
     enableLiveAgent: boolean;
     enableAnalytics: boolean;
+    enableAI: boolean;
+    enableWebsiteSync: boolean;
   };
   modules: {
     name: string;
@@ -99,8 +101,10 @@ export class WidgetConfigService {
       enableKnowledgeBase: true,
       enableInquiryForm: true,
       enableLiveAgent: true,
-      enableAnalytics: true,
-    };
+        enableAI: true,
+        enableWebsiteSync: false,
+        enableAnalytics: true,
+      };
 
     return {
       client: {
@@ -158,6 +162,8 @@ export class WidgetConfigService {
         enableInquiryForm: activeConfig.enableInquiryForm,
         enableLiveAgent: activeConfig.enableLiveAgent,
         enableAnalytics: activeConfig.enableAnalytics,
+        enableAI: activeConfig.enableAI,
+        enableWebsiteSync: activeConfig.enableWebsiteSync,
       },
       modules: modules.map((mod: any) => ({
         name: mod.name,

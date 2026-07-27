@@ -557,6 +557,22 @@ class AdminApi {
     const response = await this.client.get(`/agents/client/${clientId}/stats`);
     return response.data;
   }
+
+  // Website Sync
+  async syncWebsite(clientId: string) {
+    const response = await this.client.post(`/website-content/${clientId}/sync`);
+    return response.data;
+  }
+
+  async getWebsiteContent(clientId: string, params?: Record<string, string>) {
+    const response = await this.client.get(`/website-content/${clientId}`, { params });
+    return response.data;
+  }
+
+  async getWebsiteCategories(clientId: string) {
+    const response = await this.client.get(`/website-content/${clientId}/categories`);
+    return response.data;
+  }
 }
 
 export const adminApi = new AdminApi();

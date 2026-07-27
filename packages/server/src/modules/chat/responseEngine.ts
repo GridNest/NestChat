@@ -5,14 +5,16 @@ import { InquiryEngine } from '../inquiry/inquiryEngine.js';
 import { GroqService } from './groqService.js';
 import { FAQModel } from '../faq/faq.model.js';
 import { KnowledgeModel } from '../knowledge/knowledge.model.js';
+import { WebsiteContentModel } from '../websiteContent/websiteContent.model.js';
 import { ClientModel } from '../client/client.model.js';
+import { ClientConfigModel } from '../clientConfig/clientConfig.model.js';
 import mongoose from 'mongoose';
 
 export interface BotResponse {
   content: string;
   messageType: 'text' | 'quickAction' | 'inquiry' | 'system';
   metadata: {
-    matchedType: 'faq' | 'knowledge' | 'quickAction' | 'unknown' | 'inquiry_trigger';
+    matchedType: 'faq' | 'knowledge' | 'quickAction' | 'website' | 'unknown' | 'inquiry_trigger';
     matchedId?: string;
     confidence: number;
   };
@@ -30,7 +32,41 @@ export interface ResponseEngineOptions {
   isInquiryMode?: boolean;
 }
 
+const MENU_CATEGORY_KEYWORDS: Record<string, string[]> = {
+  breakfast: ['breakfast', 'morning', 'brunch'],
+  lunch: ['lunch', 'afternoon'],
+  dinner: ['dinner', 'evening', 'night'],
+  desserts: ['dessert', 'sweet', 'ice cream', 'cake', 'pastry', 'mousse'],
+  drinks: ['drink', 'beverage', 'juice', 'soda', 'cocktail', 'mocktail', 'coffee', 'tea', 'wine', 'beer'],
+  appetizers: ['appetizer', 'starter', 'snack', 'finger food', 'appetiser'],
+  main_course: ['main course', 'main', 'entree', 'entrée'],
+  specials: ['special', 'chef special', 'today special', 'recommended'],
+};
+
 export class ResponseEngine {
+  private static async resolveClientIds(clientId: string): Promise<mongoose.Types.ObjectId[]> {
+    if (!clientId) return [];
+    const validIds: mongoose.Types.ObjectId[] = [];
+
+    if (mongoose.Types.ObjectId.isValid(clientId)) {
+      validIds.push(new mongoose.Types.ObjectId(clientId));
+    }
+
+    const client = await ClientModel.findOne({
+      $or: [
+        { clientId: clientId.trim().toLowerCase() },
+        ...(mongoose.Types.ObjectId.isValid(clientId) ? [{ _id: new mongoose.Types.ObjectId(clientId) }] : [])
+      ]
+    }).lean();
+
+    if (client) {
+      if (!validIds.some(id => id.toString() === client._id.toString())) {
+        validIds.push(client._id as mongoose.Types.ObjectId);
+      }
+    }
+
+    return validIds;
+  }
   static async generateResponse(options: ResponseEngineOptions): Promise<BotResponse> {
     const { clientId, language, query, clientName, conversationHistory, isInquiryMode } = options;
 
@@ -45,12 +81,14 @@ export class ResponseEngine {
       };
     }
 
+    // Layer 1: FAQ Search
     let match = await KnowledgeEngine.search({
       clientId,
       language,
       query,
     });
 
+    // Layer 2: Contextual re-match with conversation history
     if (!match.found && conversationHistory && conversationHistory.length > 0) {
       const lastUserMsg = conversationHistory.filter(m => m.sender === 'user').pop();
       if (lastUserMsg && lastUserMsg.content && lastUserMsg.content.trim() !== query.trim()) {
@@ -66,12 +104,64 @@ export class ResponseEngine {
       }
     }
 
-    // Layer 1 & Layer 2: Deterministic FAQ and Knowledge Base Match
-    if (match.found) {
-      return this.buildMatchResponse(match, language);
+    // Check if it's a follow-up query about a previous topic (conversation memory)
+    if (!match.found && conversationHistory && conversationHistory.length >= 2) {
+      const lastBotMsg = [...conversationHistory].reverse().find(m => m.sender === 'bot');
+      if (lastBotMsg && this.isFollowUpQuery(query, lastBotMsg.content)) {
+        const combinedQuery = `${lastBotMsg.content} ${query}`;
+        const followUpMatch = await KnowledgeEngine.search({
+          clientId,
+          language,
+          query: combinedQuery,
+        });
+        if (followUpMatch.found) {
+          match = followUpMatch;
+        }
+      }
     }
 
-    // Layer 3: Groq AI Generation with full business, FAQ & KB context
+    if (match.found) {
+      return this.buildMatchResponse(match, language, clientId, query);
+    }
+
+    // Layer 3: Groq AI with full context (if AI is enabled)
+    const clientConfig = await ClientConfigModel.findOne({
+      clientId: { $in: await this.resolveClientIds(clientId) }
+    }).lean();
+
+    const aiEnabled = clientConfig ? (clientConfig as any).enableAI !== false : true;
+
+    if (aiEnabled) {
+      const groqResult = await this.generateGroqWithFullContext({
+        clientId, language, query, clientName, conversationHistory,
+      });
+      if (groqResult) {
+        return groqResult;
+      }
+    }
+
+    // Layer 4: Inquiry Flow - Ask permission first
+    return this.buildPermissionResponse(language);
+  }
+
+  private static isFollowUpQuery(query: string, lastBotContent: string): boolean {
+    const followUpWords = ['price', 'cost', 'how much', 'tell me more', 'more', 'details',
+      'about', 'what about', 'show me', 'example', 'information', 'phone', 'email',
+      'address', 'timing', 'hours', 'location', 'contact', 'menu', 'rate', 'charges',
+      'book', 'reserve', 'order', 'delivery', 'available'];
+    const lower = query.toLowerCase();
+    return followUpWords.some(w => lower.includes(w) || lower === w);
+  }
+
+  private static async generateGroqWithFullContext(options: {
+    clientId: string;
+    language: Language;
+    query: string;
+    clientName: string;
+    conversationHistory?: Array<{ sender: string; content: string }>;
+  }): Promise<BotResponse | null> {
+    const { clientId, language, query, clientName, conversationHistory } = options;
+
     try {
       let clientObjIds: any[] = [];
       if (mongoose.Types.ObjectId.isValid(clientId)) {
@@ -85,18 +175,31 @@ export class ResponseEngine {
         ? { clientId: { $in: clientObjIds }, isActive: true, isDeleted: false }
         : { isActive: true, isDeleted: false };
 
-      const [faqs, knowledgeItems] = await Promise.all([
-        FAQModel.find(queryFilter).limit(10).lean(),
-        KnowledgeModel.find(queryFilter).limit(10).lean(),
+      const client = await ClientModel.findOne({ _id: { $in: clientObjIds } }).lean();
+      const clientConfig = await ClientConfigModel.findOne({ clientId: { $in: clientObjIds } }).lean();
+
+      const [faqs, knowledgeItems, webContent] = await Promise.all([
+        FAQModel.find(queryFilter).limit(15).lean(),
+        KnowledgeModel.find(queryFilter).limit(15).lean(),
+        WebsiteContentModel.find({ ...queryFilter, isActive: true, isDeleted: false })
+          .sort({ priority: -1 })
+          .limit(20)
+          .lean(),
       ]);
 
       const groqResult = await GroqService.generateCompletion({
         clientName,
         companyName: clientName,
+        botName: (client as any)?.botName || 'Assistant',
+        businessHours: (clientConfig as any)?.businessHours,
+        contactEmail: (clientConfig as any)?.contactEmail,
+        contactPhone: (clientConfig as any)?.contactPhone,
+        contactAddress: (clientConfig as any)?.contactAddress,
         language,
         query,
         faqs: faqs.map(f => ({ question: f.question, answer: f.answer })),
         knowledgeItems: knowledgeItems.map(k => ({ title: k.title, content: k.content })),
+        websiteContent: webContent.map(w => ({ title: w.title, content: w.content, category: w.category })),
         conversationHistory,
       });
 
@@ -114,13 +217,29 @@ export class ResponseEngine {
       // Fallback cleanly to Inquiry flow on AI failure
     }
 
-    // Layer 4: Fallback to Inquiry Collection Flow
-    return this.buildUnknownResponse(language, query);
+    return null;
   }
 
-  private static buildMatchResponse(match: KnowledgeMatch, language: Language): BotResponse {
+  private static buildMatchResponse(match: KnowledgeMatch, language: Language, clientId: string, query: string): BotResponse {
     if (match.type === 'faq' || match.type === 'knowledge') {
       const content = language === 'hi' && match.answerHi ? match.answerHi : match.answer || '';
+
+      const isMenuQuery = this.isMenuRelatedQuery(query);
+      if (isMenuQuery && match.type === 'knowledge') {
+        const subCategories = this.detectMenuSubCategory(query, content);
+        if (subCategories && subCategories.length > 0) {
+          return {
+            content: this.formatMenuCategoryResponse(subCategories, language),
+            messageType: 'text',
+            metadata: {
+              matchedType: match.type,
+              matchedId: match.matchedId,
+              confidence: match.confidence,
+            },
+            suggestedQuestions: subCategories.map(c => c.label),
+          };
+        }
+      }
 
       return {
         content,
@@ -134,12 +253,29 @@ export class ResponseEngine {
     }
 
     if (match.type === 'quickAction') {
-      const response = this.getQuickActionResponse(match.matchedId || '', language);
       const shouldTriggerInquiry = match.matchedId === 'get_quote' || match.matchedId === 'book_consultation';
+
+      if (match.matchedId === 'contact') {
+        return {
+          content: language === 'hi'
+            ? 'Aap humse in madhyamon se sampark kar sakte hain:\n\n📞 Phone\n📧 Email\n📍 Address\n\nKya aap specific contact details chahte hain?'
+            : 'You can reach us through:\n\n📞 Phone\n📧 Email\n📍 Address\n\nWould you like specific contact details?',
+          messageType: 'quickAction',
+          metadata: {
+            matchedType: 'quickAction',
+            matchedId: match.matchedId,
+            confidence: match.confidence,
+          },
+        };
+      }
+
+      const response = language === 'hi'
+        ? `Main aapki ${match.matchedId} mein madad kar sakta hoon.`
+        : `I can help you with ${match.matchedId}.`;
 
       return {
         content: response,
-        messageType: shouldTriggerInquiry ? 'inquiry' : 'quickAction',
+        messageType: shouldTriggerInquiry ? 'inquiry' : 'text',
         metadata: {
           matchedType: 'quickAction',
           matchedId: match.matchedId,
@@ -149,14 +285,15 @@ export class ResponseEngine {
       };
     }
 
-    return this.buildUnknownResponse(language, '');
+    return this.buildPermissionResponse(language);
   }
 
-  private static buildUnknownResponse(language: Language, query: string): BotResponse {
-    const unknownMessage = LanguageEngine.getUnknownResponse(language);
-
+  private static buildPermissionResponse(language: Language): BotResponse {
+    const content = language === 'hi'
+      ? 'Main yeh jaankari nahi dhundh paaya.\n\nKya aap chahte hain ki main aapki baat humari team tak pahuncha doon?'
+      : 'I couldn\'t find that information.\n\nWould you like me to help you contact the business?';
     return {
-      content: unknownMessage,
+      content,
       messageType: 'inquiry',
       metadata: {
         matchedType: 'unknown',
@@ -166,54 +303,78 @@ export class ResponseEngine {
     };
   }
 
-  private static getQuickActionResponse(actionId: string, language: Language): string {
-    const responses: Record<string, { en: string; hi: string }> = {
-      menu: {
-        en: '🍽️ **Luxe Restaurant Menu Highlights:**\n\n• Truffle Infused Risotto - $34\n• Wagyu Beef Tenderloin - $58\n• Pan-Seared Chilean Sea Bass - $46\n• Artisanal Tiramisu - $16\n\nWould you like to reserve a table or view our full menu?',
-        hi: '🍽️ **Luxe Restaurant Menu Highlights:**\n\n• Truffle Infused Risotto - $34\n• Wagyu Beef Tenderloin - $58\n• Pan-Seared Chilean Sea Bass - $46\n• Artisanal Tiramisu - $16\n\nKya aap table reserve karna chahte hain?',
-      },
-      reservations: {
-        en: '🍷 **Table Reservations:**\n\nYou can reserve a table by contacting us directly or letting us know your preferred date, time, and number of guests!',
-        hi: '🍷 **Table Reservations:**\n\nAap humse sampark karke ya apni pasand ki date aur time batakar table reserve kar sakte hain!',
-      },
-      hours: {
-        en: '⏰ **Opening Hours:**\n\nMonday - Sunday: 12:00 PM - 11:30 PM\nDinner Service: 5:00 PM - 11:00 PM',
-        hi: '⏰ **Khulne ka Samay:**\n\nSomvar - Ravivar: 12:00 PM - 11:30 PM',
-      },
-      services: {
-        en: 'We offer the following services:\n\n1. Gourmet Dining & Fine Wines\n2. Private Event Catering\n3. Table Reservations\n4. Chef Special Tasting Menus\n\nWould you like to know more about any specific service?',
-        hi: 'Hum ye sevayein dete hain:\n\n1. Gourmet Dining & Fine Wines\n2. Private Event Catering\n3. Table Reservations\n4. Chef Special Tasting Menus',
-      },
-      pricing: {
-        en: 'Our menu items range from $16 to $60 per dish. We also offer tasting menus starting at $95 per guest.',
-        hi: 'Humare menu items $16 se $60 ke beech hain.',
-      },
-      portfolio: {
-        en: 'You can view our dishes and gallery on our website under the GALLERY section!',
-        hi: 'Aap humare dishes website ke GALLERY section mein dekh sakte hain!',
-      },
-      book_consultation: {
-        en: 'I can help you book a table or event consultation.\n\nPlease share your details:\n• Name\n• Email\n• Phone\n• Date & Time\n\nOur team will confirm your booking within 24 hours.',
-        hi: 'Main aapki table reservation mein madad kar sakta hu.\n\nKripya apni details share karein:\n• Naam\n• Email\n• Phone\n• Date & Time',
-      },
-      contact: {
-        en: 'You can reach Luxe Restaurant at:\n\n📧 Email: contact@luxerestaurant.com\n📞 Phone: +1 234 567 890\n📍 Address: Gourmet Avenue, City\n\nOpening Hours: Mon-Sun, 12PM-11:30PM',
-        hi: 'Aap humse yahan sampark kar sakte hain:\n\n📧 Email: contact@luxerestaurant.com\n📞 Phone: +1 234 567 890\n📍 Address: Gourmet Avenue, City\n\nOpening Hours: Mon-Sun, 12PM-11:30PM',
-      },
-      get_quote: {
-        en: 'I can help you get a catering quote.\n\nPlease share your requirements:\n• Guest count\n• Event type\n• Preferred date',
-        hi: 'Main aapki catering quote lene mein madad kar sakta hu.',
-      },
-    };
+  private static isMenuRelatedQuery(query: string): boolean {
+    const lower = query.toLowerCase();
+    const menuWords = ['menu', 'food', 'dish', 'eat', 'order', 'breakfast', 'lunch', 'dinner',
+      'dessert', 'drink', 'beverage', 'snack', 'meal', 'cuisine', 'special', 'today special',
+      'recommend', 'popular', 'biriyani', 'biryani', 'curry', 'roti', 'naan', 'pizza', 'burger',
+      'pasta', 'salad', 'soup', 'rice', 'bread', 'chicken', 'mutton', 'fish', 'paneer', 'dal'];
+    return menuWords.some(w => lower.includes(w)) || this.isMenuTypeQuery(query);
+  }
 
-    const response = responses[actionId];
-    if (response) {
-      return language === 'hi' ? response.hi : response.en;
+  private static isMenuTypeQuery(query: string): boolean {
+    const lower = query.toLowerCase();
+    for (const [category, keywords] of Object.entries(MENU_CATEGORY_KEYWORDS)) {
+      if (keywords.some(k => lower.includes(k))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static detectMenuSubCategory(query: string, context: string): Array<{ id: string; label: string }> | null {
+    const lower = query.toLowerCase();
+
+    if (this.isMenuTypeQuery(query)) {
+      return null;
     }
 
-    return language === 'hi'
-      ? 'Main aapki madad karna chahta hu. Kripya batayein aapko kya chahiye?'
-      : 'I would like to help you. Please let me know what you need?';
+    const categories = Object.entries(MENU_CATEGORY_KEYWORDS)
+      .filter(([_, keywords]) => {
+        return keywords.some(k => context.toLowerCase().includes(k)) ||
+               context.toLowerCase().includes(this.getCategoryLabel(keywords[0]).toLowerCase());
+      })
+      .map(([id]) => ({
+        id,
+        label: this.getCategoryLabel(id),
+      }));
+
+    const generalMenuWords = ['menu', 'food', 'what do you have', 'items', 'dishes', 'options', 'list'];
+    if (categories.length === 0 && generalMenuWords.some(w => lower.includes(w))) {
+      return [
+        { id: 'all', label: 'View All Items' },
+        ...Object.entries(MENU_CATEGORY_KEYWORDS).map(([id]) => ({
+          id,
+          label: this.getCategoryLabel(id),
+        })),
+      ];
+    }
+
+    return categories.length > 0 ? categories : null;
+  }
+
+  private static getCategoryLabel(id: string): string {
+    const labels: Record<string, string> = {
+      breakfast: 'Breakfast',
+      lunch: 'Lunch',
+      dinner: 'Dinner',
+      desserts: 'Desserts',
+      drinks: 'Drinks & Beverages',
+      appetizers: 'Appetizers',
+      main_course: 'Main Course',
+      specials: 'Today\'s Specials',
+      all: 'View All Items',
+    };
+    return labels[id] || id;
+  }
+
+  private static formatMenuCategoryResponse(categories: Array<{ id: string; label: string }>, language: Language): string {
+    if (language === 'hi') {
+      return 'Aap kis category ki menu dekhna chahenge?\n\n' +
+        categories.map((c, i) => `${i + 1}. ${c.label}`).join('\n');
+    }
+    return 'Which menu category would you like to see?\n\n' +
+      categories.map((c, i) => `${i + 1}. ${c.label}`).join('\n');
   }
 
   static getWelcomeResponse(language: Language, clientName: string): string {
@@ -221,25 +382,25 @@ export class ResponseEngine {
   }
 
   static getTypingDelay(): number {
-    return 1000;
+    return 800;
   }
 
   static getSuggestedQuestions(language: Language): string[] {
     if (language === 'hi') {
       return [
-        'Aapki sevayein kya hain?',
-        'Kitna charge lagta hai?',
-        'Aapka portfolio dikhaiye',
-        'Consultation book karein',
-        'Contact details batayein',
+        'Menu kya hai?',
+        'Aapki contact details kya hain?',
+        'Kya timings hain?',
+        'Price kya hai?',
+        'Booking kaise karein?',
       ];
     }
     return [
-      'What services do you offer?',
-      'What are your pricing plans?',
-      'Can I see your portfolio?',
-      'Book a consultation',
+      'What\'s on the menu?',
       'What are your contact details?',
+      'What are your hours?',
+      'What are your prices?',
+      'How do I make a booking?',
     ];
   }
 }

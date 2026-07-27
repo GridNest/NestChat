@@ -35,6 +35,7 @@ import { healthRoutes } from './modules/health/health.routes.js';
 import { systemLogRoutes } from './modules/systemLog/systemLog.routes.js';
 import { translationRoutes } from './modules/translation/translation.routes.js';
 import { agentRoutes } from './modules/agent/agent.routes.js';
+import { websiteContentRoutes } from './modules/websiteContent/websiteContent.routes.js';
 import { logger } from './utils/logger.js';
 
 const app: Express = express();
@@ -84,6 +85,7 @@ app.use('/api/reports', reportsRoutes);
 app.use('/api/system-logs', systemLogRoutes);
 app.use('/api/translations', translationRoutes);
 app.use('/api/agents', agentRoutes);
+app.use('/api/website-content', websiteContentRoutes);
 
 app.get('/widget.js', (req, res) => {
   res.setHeader('Content-Type', 'application/javascript');

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { adminApi } from '../../services/api';
 
 interface ClientConfigForm {
+  quickActions: string;
   businessName: string;
   websiteUrl: string;
   supportEmail: string;
@@ -29,9 +30,12 @@ interface ClientConfigForm {
   enableInquiryForm: boolean;
   enableLiveAgent: boolean;
   enableAnalytics: boolean;
+  enableAI: boolean;
+  enableWebsiteSync: boolean;
 }
 
 const DEFAULT_FORM: ClientConfigForm = {
+  quickActions: 'Menu, Pricing, Contact, Hours, FAQ',
   businessName: '',
   websiteUrl: '',
   supportEmail: '',
@@ -58,6 +62,8 @@ const DEFAULT_FORM: ClientConfigForm = {
   enableInquiryForm: true,
   enableLiveAgent: true,
   enableAnalytics: true,
+  enableAI: true,
+  enableWebsiteSync: false,
 };
 
 export function ClientConfiguration() {
@@ -80,6 +86,7 @@ export function ClientConfiguration() {
       const config = await adminApi.getClientConfig(id!);
 
       setForm({
+        quickActions: (config.quickActions || DEFAULT_FORM.quickActions).join(', '),
         businessName: client.companyName || '',
         websiteUrl: client.website || '',
         supportEmail: config.contactEmail || client.email || '',
@@ -106,6 +113,8 @@ export function ClientConfiguration() {
         enableInquiryForm: config.enableInquiryForm ?? true,
         enableLiveAgent: config.enableLiveAgent ?? true,
         enableAnalytics: config.enableAnalytics ?? true,
+        enableAI: config.enableAI ?? true,
+        enableWebsiteSync: config.enableWebsiteSync ?? false,
       });
     } catch (err) {
       setMessage({ type: 'error', text: 'Failed to load configuration' });
@@ -138,6 +147,7 @@ export function ClientConfiguration() {
       });
 
       await adminApi.updateClientConfig(id!, {
+        quickActions: form.quickActions.split(',').map(s => s.trim()).filter(Boolean),
         greetingMessage: form.welcomeMessage,
         businessHours: form.officeHours || undefined,
         contactEmail: form.supportEmail || undefined,
@@ -155,6 +165,8 @@ export function ClientConfiguration() {
         enableInquiryForm: form.enableInquiryForm,
         enableLiveAgent: form.enableLiveAgent,
         enableAnalytics: form.enableAnalytics,
+        enableAI: form.enableAI,
+        enableWebsiteSync: form.enableWebsiteSync,
       });
 
       setMessage({ type: 'success', text: 'Configuration saved successfully' });
@@ -322,6 +334,11 @@ export function ClientConfiguration() {
               <label className={labelClass}>Office Hours</label>
               <input type="text" name="officeHours" value={form.officeHours} onChange={handleChange} className={inputClass} placeholder="Mon-Fri, 9AM-6PM" />
             </div>
+            <div>
+              <label className={labelClass}>Quick Action Buttons</label>
+              <input type="text" name="quickActions" value={form.quickActions} onChange={handleChange} className={inputClass} placeholder="Menu, Pricing, Contact, Hours" />
+              <p className="text-xs text-gray-500 mt-1">Comma-separated list of quick action button labels shown to visitors</p>
+            </div>
           </div>
         </div>
 
@@ -355,6 +372,8 @@ export function ClientConfiguration() {
                 { key: 'enableInquiryForm', label: 'Inquiry Form' },
                 { key: 'enableLiveAgent', label: 'Live Agent' },
                 { key: 'enableAnalytics', label: 'Analytics' },
+                { key: 'enableAI', label: 'AI Responses' },
+                { key: 'enableWebsiteSync', label: 'Website Sync' },
               ].map(feature => (
                 <label key={feature.key} className="flex items-center gap-2 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
                   <input

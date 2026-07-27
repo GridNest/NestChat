@@ -2,6 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { adminApi } from '../../services/api';
 
+interface SyncResult {
+  success: boolean;
+  pagesScraped?: number;
+  itemsExtracted?: number;
+  message?: string;
+  error?: string;
+}
+
 interface Client {
   id: string;
   clientId: string;
@@ -48,6 +56,8 @@ export function ClientDetail() {
   const [modules, setModules] = useState<ClientModule[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'config' | 'modules'>('overview');
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -73,6 +83,19 @@ export function ClientDetail() {
       console.error('Failed to fetch client:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSyncWebsite = async () => {
+    try {
+      setSyncing(true);
+      setSyncResult(null);
+      const result = await adminApi.syncWebsite(id!);
+      setSyncResult(result.data || result);
+    } catch (error) {
+      setSyncResult({ success: false, error: 'Failed to sync website' });
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -230,6 +253,36 @@ export function ClientDetail() {
                 </dd>
               </div>
             </dl>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow col-span-2">
+            <h2 className="text-lg font-semibold mb-4">Website Sync</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Sync website content to automatically index pages, menus, pricing, contact info, and more.
+            </p>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handleSyncWebsite}
+                disabled={syncing || !client.website}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {syncing ? 'Syncing...' : 'Sync Website'}
+              </button>
+              {!client.website && (
+                <span className="text-sm text-gray-400">No website URL configured</span>
+              )}
+            </div>
+            {syncResult && (
+              <div className={`mt-4 p-3 rounded-lg text-sm ${
+                syncResult.success
+                  ? 'bg-green-50 text-green-800 border border-green-200'
+                  : 'bg-red-50 text-red-800 border border-red-200'
+              }`}>
+                {syncResult.success
+                  ? `Synced ${syncResult.itemsExtracted} items from ${syncResult.pagesScraped} pages`
+                  : syncResult.error || 'Sync failed'}
+              </div>
+            )}
           </div>
         </div>
       )}
