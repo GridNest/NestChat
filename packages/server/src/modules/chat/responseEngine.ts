@@ -1,5 +1,6 @@
 import { KnowledgeMatch, KnowledgeEngine } from './knowledgeEngine.js';
 import { LanguageEngine, Language } from './languageEngine.js';
+import { IntentDetector, Intent } from './intentDetector.js';
 import { DEFAULT_QUICK_ACTIONS } from '@nestchat/shared';
 import { InquiryEngine } from '../inquiry/inquiryEngine.js';
 import { GroqService } from './groqService.js';
@@ -81,7 +82,43 @@ export class ResponseEngine {
       };
     }
 
-    // Layer 1: FAQ Search
+    // Detect intent first
+    const intent = IntentDetector.detect(query, language);
+
+    // Handle greeting intent directly
+    if (intent.intent === 'greeting' && intent.confidence > 0.6) {
+      const greetingMsg = language === 'hi'
+        ? `Namaste! 👋 Aap ${clientName} ke AI Assistant mein hain. Main aapki kaise madad kar sakta hoon?`
+        : `Hello! 👋 You're chatting with the ${clientName} AI Assistant. How can I help you today?`;
+      return {
+        content: greetingMsg,
+        messageType: 'text',
+        metadata: { matchedType: 'unknown', confidence: 1 },
+        suggestedQuestions: this.getSuggestedQuestions(language),
+      };
+    }
+
+    // Handle FAQ intent - show only question list
+    if (intent.intent === 'faq') {
+      const faqMatch = await KnowledgeEngine.search({ clientId, language, query });
+      if (faqMatch.found) {
+        return this.buildMatchResponse(faqMatch, language, clientId, query);
+      }
+    }
+
+    // Handle human agent intent
+    if (intent.intent === 'human_agent') {
+      return {
+        content: language === 'hi'
+          ? 'Main aapko humari team se connect kar raha hoon. Kripya kuch der pratiksha karein.'
+          : 'I am connecting you with our team. Please wait a moment.',
+        messageType: 'text',
+        metadata: { matchedType: 'unknown', confidence: 1 },
+        triggerInquiry: true,
+      };
+    }
+
+    // Layer 1: Knowledge Engine Search (FAQ, KB, Website Content)
     let match = await KnowledgeEngine.search({
       clientId,
       language,
@@ -133,7 +170,7 @@ export class ResponseEngine {
 
     if (aiEnabled) {
       const groqResult = await this.generateGroqWithFullContext({
-        clientId, language, query, clientName, conversationHistory,
+        clientId, language, query, clientName, conversationHistory, intent: intent.intent,
       });
       if (groqResult) {
         return groqResult;
@@ -159,8 +196,9 @@ export class ResponseEngine {
     query: string;
     clientName: string;
     conversationHistory?: Array<{ sender: string; content: string }>;
+    intent?: Intent;
   }): Promise<BotResponse | null> {
-    const { clientId, language, query, clientName, conversationHistory } = options;
+    const { clientId, language, query, clientName, conversationHistory, intent } = options;
 
     try {
       let clientObjIds: any[] = [];
@@ -178,12 +216,37 @@ export class ResponseEngine {
       const client = await ClientModel.findOne({ _id: { $in: clientObjIds } }).lean();
       const clientConfig = await ClientConfigModel.findOne({ clientId: { $in: clientObjIds } }).lean();
 
+      // Filter content based on intent for better relevance
+      const webFilter: any = { ...queryFilter, isActive: true, isDeleted: false };
+      if (intent && intent !== 'unknown' && intent !== 'greeting') {
+        const intentCategoryMap: Record<string, string[]> = {
+          menu: ['menu', 'menu_item', 'heading'],
+          pricing: ['pricing'],
+          contact: ['contact'],
+          hours: ['hours'],
+          location: ['contact'],
+          services: ['service', 'paragraph'],
+          about: ['heading', 'paragraph'],
+          gallery: ['gallery'],
+          booking: ['booking', 'paragraph'],
+          events: ['paragraph'],
+          offers: ['pricing', 'paragraph'],
+          products: ['paragraph'],
+          order: ['menu_item', 'pricing'],
+          delivery: ['paragraph'],
+        };
+        const categories = intentCategoryMap[intent];
+        if (categories) {
+          webFilter.contentType = { $in: categories };
+        }
+      }
+
       const [faqs, knowledgeItems, webContent] = await Promise.all([
-        FAQModel.find(queryFilter).limit(15).lean(),
-        KnowledgeModel.find(queryFilter).limit(15).lean(),
-        WebsiteContentModel.find({ ...queryFilter, isActive: true, isDeleted: false })
+        FAQModel.find(queryFilter).limit(10).lean(),
+        KnowledgeModel.find(queryFilter).limit(10).lean(),
+        WebsiteContentModel.find(webFilter)
           .sort({ priority: -1 })
-          .limit(20)
+          .limit(25)
           .lean(),
       ]);
 
@@ -197,6 +260,7 @@ export class ResponseEngine {
         contactAddress: (clientConfig as any)?.contactAddress,
         language,
         query,
+        intent: intent || 'unknown',
         faqs: faqs.map(f => ({ question: f.question, answer: f.answer })),
         knowledgeItems: knowledgeItems.map(k => ({ title: k.title, content: k.content })),
         websiteContent: webContent.map(w => ({ title: w.title, content: w.content, category: w.category })),

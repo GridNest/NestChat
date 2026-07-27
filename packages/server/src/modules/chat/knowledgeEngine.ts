@@ -88,25 +88,37 @@ export class KnowledgeEngine {
       isDeleted: false,
     }).lean();
 
-    // Check for general FAQ requests (e.g. clicking "FAQ" button or typing "FAQ" / "faqs")
+    // Check for general FAQ requests - LIST QUESTIONS ONLY, NOT ANSWERS
     const isGeneralFaqQuery = ['faq', 'faqs', "faq's", 'frequently asked questions', 'questions'].includes(normalizedQuery);
 
     if (isGeneralFaqQuery) {
       if (faqs.length > 0) {
-        const faqList = faqs.map((f, i) => {
-          const q = f.question;
-          const a = language === 'hi' && f.answerHi ? f.answerHi : f.answer;
-          return `❓ **${q}**\n💡 ${a}`;
-        }).join('\n\n');
+        const uniqueCategories = [...new Set(faqs.filter(f => f.category).map(f => f.category))];
+        let faqList: string;
+
+        if (uniqueCategories.length > 0) {
+          faqList = uniqueCategories.map((cat, i) => {
+            const catFaqs = faqs.filter(f => f.category === cat);
+            const questions = catFaqs.map(f => `  • ${f.question}`).join('\n');
+            const catLabel = cat.charAt(0).toUpperCase() + cat.slice(1);
+            return `▼ **${catLabel}**\n${questions}`;
+          }).join('\n\n');
+        } else {
+          faqList = faqs.map(f => `  • ${f.question}`).join('\n');
+        }
 
         const header = language === 'hi'
-          ? '📋 **Frequently Asked Questions (FAQs):**\n\n'
-          : '📋 **Frequently Asked Questions (FAQs):**\n\n';
-        
+          ? '📋 **Frequently Asked Questions:**\n\nKripya ek sawal chunein:\n\n'
+          : '📋 **Frequently Asked Questions:**\n\nPlease select a question:\n\n';
+
+        const footer = language === 'hi'
+          ? '\n\nKisi sawal ka jawab paane ke liye uspar click karein ya type karein.'
+          : '\n\nClick or type a question to see its answer.';
+
         return {
           found: true,
           type: 'faq',
-          answer: `${header}${faqList}`,
+          answer: `${header}${faqList}${footer}`,
           confidence: 1,
         };
       } else {

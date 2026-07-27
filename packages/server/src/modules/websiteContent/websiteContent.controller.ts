@@ -1,10 +1,52 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthRequest } from '../../middleware/auth.js';
+import mongoose from 'mongoose';
 import { WebsiteScraperService } from './websiteScraper.service.js';
 import { WebsiteContentModel } from './websiteContent.model.js';
+import { ClientModel } from '../client/client.model.js';
 import { ApiResponseHelper } from '../../utils/apiResponse.js';
 
 export class WebsiteContentController {
+  static async getCrawlStatus(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { clientId } = req.params;
+      const client = await ClientModel.findOne({
+        $or: [
+          { _id: mongoose.Types.ObjectId.isValid(clientId) ? new mongoose.Types.ObjectId(clientId) : undefined },
+          { clientId: clientId.trim().toLowerCase() }
+        ].filter(Boolean)
+      }).lean();
+
+      if (!client) {
+        res.status(404).json({ success: false, message: 'Client not found' });
+        return;
+      }
+
+      const resolvedId = (client as any)._id;
+      const count = await WebsiteContentModel.countDocuments({ clientId: resolvedId, isActive: true, isDeleted: false });
+      const sample = await WebsiteContentModel.findOne({ clientId: resolvedId }).sort({ createdAt: -1 }).lean();
+
+      res.json({
+        success: true,
+        data: {
+          websiteUrl: (client as any).website || '',
+          totalIndexed: count,
+          lastCrawlAt: (sample as any)?.crawlMetadata?.lastCrawlAt || null,
+          crawlStatus: (sample as any)?.crawlMetadata?.crawlStatus || 'never',
+          pagesFound: (sample as any)?.crawlMetadata?.pagesFound || 0,
+          pagesScraped: (sample as any)?.crawlMetadata?.pagesScraped || 0,
+          itemsExtracted: (sample as any)?.crawlMetadata?.itemsExtracted || 0,
+          failedUrls: (sample as any)?.crawlMetadata?.failedUrls || [],
+          crawlLogs: (sample as any)?.crawlMetadata?.crawlLogs || [],
+          categories: await WebsiteContentModel.distinct('category', { clientId: resolvedId, isActive: true, isDeleted: false }),
+          contentTypes: await WebsiteContentModel.distinct('contentType', { clientId: resolvedId, isActive: true, isDeleted: false }),
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async syncWebsite(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { clientId } = req.params;

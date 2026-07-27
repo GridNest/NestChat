@@ -559,6 +559,11 @@ class AdminApi {
   }
 
   // Website Sync
+  async getWebsiteCrawlStatus(clientId: string) {
+    const response = await this.client.get(`/website-content/${clientId}/status`);
+    return response.data;
+  }
+
   async syncWebsite(clientId: string) {
     const response = await this.client.post(`/website-content/${clientId}/sync`);
     return response.data;

@@ -1,5 +1,15 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
+export interface CrawlMetadata {
+  lastCrawlAt: Date | null;
+  crawlStatus: 'never' | 'in_progress' | 'success' | 'failed';
+  pagesFound: number;
+  pagesScraped: number;
+  itemsExtracted: number;
+  failedUrls: string[];
+  crawlLogs: string[];
+}
+
 export interface WebsiteContentDocument extends Document {
   clientId: mongoose.Types.ObjectId;
   url: string;
@@ -14,6 +24,7 @@ export interface WebsiteContentDocument extends Document {
   isActive: boolean;
   isDeleted: boolean;
   lastSyncedAt: Date;
+  crawlMetadata: CrawlMetadata;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -78,6 +89,26 @@ const websiteContentSchema = new Schema<WebsiteContentDocument>(
     lastSyncedAt: {
       type: Date,
       default: Date.now,
+    },
+    crawlMetadata: {
+      type: new Schema({
+        lastCrawlAt: { type: Date, default: null },
+        crawlStatus: { type: String, enum: ['never', 'in_progress', 'success', 'failed'], default: 'never' },
+        pagesFound: { type: Number, default: 0 },
+        pagesScraped: { type: Number, default: 0 },
+        itemsExtracted: { type: Number, default: 0 },
+        failedUrls: { type: [String], default: [] },
+        crawlLogs: { type: [String], default: [] },
+      }, { _id: false }),
+      default: () => ({
+        lastCrawlAt: null,
+        crawlStatus: 'never',
+        pagesFound: 0,
+        pagesScraped: 0,
+        itemsExtracted: 0,
+        failedUrls: [],
+        crawlLogs: [],
+      }),
     },
   },
   {
