@@ -25,6 +25,9 @@ export class UserService {
   }
 
   static async getById(id: string) {
+    if (!id || id === 'undefined' || !mongoose.Types.ObjectId.isValid(id)) {
+      throw ApiError.badRequest('Invalid User ID');
+    }
     const user = await UserModel.findById(id).select('-password');
     if (!user) {
       throw ApiError.notFound('User not found');

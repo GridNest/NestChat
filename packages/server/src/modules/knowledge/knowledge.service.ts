@@ -258,18 +258,24 @@ export class KnowledgeService {
 
   static async getCategories(clientId?: string): Promise<string[]> {
     const filter: any = { isDeleted: false };
-    if (clientId && Types.ObjectId.isValid(clientId)) {
-      filter.clientId = clientId;
+    if (clientId && clientId !== 'categories') {
+      if (Types.ObjectId.isValid(clientId)) {
+        filter.clientId = new Types.ObjectId(clientId);
+      } else {
+        const client = await ClientModel.findOne({ clientId: clientId.trim().toLowerCase() }).lean();
+        if (client) {
+          filter.clientId = client._id;
+        } else {
+          return [];
+        }
+      }
     }
     const categories = await KnowledgeModel.distinct('category', filter);
     return categories.sort();
   }
 
   static async getAllCategories(clientId?: string): Promise<string[]> {
-    const filter: any = { isDeleted: false };
-    if (clientId && Types.ObjectId.isValid(clientId)) filter.clientId = clientId;
-    const categories = await KnowledgeModel.distinct('category', filter);
-    return categories.sort();
+    return this.getCategories(clientId);
   }
 
   static generateCsvTemplate(): string {
