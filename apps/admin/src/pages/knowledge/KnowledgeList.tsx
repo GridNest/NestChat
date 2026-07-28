@@ -259,28 +259,41 @@ export function KnowledgeList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Knowledge Base</h1>
-        <div className="flex gap-2">
-          <button onClick={handleDownloadTemplate} className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">Download Template</button>
-          <button onClick={() => setShowImport(true)} className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">Import CSV</button>
-          <button onClick={handleExport} className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm">Export CSV</button>
-          <Link to="/knowledge/new" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 text-sm">Add Article</Link>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Knowledge Base</h1>
+          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Manage articles and documentation for chat responses</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button onClick={handleDownloadTemplate} className="px-3 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 text-xs sm:text-sm font-medium min-h-[40px] transition-colors">Download Template</button>
+          <button onClick={() => setShowImport(true)} className="px-3 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 text-xs sm:text-sm font-medium min-h-[40px] transition-colors">Import CSV</button>
+          <button onClick={handleExport} className="px-3 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 text-xs sm:text-sm font-medium min-h-[40px] transition-colors">Export CSV</button>
+          <Link to="/knowledge/new" className="bg-blue-600 text-white px-4 py-2.5 rounded-xl hover:bg-blue-700 text-xs sm:text-sm font-medium min-h-[44px] flex items-center justify-center gap-1.5 shadow-sm transition-colors">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span>Add Article</span>
+          </Link>
         </div>
       </div>
 
-      <div className="flex gap-4">
-        <input
-          type="text"
-          placeholder="Search articles..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          className="flex-1 px-4 py-2 border rounded-lg"
-        />
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <input
+            type="text"
+            placeholder="Search articles..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm min-h-[44px]"
+          />
+          <svg className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
         <select
           value={categoryFilter}
           onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
-          className="px-4 py-2 border rounded-lg"
+          className="px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm bg-white min-h-[44px]"
         >
           <option value="">All Categories</option>
           {availableCategories.map(cat => (
@@ -290,13 +303,14 @@ export function KnowledgeList() {
         <select
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          className="px-4 py-2 border rounded-lg"
+          className="px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm bg-white min-h-[44px]"
         >
           <option value="">All Status</option>
           <option value="published">Published</option>
           <option value="draft">Draft</option>
         </select>
       </div>
+
 
       {selectedIds.size > 0 && (
         <div className="flex gap-2 items-center p-3 bg-blue-50 rounded-lg">

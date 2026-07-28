@@ -121,23 +121,26 @@ export function KnowledgeForm() {
     return <div className="text-center py-8">Loading...</div>;
   }
 
-  const inputClass = 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500';
-  const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
+  const inputClass = 'w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm bg-white min-h-[44px]';
+  const labelClass = 'block text-xs sm:text-sm font-medium text-gray-700 mb-1.5';
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">
-        {id ? 'Edit Article' : 'New Article'}
-      </h1>
+    <div className="max-w-4xl mx-auto space-y-6">
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
+          {id ? 'Edit Article' : 'New Article'}
+        </h1>
+        <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Manage knowledge base articles and documentation content</p>
+      </div>
 
       {lastUpdated && (
-        <div className="mb-4 p-3 bg-gray-50 rounded-lg text-sm text-gray-600">
+        <div className="p-3 bg-gray-50 rounded-xl text-xs sm:text-sm text-gray-600 border border-gray-100">
           Last updated: {lastUpdated}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+      <form onSubmit={handleSubmit} className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200 space-y-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
           <div>
             <label className={labelClass}>Client *</label>
             <select
@@ -176,7 +179,7 @@ export function KnowledgeForm() {
             maxLength={100}
             className={inputClass}
           />
-          <span className="text-xs text-gray-500">{formData.pageName.length}/100</span>
+          <span className="text-[11px] text-gray-400 mt-1 block">{formData.pageName.length}/100</span>
         </div>
 
         <div>
@@ -189,23 +192,23 @@ export function KnowledgeForm() {
             maxLength={200}
             className={inputClass}
           />
-          <span className="text-xs text-gray-500">{formData.title.length}/200</span>
+          <span className="text-[11px] text-gray-400 mt-1 block">{formData.title.length}/200</span>
         </div>
 
         <div>
-          <div className="flex justify-between items-center mb-1">
+          <div className="flex justify-between items-center mb-1.5">
             <label className={labelClass}>Content * (Markdown supported)</label>
             <button
               type="button"
               onClick={() => setShowPreview(!showPreview)}
-              className="text-sm text-blue-600 hover:text-blue-800"
+              className="text-xs sm:text-sm font-semibold text-blue-600 hover:text-blue-800 p-1 min-h-[36px]"
             >
               {showPreview ? 'Edit' : 'Preview'}
             </button>
           </div>
           {showPreview ? (
             <div
-              className="w-full min-h-[300px] p-4 border border-gray-300 rounded-lg bg-white prose prose-sm max-w-none"
+              className="w-full min-h-[300px] p-4 border border-gray-300 rounded-xl bg-white prose prose-sm max-w-none break-words"
               dangerouslySetInnerHTML={{ __html: renderMarkdown(formData.content) }}
             />
           ) : (
@@ -213,18 +216,18 @@ export function KnowledgeForm() {
               value={formData.content}
               onChange={(e) => setFormData({ ...formData, content: e.target.value })}
               required
-              rows={12}
+              rows={10}
               maxLength={50000}
-              className={`${inputClass} font-mono text-sm`}
+              className={`${inputClass} font-mono text-xs sm:text-sm leading-relaxed`}
               placeholder="Write your content here...&#10;&#10;Use markdown for formatting:&#10;# Heading 1&#10;## Heading 2&#10;**bold** *italic*&#10;- List item&#10;`code`"
             />
           )}
           {!showPreview && (
-            <span className="text-xs text-gray-500">{formData.content.length} characters</span>
+            <span className="text-[11px] text-gray-400 mt-1 block">{formData.content.length} characters</span>
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
           <div>
             <label className={labelClass}>Category</label>
             <div className="flex gap-2">
@@ -268,18 +271,18 @@ export function KnowledgeForm() {
           />
         </div>
 
-        <div className="flex gap-4 pt-4">
+        <div className="flex flex-col-reverse sm:flex-row gap-3 pt-3 border-t border-gray-100">
           <button
             type="button"
             onClick={() => navigate('/knowledge')}
-            className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+            className="w-full sm:w-auto px-5 py-2.5 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 text-xs sm:text-sm font-medium min-h-[44px] flex items-center justify-center transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 text-xs sm:text-sm font-medium min-h-[44px] flex items-center justify-center transition-colors shadow-sm"
           >
             {saving ? 'Saving...' : 'Save Article'}
           </button>
@@ -288,3 +291,4 @@ export function KnowledgeForm() {
     </div>
   );
 }
+

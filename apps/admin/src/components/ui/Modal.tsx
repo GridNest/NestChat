@@ -30,27 +30,29 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex min-h-screen items-center justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onClose}></div>
-        
-        <span className="hidden sm:inline-block sm:h-screen sm:align-middle">&#8203;</span>
-        
-        <div className={`inline-block transform overflow-hidden rounded-lg bg-white text-left align-bottom shadow-xl transition-all sm:my-8 sm:w-full sm:align-middle ${sizeClasses[size]}`}>
-          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-              <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-gray-500"
-              >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            {children}
-          </div>
+    <div className="fixed inset-0 z-50 overflow-y-auto p-3 sm:p-6 flex items-center justify-center">
+      {/* Backdrop */}
+      <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm transition-opacity" onClick={onClose} aria-hidden="true"></div>
+      
+      {/* Modal Dialog */}
+      <div className={`relative w-full ${sizeClasses[size]} max-h-[90vh] flex flex-col bg-white rounded-2xl shadow-2xl overflow-hidden z-10 transition-all transform`}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gray-50/50 flex-shrink-0">
+          <h3 className="text-lg font-semibold text-gray-900 truncate pr-4">{title}</h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors"
+            aria-label="Close modal"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Body (Scrollable) */}
+        <div className="p-5 sm:p-6 overflow-y-auto flex-1 space-y-4">
+          {children}
         </div>
       </div>
     </div>
@@ -79,18 +81,18 @@ export function ConfirmModal({
   variant = 'danger',
 }: ConfirmModalProps) {
   const variantClasses = {
-    danger: 'bg-red-600 hover:bg-red-700',
-    warning: 'bg-yellow-600 hover:bg-yellow-700',
-    info: 'bg-blue-600 hover:bg-blue-700',
+    danger: 'bg-red-600 hover:bg-red-700 focus:ring-red-500',
+    warning: 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500',
+    info: 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500',
   };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title} size="sm">
-      <p className="text-gray-600 mb-6">{message}</p>
-      <div className="flex gap-3 justify-end">
+      <p className="text-gray-600 text-sm leading-relaxed mb-6">{message}</p>
+      <div className="flex flex-col-reverse sm:flex-row gap-3 sm:justify-end">
         <button
           onClick={onClose}
-          className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+          className="w-full sm:w-auto px-4 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 min-h-[44px] flex items-center justify-center transition-colors"
         >
           {cancelText}
         </button>
@@ -99,7 +101,7 @@ export function ConfirmModal({
             onConfirm();
             onClose();
           }}
-          className={`px-4 py-2 text-white rounded-lg ${variantClasses[variant]}`}
+          className={`w-full sm:w-auto px-4 py-2.5 text-sm font-medium text-white rounded-xl min-h-[44px] flex items-center justify-center transition-colors ${variantClasses[variant]}`}
         >
           {confirmText}
         </button>
@@ -107,3 +109,4 @@ export function ConfirmModal({
     </Modal>
   );
 }
+

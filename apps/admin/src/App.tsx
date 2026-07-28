@@ -20,6 +20,7 @@ import { InquiryDetail } from './pages/inquiries/InquiryDetail';
 import { UnansweredList } from './pages/unanswered/UnansweredList';
 import { UserList } from './pages/users/UserList';
 import { UserForm } from './pages/users/UserForm';
+import { RoleList } from './pages/roles/RoleList';
 import { SettingsPage } from './pages/settings/SettingsPage';
 import { AuditLogList } from './pages/auditLogs/AuditLogList';
 import { NotificationList } from './pages/notifications/NotificationList';
@@ -89,6 +90,7 @@ function App() {
                     <Route path="/users" element={<UserList />} />
                     <Route path="/users/new" element={<UserForm />} />
                     <Route path="/users/:id/edit" element={<UserForm />} />
+                    <Route path="/roles" element={<RoleList />} />
                     <Route path="/translations" element={<TranslationsPage />} />
                     <Route path="/settings" element={<SettingsPage />} />
                     <Route path="/audit-logs" element={<AuditLogList />} />
@@ -103,6 +105,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+
         </Routes>
       </BrowserRouter>
     </ToastProvider>

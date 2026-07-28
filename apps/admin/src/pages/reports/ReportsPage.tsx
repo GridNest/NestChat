@@ -56,18 +56,21 @@ export function ReportsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Reports</h1>
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Reports</h1>
+        <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Generate and export analytics, chat, and lead reports</p>
+      </div>
 
-      <div className="bg-white p-6 rounded-lg shadow">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
               Report Type
             </label>
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value as ReportType)}
-              className="w-full px-3 py-2 border rounded-lg"
+              className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm bg-white min-h-[44px]"
             >
               {reportTypes.map((type) => (
                 <option key={type.value} value={type.value}>
@@ -75,53 +78,54 @@ export function ReportsPage() {
                 </option>
               ))}
             </select>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-[11px] text-gray-400 mt-1">
               {reportTypes.find((t) => t.value === selectedType)?.description}
             </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
               Start Date
             </label>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg"
+              className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm min-h-[44px]"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
               End Date
             </label>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg"
+              className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm min-h-[44px]"
             />
           </div>
 
-          <div className="flex items-end gap-2">
+          <div className="flex items-end gap-2 pt-2 sm:pt-0">
             <button
               onClick={handlePreview}
               disabled={loading}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+              className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 disabled:opacity-50 text-xs sm:text-sm font-medium min-h-[44px] transition-colors"
             >
               Preview
             </button>
             <button
               onClick={handleExport}
               disabled={loading}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 text-xs sm:text-sm font-medium min-h-[44px] transition-colors shadow-sm"
             >
               Export CSV
             </button>
           </div>
         </div>
       </div>
+
 
       {preview && (
         <div className="bg-white p-6 rounded-lg shadow">

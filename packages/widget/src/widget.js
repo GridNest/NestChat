@@ -409,22 +409,37 @@
         text-decoration: none;
       }
 
+      @media (max-width: 768px) {
+        .nestchat-widget {
+          width: calc(100vw - 16px);
+          height: 80vh;
+          max-height: calc(100vh - 80px);
+          bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+          left: 8px;
+          right: 8px;
+          border-radius: 16px;
+        }
+        .nestchat-bubble {
+          bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+          right: 16px;
+        }
+      }
+
       @media (max-width: 480px) {
         .nestchat-widget {
-          width: calc(100vw - 20px);
-          height: calc(100vh - 20px);
-          max-width: none;
-          max-height: none;
-          border-radius: 0;
-          top: 10px;
-          left: 10px;
-          right: 10px;
-          bottom: 10px;
+          width: calc(100vw - 16px);
+          height: 80vh;
+          max-height: calc(100vh - 80px);
+          left: 8px;
+          right: 8px;
+          bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+          border-radius: 16px;
         }
       }
     `;
     shadowRoot.appendChild(style);
   }
+
 
   // Create widget HTML structure
   function createWidgetHTML(config) {

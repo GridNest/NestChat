@@ -7,7 +7,8 @@ export function WidgetButton() {
   return (
     <button
       onClick={toggleWidget}
-      className="fixed bottom-6 right-6 w-14 h-14 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center z-50"
+      aria-label={isOpen ? "Close Chat Widget" : "Open Chat Widget"}
+      className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))] right-4 sm:right-6 w-14 h-14 text-white rounded-full shadow-lg hover:shadow-2xl active:scale-95 transition-all duration-300 flex items-center justify-center z-50 min-w-[56px] min-h-[56px]"
       style={{
         backgroundColor: clientConfig?.theme?.primaryColor || '#3B82F6',
       }}
@@ -44,3 +45,4 @@ export function WidgetButton() {
     </button>
   );
 }
+

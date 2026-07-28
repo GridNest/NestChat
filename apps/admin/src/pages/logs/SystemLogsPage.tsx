@@ -77,16 +77,19 @@ export function SystemLogsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">System Logs</h1>
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">System Logs</h1>
+        <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Real-time system events, API performance, and error tracebacks</p>
+      </div>
 
-      <div className="bg-white p-6 rounded-lg shadow">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Level</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">Level</label>
             <select
               value={filters.level || ''}
               onChange={(e) => handleFilterChange('level', e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg"
+              className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm bg-white min-h-[44px]"
             >
               <option value="">All Levels</option>
               <option value="info">Info</option>
@@ -97,7 +100,8 @@ export function SystemLogsPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">Category</label>
+
             <select
               value={filters.category || ''}
               onChange={(e) => handleFilterChange('category', e.target.value)}

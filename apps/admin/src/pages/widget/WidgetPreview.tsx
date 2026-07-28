@@ -63,40 +63,44 @@ export function WidgetPreview() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Widget Preview</h1>
-        <div className="flex gap-4">
-          <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Widget Preview</h1>
+          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Test chat widget appearance and interaction in different viewports</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex gap-1.5 bg-gray-100 p-1 rounded-xl">
             <button
               onClick={() => setDevice('desktop')}
-              className={`px-3 py-1 rounded ${device === 'desktop' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${device === 'desktop' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
             >
               Desktop
             </button>
             <button
               onClick={() => setDevice('tablet')}
-              className={`px-3 py-1 rounded ${device === 'tablet' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${device === 'tablet' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
             >
               Tablet
             </button>
             <button
               onClick={() => setDevice('mobile')}
-              className={`px-3 py-1 rounded ${device === 'mobile' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${device === 'mobile' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
             >
               Mobile
             </button>
           </div>
-          <label className="flex items-center gap-2">
+          <label className="flex items-center gap-2 text-xs sm:text-sm text-gray-700 font-medium cursor-pointer">
             <input
               type="checkbox"
               checked={darkMode}
               onChange={(e) => setDarkMode(e.target.checked)}
-              className="rounded"
+              className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4"
             />
             Dark Mode
           </label>
         </div>
       </div>
+
 
       <div className="flex justify-center">
         <div

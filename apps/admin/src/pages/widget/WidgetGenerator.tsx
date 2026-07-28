@@ -99,13 +99,13 @@ export function WidgetGenerator() {
           </button>
           <button
             onClick={() => setActiveTab('settings')}
-            className={`pb-2 ${activeTab === 'settings' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
+            className={`pb-2.5 px-3 text-xs sm:text-sm font-medium border-b-2 transition-colors min-h-[44px] flex items-center ${activeTab === 'settings' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             Widget Settings
           </button>
           <button
             onClick={() => setActiveTab('domains')}
-            className={`pb-2 ${activeTab === 'domains' ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500'}`}
+            className={`pb-2.5 px-3 text-xs sm:text-sm font-medium border-b-2 transition-colors min-h-[44px] flex items-center ${activeTab === 'domains' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             Allowed Domains
           </button>
@@ -114,49 +114,50 @@ export function WidgetGenerator() {
 
       {activeTab === 'script' && script && (
         <div className="space-y-6">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-lg font-semibold mb-4">Embed Script</h2>
-            <p className="text-gray-600 mb-4">
+          <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Embed Script</h2>
+            <p className="text-xs sm:text-sm text-gray-600 mb-4 leading-relaxed">
               Copy this script and paste it before the closing &lt;/body&gt; tag on your website.
             </p>
             <div className="relative">
-              <pre className="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm">
+              <pre className="bg-gray-900 text-green-400 p-4 rounded-xl overflow-x-auto text-xs sm:text-sm font-mono scrollbar-thin">
                 {script.script}
               </pre>
               <button
                 onClick={handleCopyScript}
-                className="absolute top-2 right-2 bg-gray-700 text-white px-3 py-1 rounded text-sm hover:bg-gray-600"
+                className="mt-3 sm:mt-0 sm:absolute sm:top-2 sm:right-2 w-full sm:w-auto bg-gray-800 text-white px-4 py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-gray-700 min-h-[40px] flex items-center justify-center transition-colors"
               >
-                {copied ? 'Copied!' : 'Copy'}
+                {copied ? 'Copied!' : 'Copy Script'}
               </button>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-lg font-semibold mb-4">Widget Info</h2>
-            <dl className="grid grid-cols-2 gap-4">
+          <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Widget Info</h2>
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <dt className="text-sm text-gray-500">Client ID</dt>
-                <dd className="font-mono">{script.clientId}</dd>
+                <dt className="text-xs text-gray-500 font-medium">Client ID</dt>
+                <dd className="font-mono text-xs sm:text-sm text-gray-900 mt-0.5 break-all">{script.clientId}</dd>
               </div>
               <div>
-                <dt className="text-sm text-gray-500">Version</dt>
-                <dd className="font-mono">{script.version}</dd>
+                <dt className="text-xs text-gray-500 font-medium">Version</dt>
+                <dd className="font-mono text-xs sm:text-sm text-gray-900 mt-0.5">{script.version}</dd>
               </div>
-              <div>
-                <dt className="text-sm text-gray-500">Secret Key</dt>
-                <dd className="font-mono text-xs break-all">{script.secretKey}</dd>
+              <div className="sm:col-span-2">
+                <dt className="text-xs text-gray-500 font-medium">Secret Key</dt>
+                <dd className="font-mono text-xs text-gray-900 mt-0.5 break-all">{script.secretKey}</dd>
               </div>
             </dl>
             <button
               onClick={handleRegenerateKey}
-              className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              className="mt-5 w-full sm:w-auto px-4 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 text-xs sm:text-sm font-medium min-h-[44px] transition-colors"
             >
               Regenerate Secret Key
             </button>
           </div>
         </div>
       )}
+
 
       {activeTab === 'guides' && (
         <div className="space-y-6">

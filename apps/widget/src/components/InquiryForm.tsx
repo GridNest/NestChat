@@ -104,18 +104,18 @@ export function InquiryForm() {
 
   return (
     <div className="space-y-4">
-      <div className="bg-blue-50 p-3 rounded-lg">
-        <p className="text-sm text-blue-800">
+      <div className="bg-blue-50 p-3 sm:p-4 rounded-xl border border-blue-100">
+        <p className="text-xs sm:text-sm font-medium text-blue-900">
           {getMessage(language, 'inquiryPrompt')}
         </p>
-        <p className="text-xs text-blue-600 mt-1">
+        <p className="text-[11px] text-blue-600 font-semibold mt-1">
           Step {currentStepIndex + 1} of {INQUIRY_STEPS.length}
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-3">
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
             {getMessage(language, currentStep.key as any)}
             {currentStep.required && <span className="text-red-500 ml-1">*</span>}
           </label>
@@ -123,14 +123,19 @@ export function InquiryForm() {
             type={currentStep.field === 'email' ? 'email' : 'text'}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 text-sm"
+            onFocus={(e) => {
+              setTimeout(() => {
+                e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }, 150);
+            }}
+            className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm min-h-[44px]"
             autoFocus
             disabled={isSubmitting}
           />
-          {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+          {error && <p className="text-red-500 text-xs mt-1.5 font-medium">{error}</p>}
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2.5 pt-1">
           <button
             type="button"
             onClick={() => {
@@ -148,14 +153,14 @@ export function InquiryForm() {
               });
               setCurrentView('chat');
             }}
-            className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors text-sm"
+            className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 active:scale-95 transition-all text-xs sm:text-sm font-medium min-h-[44px]"
             disabled={isSubmitting}
           >
             {language === 'hi' ? 'Cancel' : 'Cancel'}
           </button>
           <button
             type="submit"
-            className="flex-1 px-4 py-2 text-white rounded-lg transition-colors text-sm disabled:opacity-50"
+            className="flex-1 px-4 py-2.5 text-white rounded-xl active:scale-95 transition-all text-xs sm:text-sm font-medium disabled:opacity-50 min-h-[44px] shadow-sm"
             style={{ backgroundColor: clientConfig?.theme?.primaryColor || '#3B82F6' }}
             disabled={isSubmitting}
           >
@@ -170,3 +175,4 @@ export function InquiryForm() {
     </div>
   );
 }
+

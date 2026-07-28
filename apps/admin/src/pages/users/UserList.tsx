@@ -67,7 +67,7 @@ export function UserList() {
       key: 'role',
       label: 'Role',
       render: (item: User) => (
-        <span className={`px-2 py-1 text-xs rounded-full ${
+        <span className={`px-2.5 py-1 text-xs font-semibold rounded-full capitalize ${
           item.role === 'admin' ? 'bg-purple-100 text-purple-800' :
           item.role === 'client' ? 'bg-blue-100 text-blue-800' :
           'bg-gray-100 text-gray-800'
@@ -80,7 +80,7 @@ export function UserList() {
       key: 'isActive',
       label: 'Status',
       render: (item: User) => (
-        <span className={`px-2 py-1 text-xs rounded-full ${
+        <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${
           item.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
         }`}>
           {item.isActive ? 'Active' : 'Inactive'}
@@ -96,16 +96,16 @@ export function UserList() {
       key: 'actions',
       label: 'Actions',
       render: (item: User) => (
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3 min-h-[36px]">
           <button
             onClick={() => navigate(`/users/${item.id}/edit`)}
-            className="text-blue-600 hover:text-blue-800"
+            className="text-blue-600 hover:text-blue-800 font-medium text-xs sm:text-sm p-1"
           >
             Edit
           </button>
           <button
             onClick={() => setDeleteId(item.id)}
-            className="text-red-600 hover:text-red-800"
+            className="text-red-600 hover:text-red-800 font-medium text-xs sm:text-sm p-1"
           >
             Delete
           </button>
@@ -116,28 +116,39 @@ export function UserList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Users</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Users</h1>
+          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Manage user access and roles</p>
+        </div>
         <Link
           to="/users/new"
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          className="bg-blue-600 text-white px-4 py-2.5 rounded-xl hover:bg-blue-700 font-medium text-sm transition-colors min-h-[44px] flex items-center justify-center gap-2 shadow-sm"
         >
-          Add User
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          <span>Add User</span>
         </Link>
       </div>
 
-      <div className="flex gap-4">
-        <input
-          type="text"
-          placeholder="Search users..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 px-4 py-2 border rounded-lg"
-        />
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <input
+            type="text"
+            placeholder="Search users..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+          />
+          <svg className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
         <select
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value)}
-          className="px-4 py-2 border rounded-lg"
+          className="px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white min-h-[44px]"
         >
           <option value="">All Roles</option>
           <option value="admin">Admin</option>
@@ -154,22 +165,22 @@ export function UserList() {
       />
 
       {total > limit && (
-        <div className="flex justify-between items-center">
-          <span className="text-sm text-gray-700">
-            Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, total)} of {total}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+          <span className="text-xs sm:text-sm text-gray-600">
+            Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, total)} of {total} users
           </span>
           <div className="flex gap-2">
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
-              className="px-3 py-1 border rounded disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-xl hover:bg-gray-50 disabled:opacity-50 min-h-[44px]"
             >
               Previous
             </button>
             <button
               onClick={() => setPage(p => p + 1)}
               disabled={page * limit >= total}
-              className="px-3 py-1 border rounded disabled:opacity-50"
+              className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-xl hover:bg-gray-50 disabled:opacity-50 min-h-[44px]"
             >
               Next
             </button>
@@ -189,3 +200,4 @@ export function UserList() {
     </div>
   );
 }
+

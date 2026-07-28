@@ -39,77 +39,80 @@ export function ClientCreate() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Create New Client</h1>
+    <div className="max-w-3xl mx-auto space-y-6">
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Create New Client</h1>
+        <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Configure client company details and initial widget defaults</p>
+      </div>
       
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+      <form onSubmit={handleSubmit} className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200 space-y-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">Name *</label>
             <input
               type="text"
               name="name"
               value={formData.name}
               onChange={handleChange}
               required
-              className="w-full px-3 py-2 border rounded-lg"
+              className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm min-h-[44px]"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">Email *</label>
             <input
               type="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
               required
-              className="w-full px-3 py-2 border rounded-lg"
+              className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm min-h-[44px]"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Company Name *</label>
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">Company Name *</label>
           <input
             type="text"
             name="companyName"
             value={formData.companyName}
             onChange={handleChange}
             required
-            className="w-full px-3 py-2 border rounded-lg"
+            className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm min-h-[44px]"
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">Phone</label>
             <input
               type="text"
               name="phone"
               value={formData.phone}
               onChange={handleChange}
-              className="w-full px-3 py-2 border rounded-lg"
+              className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm min-h-[44px]"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">Website</label>
             <input
               type="url"
               name="website"
               value={formData.website}
               onChange={handleChange}
-              className="w-full px-3 py-2 border rounded-lg"
+              className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm min-h-[44px]"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Website Type *</label>
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">Website Type *</label>
           <select
             name="websiteType"
             value={formData.websiteType}
             onChange={handleChange}
-            className="w-full px-3 py-2 border rounded-lg"
+            className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm bg-white min-h-[44px]"
           >
             <option value="corporate">Corporate</option>
             <option value="restaurant">Restaurant</option>
@@ -124,65 +127,65 @@ export function ClientCreate() {
           </select>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Primary Color</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">Primary Color</label>
             <div className="flex gap-2">
               <input
                 type="color"
                 name="primaryColor"
                 value={formData.primaryColor}
                 onChange={handleChange}
-                className="w-12 h-10 rounded cursor-pointer"
+                className="w-12 h-[44px] rounded-xl cursor-pointer border border-gray-300 p-1 bg-white"
               />
               <input
                 type="text"
                 name="primaryColor"
                 value={formData.primaryColor}
                 onChange={handleChange}
-                className="flex-1 px-3 py-2 border rounded-lg"
+                className="flex-1 px-3.5 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm min-h-[44px]"
               />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Secondary Color</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">Secondary Color</label>
             <div className="flex gap-2">
               <input
                 type="color"
                 name="secondaryColor"
                 value={formData.secondaryColor}
                 onChange={handleChange}
-                className="w-12 h-10 rounded cursor-pointer"
+                className="w-12 h-[44px] rounded-xl cursor-pointer border border-gray-300 p-1 bg-white"
               />
               <input
                 type="text"
                 name="secondaryColor"
                 value={formData.secondaryColor}
                 onChange={handleChange}
-                className="flex-1 px-3 py-2 border rounded-lg"
+                className="flex-1 px-3.5 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm min-h-[44px]"
               />
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Bot Name</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">Bot Name</label>
             <input
               type="text"
               name="botName"
               value={formData.botName}
               onChange={handleChange}
-              className="w-full px-3 py-2 border rounded-lg"
+              className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm min-h-[44px]"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Default Language</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">Default Language</label>
             <select
               name="defaultLanguage"
               value={formData.defaultLanguage}
               onChange={handleChange}
-              className="w-full px-3 py-2 border rounded-lg"
+              className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm bg-white min-h-[44px]"
             >
               <option value="en">English</option>
               <option value="hi">Hindi</option>
@@ -191,12 +194,12 @@ export function ClientCreate() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
+          <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">Timezone</label>
           <select
             name="timezone"
             value={formData.timezone}
             onChange={handleChange}
-            className="w-full px-3 py-2 border rounded-lg"
+            className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm bg-white min-h-[44px]"
           >
             <option value="Asia/Kolkata">Asia/Kolkata (IST)</option>
             <option value="America/New_York">America/New_York (EST)</option>
@@ -205,18 +208,18 @@ export function ClientCreate() {
           </select>
         </div>
 
-        <div className="flex gap-4 pt-4">
+        <div className="flex flex-col-reverse sm:flex-row gap-3 pt-3">
           <button
             type="button"
             onClick={() => navigate('/clients')}
-            className="px-4 py-2 border rounded-lg hover:bg-gray-50"
+            className="w-full sm:w-auto px-5 py-2.5 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 text-xs sm:text-sm font-medium min-h-[44px] flex items-center justify-center transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 text-xs sm:text-sm font-medium min-h-[44px] flex items-center justify-center transition-colors shadow-sm"
           >
             {loading ? 'Creating...' : 'Create Client'}
           </button>
@@ -225,3 +228,4 @@ export function ClientCreate() {
     </div>
   );
 }
+

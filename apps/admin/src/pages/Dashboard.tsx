@@ -44,9 +44,9 @@ export function Dashboard() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-white rounded-lg shadow p-6 animate-pulse">
+            <div key={i} className="bg-white rounded-xl shadow-sm p-5 animate-pulse">
               <div className="h-4 bg-gray-200 rounded w-1/3 mb-2"></div>
               <div className="h-8 bg-gray-200 rounded w-1/2"></div>
             </div>
@@ -61,17 +61,17 @@ export function Dashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
           {isSuperAdmin ? 'Super Admin Dashboard' : 'Client Dashboard'}
         </h1>
-        <p className="text-gray-600 mt-1">
+        <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
           Welcome back, {user?.name}
         </p>
       </div>
 
       {isSuperAdmin ? (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             <StatsCard
               title="Total Clients"
               value={stats.totalClients || 0}
@@ -98,7 +98,7 @@ export function Dashboard() {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             <StatsCard
               title="Today's Conversations"
               value={stats.todayConversations || 0}
@@ -123,7 +123,7 @@ export function Dashboard() {
         </>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             <StatsCard
               title="Today's Visitors"
               value={stats.todayVisitors || 0}
@@ -153,25 +153,25 @@ export function Dashboard() {
       )}
 
       {isSuperAdmin && stats.recentActivities && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">Recent Activities</h2>
-          <div className="space-y-4">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Recent Activities</h2>
+          <div className="space-y-3">
             {stats.recentActivities.length === 0 ? (
-              <p className="text-gray-500">No recent activities</p>
+              <p className="text-sm text-gray-500">No recent activities</p>
             ) : (
               stats.recentActivities.map((activity: any, index: number) => (
-                <div key={index} className="flex items-center gap-4 py-2 border-b last:border-0">
-                  <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                    <span className="text-sm">
+                <div key={index} className="flex items-center gap-3 py-2 border-b border-gray-100 last:border-0">
+                  <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-xs font-bold text-gray-600">
                       {activity.action === 'create' ? '+' : activity.action === 'delete' ? '-' : '~'}
                     </span>
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm text-gray-900">
-                      <span className="font-medium">{activity.userId?.name || 'System'}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs sm:text-sm text-gray-900 truncate">
+                      <span className="font-semibold text-gray-900">{activity.userId?.name || 'System'}</span>
                       {' '}{activity.action}d a {activity.module}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-[11px] text-gray-400">
                       {new Date(activity.createdAt).toLocaleString()}
                     </p>
                   </div>
@@ -184,3 +184,4 @@ export function Dashboard() {
     </div>
   );
 }
+
