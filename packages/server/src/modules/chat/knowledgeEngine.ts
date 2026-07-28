@@ -329,6 +329,42 @@ export class KnowledgeEngine {
       isDeleted: false,
     }).lean();
 
+    if (webItems.length === 0) {
+      return { found: false, type: 'unknown', confidence: 0 };
+    }
+
+    // Check for aggregated menu / main course queries
+    const isMenuQuery = normalizedQuery.includes('menu') || normalizedQuery.includes('main course') || normalizedQuery.includes('dish') || normalizedQuery.includes('food');
+    if (isMenuQuery) {
+      const menuItems = webItems.filter(item =>
+        item.category === 'menu' ||
+        item.contentType === 'menu_item' ||
+        item.content.toLowerCase().includes('main course') ||
+        item.title.toLowerCase().includes('main course') ||
+        item.content.includes('$') || item.content.includes('₹')
+      );
+
+      if (menuItems.length > 0) {
+        const formattedList = menuItems.map(item => {
+          if (item.title && item.title !== item.content) {
+            return `• **${item.title}**: ${item.content}`;
+          }
+          return `• ${item.content}`;
+        }).join('\n\n');
+
+        const header = language === 'hi'
+          ? '📜 **Website se Menu Items:**\n\n'
+          : '📜 **Website Menu Items:**\n\n';
+
+        return {
+          found: true,
+          type: 'knowledge',
+          answer: `${header}${formattedList}`,
+          confidence: 0.95,
+        };
+      }
+    }
+
     let bestMatch: any = null;
     let bestScore = 0;
 
@@ -349,11 +385,11 @@ export class KnowledgeEngine {
       keywordScore = queryKeywords.length > 0 ? keywordScore / queryKeywords.length : 0;
 
       const titleMatch = titleText.includes(normalizedQuery) ? 0.3 : 0;
-      const exactContentMatch = contentText.includes(normalizedQuery) ? 0.2 : 0;
+      const exactContentMatch = contentText.includes(normalizedQuery) ? 0.3 : 0;
 
-      const totalScore = (similarity * 0.3) + (keywordScore * 0.3) + titleMatch + exactContentMatch;
+      const totalScore = (similarity * 0.3) + (keywordScore * 0.4) + titleMatch + exactContentMatch;
 
-      if (totalScore > bestScore && totalScore > 0.2) {
+      if (totalScore > bestScore && totalScore > 0.15) {
         bestScore = totalScore;
         bestMatch = item;
       }

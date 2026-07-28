@@ -88,6 +88,28 @@ export class AdminController {
     }
   }
 
+  static async deleteChat(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      const { ChatService } = await import('../chat/chat.service.js');
+      await ChatService.deleteChat(id);
+      res.json({ success: true, message: 'Chat session deleted successfully' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async bulkDeleteChats(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      const { ids } = req.body;
+      const { ChatService } = await import('../chat/chat.service.js');
+      await ChatService.bulkDeleteChats(ids || []);
+      res.json({ success: true, message: `${ids?.length || 0} chat sessions deleted successfully` });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async listInquiries(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const result = await AdminDashboardService.listAllInquiries(req.query as any);

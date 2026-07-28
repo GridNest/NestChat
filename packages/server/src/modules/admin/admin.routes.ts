@@ -13,6 +13,9 @@ router.get('/knowledge', authenticate, AdminController.listKnowledge);
 router.get('/faqs', authenticate, AdminController.listFAQs);
 router.get('/faqs/export', authenticate, AdminController.exportFAQs);
 router.get('/chats', authenticate, AdminController.listChats);
+router.delete('/chats/:id', authenticate, AdminController.deleteChat);
+router.post('/chats/bulk-delete', authenticate, AdminController.bulkDeleteChats);
+router.delete('/chats', authenticate, AdminController.bulkDeleteChats);
 router.get('/inquiries', authenticate, AdminController.listInquiries);
 router.get('/unanswered', authenticate, AdminController.listUnanswered);
 

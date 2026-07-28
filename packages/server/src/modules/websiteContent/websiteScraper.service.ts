@@ -111,8 +111,17 @@ export class WebsiteScraperService {
 
       logger.info(`[WebsiteScraper] Synced ${allItems.length} items from ${successCount}/${pagesToScrape.length} pages for client ${clientId}`);
 
+      if (allItems.length === 0) {
+        return {
+          success: false,
+          pagesScraped: successCount,
+          itemsExtracted: 0,
+          error: 'No readable content could be extracted from website URL',
+        };
+      }
+
       return {
-        success: failedUrls.length <= pagesToScrape.length / 2,
+        success: true,
         pagesScraped: successCount,
         itemsExtracted: allItems.length,
       };

@@ -12,6 +12,9 @@ import { WebsiteConnectorModel } from '../websiteConnector/websiteConnector.mode
 import { ApiError } from '../../utils/apiError.js';
 import { omitUndefined } from '../../utils/helpers.js';
 
+import { WebsiteScraperService } from '../websiteContent/websiteScraper.service.js';
+import { logger } from '../../utils/logger.js';
+
 export interface ClientListItem {
   id: string;
   clientId: string;
@@ -27,16 +30,20 @@ export interface ClientListItem {
   botName: string;
   defaultLanguage: string;
   timezone: string;
-  status: string;
+  status: 'active' | 'inactive' | 'suspended';
   isActive: boolean;
+  allowedDomains: string[];
   createdAt: Date;
+  updatedAt: Date;
 }
 
 export class ClientService {
-  static async create(data: CreateClientRequest & { createdBy: string }): Promise<ClientListItem> {
-    const trimmedEmail = data.email.trim();
+  static async create(data: CreateClientRequest & { createdBy?: string }): Promise<ClientListItem> {
     const trimmedName = data.name.trim();
-    const slugId = trimmedName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    const trimmedEmail = data.email.trim().toLowerCase();
+    const slugId = (data.clientId && data.clientId.trim())
+      ? data.clientId.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-')
+      : trimmedName.toLowerCase().replace(/[^a-z0-9-]/g, '-');
 
     const existingClient = await ClientModel.findOne({ 
       $or: [
@@ -66,6 +73,12 @@ export class ClientService {
       timezone: data.timezone || 'Asia/Kolkata',
       createdBy: data.createdBy,
     });
+
+    if (client.website) {
+      WebsiteScraperService.syncWebsite(client._id.toString()).catch((err) => {
+        logger.warn(`[ClientService] Automatic website sync failed for ${client.clientId}:`, err);
+      });
+    }
 
     return this.formatClient(client);
   }
@@ -135,6 +148,13 @@ export class ClientService {
     if (!client) {
       throw new ApiError(404, 'Client not found');
     }
+
+    if (client.website && updatePayload.website) {
+      WebsiteScraperService.syncWebsite(client._id.toString()).catch((err) => {
+        logger.warn(`[ClientService] Automatic website sync failed on update for ${client.clientId}:`, err);
+      });
+    }
+
     return this.formatClient(client);
   }
 

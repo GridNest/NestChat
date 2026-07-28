@@ -246,6 +246,16 @@ class AdminApi {
     return response.data;
   }
 
+  async deleteChat(id: string) {
+    const response = await this.client.delete(`/admin/chats/${id}`);
+    return response.data;
+  }
+
+  async bulkDeleteChats(ids: string[]) {
+    const response = await this.client.post('/admin/chats/bulk-delete', { ids });
+    return response.data;
+  }
+
   // Inquiries
   async getInquiries(params?: Record<string, string>) {
     const response = await this.client.get('/admin/inquiries', { params });

@@ -170,6 +170,7 @@ export class KnowledgeService {
 
     const [items, total] = await Promise.all([
       KnowledgeModel.find(filter)
+        .populate('clientId', 'name companyName clientId')
         .sort({ [sortField]: sortOrder })
         .skip(skip)
         .limit(limit)
@@ -522,9 +523,19 @@ export class KnowledgeService {
   }
 
   private static formatKnowledge(knowledge: KnowledgeDocument): KnowledgeListItem {
+    const rawClient = (knowledge as any).clientId;
+    const clientIdVal = rawClient && typeof rawClient === 'object' && rawClient.clientId
+      ? {
+          id: rawClient._id?.toString() || rawClient.id,
+          name: rawClient.name || '',
+          companyName: rawClient.companyName || '',
+          clientId: rawClient.clientId || '',
+        }
+      : rawClient?.toString() || '';
+
     return {
       id: ((knowledge as any)._id || (knowledge as any).id).toString(),
-      clientId: knowledge.clientId.toString(),
+      clientId: clientIdVal as any,
       pageName: knowledge.pageName,
       slug: knowledge.slug,
       title: knowledge.title,

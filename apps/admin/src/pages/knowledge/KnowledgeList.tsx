@@ -11,9 +11,10 @@ interface Knowledge {
   category: string;
   status: string;
   language: string;
+  isActive?: boolean;
   createdAt: string;
   updatedAt: string;
-  clientId?: string;
+  clientId?: string | { _id: string; companyName: string; name: string; clientId: string };
 }
 
 export function KnowledgeList() {
@@ -185,6 +186,16 @@ export function KnowledgeList() {
     }
   };
 
+  const handleToggleEnable = async (id: string, isActive: boolean) => {
+    try {
+      await adminApi.updateKnowledge(id, { isActive });
+      setKnowledge(prev => prev.map(k => k.id === id ? { ...k, isActive } : k));
+      addToast('success', `Article ${isActive ? 'enabled' : 'disabled'}`);
+    } catch {
+      addToast('error', 'Failed to toggle article status');
+    }
+  };
+
   const columns = [
     {
       key: 'select',
@@ -209,16 +220,43 @@ export function KnowledgeList() {
     { key: 'title', label: 'Title', sortable: true },
     { key: 'category', label: 'Category', sortable: true },
     {
-      key: 'status',
-      label: 'Status',
+      key: 'isActive',
+      label: 'Enable/Disable',
       render: (item: Knowledge) => (
-        <span className={`px-2 py-1 text-xs rounded-full ${
-          item.status === 'published' ? 'bg-green-100 text-green-800' :
-          'bg-yellow-100 text-yellow-800'
-        }`}>
-          {item.status}
-        </span>
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={item.isActive ?? true}
+              onChange={(e) => handleToggleEnable(item.id, e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-600"></div>
+          </label>
+          <span className="text-xs text-gray-500 font-medium">
+            {item.isActive ? 'Active' : 'Disabled'}
+          </span>
+        </div>
       ),
+    },
+    {
+      key: 'client',
+      label: 'Client Name & ID',
+      render: (item: Knowledge) => {
+        const clientObj = typeof item.clientId === 'object' ? (item.clientId as any) : null;
+        const name = clientObj?.companyName || clientObj?.name || (typeof item.clientId === 'string' ? item.clientId : 'System');
+        const idBadge = clientObj?.clientId || (typeof item.clientId === 'string' ? item.clientId : '');
+        return (
+          <div className="flex flex-col">
+            <span className="font-semibold text-gray-900 text-xs sm:text-sm">{name}</span>
+            {idBadge && (
+              <span className="inline-block px-1.5 py-0.5 mt-0.5 text-[10px] font-mono font-medium bg-blue-50 text-blue-700 rounded border border-blue-100 max-w-fit">
+                ID: {idBadge}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     { key: 'language', label: 'Language' },
     {

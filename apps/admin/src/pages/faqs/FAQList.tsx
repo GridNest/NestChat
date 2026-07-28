@@ -238,15 +238,23 @@ export function FAQList() {
       ),
     },
     {
-      key: 'status',
-      label: 'Status',
-      render: (item: FAQ) => (
-        <span className={`px-2 py-1 text-xs rounded-full ${
-          item.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-        }`}>
-          {item.status}
-        </span>
-      ),
+      key: 'client',
+      label: 'Client Name & ID',
+      render: (item: FAQ) => {
+        const clientObj = typeof item.clientId === 'object' ? (item.clientId as any) : null;
+        const name = clientObj?.companyName || clientObj?.name || (typeof item.clientId === 'string' ? item.clientId : 'System');
+        const idBadge = clientObj?.clientId || (typeof item.clientId === 'string' ? item.clientId : '');
+        return (
+          <div className="flex flex-col">
+            <span className="font-semibold text-gray-900 text-xs sm:text-sm">{name}</span>
+            {idBadge && (
+              <span className="inline-block px-1.5 py-0.5 mt-0.5 text-[10px] font-mono font-medium bg-blue-50 text-blue-700 rounded border border-blue-100 max-w-fit">
+                ID: {idBadge}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'actions',

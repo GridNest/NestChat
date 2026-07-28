@@ -411,4 +411,25 @@ export class ChatService {
       metadata: message.metadata,
     };
   }
+
+  static async deleteChat(id: string): Promise<void> {
+    const chat = await ChatModel.findById(id);
+    if (!chat) {
+      throw ApiError.notFound('Chat session not found');
+    }
+    await Promise.all([
+      ChatModel.findByIdAndDelete(id),
+      ChatMessageModel.deleteMany({ chatId: id }),
+    ]);
+  }
+
+  static async bulkDeleteChats(ids: string[]): Promise<void> {
+    if (!ids || ids.length === 0) return;
+    const validIds = ids.filter(id => mongoose.Types.ObjectId.isValid(id));
+    if (validIds.length === 0) return;
+    await Promise.all([
+      ChatModel.deleteMany({ _id: { $in: validIds } }),
+      ChatMessageModel.deleteMany({ chatId: { $in: validIds } }),
+    ]);
+  }
 }

@@ -137,6 +137,7 @@ export class FAQService {
 
     const [items, total] = await Promise.all([
       FAQModel.find(filter)
+        .populate('clientId', 'name companyName clientId')
         .sort({ [sortField]: sortOrder })
         .skip(skip)
         .limit(limit)
@@ -438,9 +439,19 @@ export class FAQService {
   }
 
   private static formatFAQ(faq: FAQDocument): FAQListItem {
+    const rawClient = (faq as any).clientId;
+    const clientIdVal = rawClient && typeof rawClient === 'object' && rawClient.clientId
+      ? {
+          id: rawClient._id?.toString() || rawClient.id,
+          name: rawClient.name || '',
+          companyName: rawClient.companyName || '',
+          clientId: rawClient.clientId || '',
+        }
+      : rawClient?.toString() || '';
+
     return {
       id: faq._id.toString(),
-      clientId: faq.clientId.toString(),
+      clientId: clientIdVal as any,
       category: faq.category,
       question: faq.question,
       answer: faq.answer,
