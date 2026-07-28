@@ -127,7 +127,10 @@ export class WebsiteScraperService {
       };
     } catch (error) {
       logger.error('[WebsiteScraper] Sync failed:', error);
-      const errMsg = (error as Error).message;
+      let errMsg = (error as Error).message;
+      if (errMsg.includes('fetch failed') || errMsg.includes('ENOTFOUND') || errMsg.includes('ETIMEDOUT')) {
+        errMsg = `Unable to reach website URL. Please verify that the website is live, public, and accessible.`;
+      }
       try {
         const clientObjIds: mongoose.Types.ObjectId[] = [];
         if (mongoose.Types.ObjectId.isValid(clientId)) {
