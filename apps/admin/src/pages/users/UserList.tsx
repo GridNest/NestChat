@@ -7,11 +7,13 @@ import { adminApi } from '../../services/api';
 
 interface User {
   id: string;
+  _id?: string;
   name: string;
   email: string;
   role: string;
   isActive: boolean;
   createdAt: string;
+  clientId?: any;
 }
 
 export function UserList() {
@@ -22,6 +24,7 @@ export function UserList() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [viewUser, setViewUser] = useState<User | null>(null);
   const { addToast } = useToast();
   const navigate = useNavigate();
   const limit = 10;
@@ -39,8 +42,13 @@ export function UserList() {
         search,
         role: roleFilter,
       });
-      setUsers(response.data?.users || []);
-      setTotal(response.data?.total || 0);
+      const rawList = response.data?.users || response.users || [];
+      const mapped = rawList.map((u: any) => ({
+        ...u,
+        id: u.id || u._id,
+      }));
+      setUsers(mapped);
+      setTotal(response.data?.total || response.total || 0);
     } catch (error) {
       console.error('Failed to fetch users:', error);
     } finally {
@@ -52,7 +60,7 @@ export function UserList() {
     if (!deleteId) return;
     try {
       await adminApi.deleteUser(deleteId);
-      addToast('success', 'User deleted');
+      addToast('success', 'User deleted successfully');
       fetchUsers();
     } catch (error) {
       addToast('error', 'Failed to delete user');
@@ -72,7 +80,7 @@ export function UserList() {
           item.role === 'client' ? 'bg-blue-100 text-blue-800' :
           'bg-gray-100 text-gray-800'
         }`}>
-          {item.role}
+          {item.role === 'admin' ? 'Super Admin' : item.role === 'client' ? 'Client Admin' : item.role}
         </span>
       ),
     },
@@ -95,22 +103,31 @@ export function UserList() {
     {
       key: 'actions',
       label: 'Actions',
-      render: (item: User) => (
-        <div className="flex items-center gap-3 min-h-[36px]">
-          <button
-            onClick={() => navigate(`/users/${item.id}/edit`)}
-            className="text-blue-600 hover:text-blue-800 font-medium text-xs sm:text-sm p-1"
-          >
-            Edit
-          </button>
-          <button
-            onClick={() => setDeleteId(item.id)}
-            className="text-red-600 hover:text-red-800 font-medium text-xs sm:text-sm p-1"
-          >
-            Delete
-          </button>
-        </div>
-      ),
+      render: (item: User) => {
+        const targetId = item.id || item._id;
+        return (
+          <div className="flex items-center gap-3 min-h-[36px]">
+            <button
+              onClick={() => setViewUser(item)}
+              className="text-gray-600 hover:text-gray-900 font-medium text-xs sm:text-sm p-1"
+            >
+              View
+            </button>
+            <button
+              onClick={() => navigate(`/users/${targetId}/edit`)}
+              className="text-blue-600 hover:text-blue-800 font-medium text-xs sm:text-sm p-1"
+            >
+              Edit
+            </button>
+            <button
+              onClick={() => setDeleteId(targetId)}
+              className="text-red-600 hover:text-red-800 font-medium text-xs sm:text-sm p-1"
+            >
+              Delete
+            </button>
+          </div>
+        );
+      },
     },
   ];
 
@@ -119,7 +136,7 @@ export function UserList() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Users</h1>
-          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Manage user access and roles</p>
+          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Manage user access and assigned clients</p>
         </div>
         <Link
           to="/users/new"
@@ -151,9 +168,9 @@ export function UserList() {
           className="px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm bg-white min-h-[44px]"
         >
           <option value="">All Roles</option>
-          <option value="admin">Admin</option>
-          <option value="client">Client</option>
-          <option value="staff">Staff</option>
+          <option value="admin">Super Admin</option>
+          <option value="client">Client Admin</option>
+          <option value="agent">Agent</option>
         </select>
       </div>
 
@@ -188,12 +205,53 @@ export function UserList() {
         </div>
       )}
 
+      {/* View User Modal */}
+      {viewUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl space-y-4">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="text-lg font-bold text-gray-900">User Details</h3>
+              <button onClick={() => setViewUser(null)} className="text-gray-400 hover:text-gray-600 text-lg">✕</button>
+            </div>
+            <div className="space-y-3 text-sm">
+              <div>
+                <span className="text-gray-500 block text-xs">Name</span>
+                <span className="font-semibold text-gray-900">{viewUser.name}</span>
+              </div>
+              <div>
+                <span className="text-gray-500 block text-xs">Email</span>
+                <span className="font-semibold text-gray-900">{viewUser.email}</span>
+              </div>
+              <div>
+                <span className="text-gray-500 block text-xs">Role</span>
+                <span className="font-semibold text-gray-900 capitalize">{viewUser.role}</span>
+              </div>
+              <div>
+                <span className="text-gray-500 block text-xs">Assigned Client</span>
+                <span className="font-semibold text-blue-700">
+                  {typeof viewUser.clientId === 'object' ? (viewUser.clientId?.companyName || viewUser.clientId?.name) : (viewUser.clientId || 'System / All Clients')}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-500 block text-xs">Created Date</span>
+                <span className="font-semibold text-gray-900">{new Date(viewUser.createdAt).toLocaleString()}</span>
+              </div>
+            </div>
+            <div className="pt-2 flex justify-end">
+              <button onClick={() => setViewUser(null)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 text-sm font-medium">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ConfirmModal
         isOpen={!!deleteId}
         onClose={() => setDeleteId(null)}
         onConfirm={handleDelete}
         title="Delete User"
-        message="Are you sure you want to delete this user?"
+        message="Are you sure you want to delete this user? This action cannot be undone."
         confirmText="Delete"
         variant="danger"
       />

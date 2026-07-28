@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { CreateClientRequest, UpdateClientRequest, PaginationQuery } from '@nestchat/shared';
 import { ClientModel, ClientDocument } from './client.model.js';
 import { ClientConfigModel } from '../clientConfig/clientConfig.model.js';
@@ -130,10 +131,11 @@ export class ClientService {
 
   static async update(id: string, data: UpdateClientRequest): Promise<ClientListItem> {
     const updatePayload = omitUndefined(data as Record<string, any>);
+    const objId = mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : id;
 
     if (updatePayload.email || updatePayload.name) {
       const existing = await ClientModel.findOne({
-        _id: { $ne: id },
+        _id: { $ne: objId },
         $or: [
           ...(updatePayload.email ? [{ email: { $regex: `^${updatePayload.email.trim()}$`, $options: 'i' } }] : []),
           ...(updatePayload.name ? [{ name: { $regex: `^${updatePayload.name.trim()}$`, $options: 'i' } }] : [])
