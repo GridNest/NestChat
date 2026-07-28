@@ -209,22 +209,43 @@ export function ChatDetail() {
         </div>
 
         {chat.status === 'active' && (
-          <form onSubmit={handleSendReply} className="flex flex-col sm:flex-row gap-2.5 border-t border-gray-100 pt-4">
-            <input
-              type="text"
-              value={reply}
-              onChange={(e) => setReply(e.target.value)}
-              placeholder="Type your agent reply..."
-              className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 text-xs sm:text-sm min-h-[44px]"
-            />
-            <button
-              type="submit"
-              disabled={sending || !reply.trim()}
-              className="w-full sm:w-auto px-6 py-2.5 bg-purple-600 text-white text-xs sm:text-sm font-semibold rounded-xl hover:bg-purple-700 disabled:opacity-50 min-h-[44px] transition-colors shadow-sm"
-            >
-              {sending ? 'Sending...' : 'Send as Agent'}
-            </button>
-          </form>
+          <div className="space-y-3 border-t border-gray-100 pt-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-semibold text-gray-500">Canned Responses:</span>
+              {[
+                'Hello! How can I assist you today?',
+                'Thank you for reaching out!',
+                'Let me check that for you right away.',
+                'Is there anything else I can help you with?',
+              ].map(canned => (
+                <button
+                  key={canned}
+                  type="button"
+                  onClick={() => setReply(canned)}
+                  className="px-2.5 py-1 bg-gray-100 hover:bg-purple-50 text-gray-700 hover:text-purple-700 rounded-lg text-xs font-medium border border-gray-200 transition-colors"
+                >
+                  {canned}
+                </button>
+              ))}
+            </div>
+
+            <form onSubmit={handleSendReply} className="flex flex-col sm:flex-row gap-2.5">
+              <input
+                type="text"
+                value={reply}
+                onChange={(e) => setReply(e.target.value)}
+                placeholder="Type your agent reply..."
+                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 text-xs sm:text-sm min-h-[44px]"
+              />
+              <button
+                type="submit"
+                disabled={sending || !reply.trim()}
+                className="w-full sm:w-auto px-6 py-2.5 bg-purple-600 text-white text-xs sm:text-sm font-semibold rounded-xl hover:bg-purple-700 disabled:opacity-50 min-h-[44px] transition-colors shadow-sm"
+              >
+                {sending ? 'Sending...' : 'Send as Agent'}
+              </button>
+            </form>
+          </div>
         )}
       </div>
     </div>

@@ -9,6 +9,7 @@ interface AuditLog {
   action: string;
   module: string;
   resourceId?: string;
+  ipAddress?: string;
   createdAt: string;
 }
 
@@ -50,24 +51,33 @@ export function AuditLogList() {
       render: (item: AuditLog) => item.userId?.name || 'System',
     },
     {
-      key: 'module',
-      label: 'Module',
-      render: (item: AuditLog) => (
-        <span className="px-2 py-1 text-xs rounded-full bg-gray-100">
-          {item.module}
-        </span>
-      ),
-    },
-    {
       key: 'action',
       label: 'Action',
       render: (item: AuditLog) => (
-        <span className={`px-2 py-1 text-xs rounded-full ${
+        <span className={`px-2 py-1 text-xs rounded-full font-medium ${
           item.action === 'create' ? 'bg-green-100 text-green-800' :
           item.action === 'delete' ? 'bg-red-100 text-red-800' :
           'bg-blue-100 text-blue-800'
         }`}>
           {item.action}
+        </span>
+      ),
+    },
+    {
+      key: 'module',
+      label: 'Module',
+      render: (item: AuditLog) => (
+        <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-800 font-mono">
+          {item.module}
+        </span>
+      ),
+    },
+    {
+      key: 'ipAddress',
+      label: 'IP Address',
+      render: (item: AuditLog) => (
+        <span className="font-mono text-xs text-gray-700 bg-gray-50 px-2 py-0.5 rounded border border-gray-200">
+          {item.ipAddress || '127.0.0.1'}
         </span>
       ),
     },
@@ -78,7 +88,7 @@ export function AuditLogList() {
     },
     {
       key: 'createdAt',
-      label: 'Date',
+      label: 'Date & Time',
       render: (item: AuditLog) => new Date(item.createdAt).toLocaleString(),
     },
   ];

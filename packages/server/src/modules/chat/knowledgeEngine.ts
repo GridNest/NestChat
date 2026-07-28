@@ -7,6 +7,8 @@ import { ClientModel } from '../client/client.model.js';
 import { normalizeQuestion, extractKeywords, calculateSimilarity } from '@nestchat/shared';
 import { DEFAULT_QUICK_ACTIONS } from '@nestchat/shared';
 
+import { ClientConfigModel } from '../clientConfig/clientConfig.model.js';
+
 export interface KnowledgeMatch {
   found: boolean;
   type: 'faq' | 'knowledge' | 'quickAction' | 'unknown';
@@ -52,14 +54,21 @@ export class KnowledgeEngine {
   static async search(options: KnowledgeEngineOptions): Promise<KnowledgeMatch> {
     const { clientId, language, query } = options;
 
-    const faqMatch = await this.matchFAQ(clientId, query, language);
-    if (faqMatch.found) return faqMatch;
+    // 1. Website Content (Primary Source)
+    const webMatch = await this.matchWebsiteContent(clientId, query, language);
+    if (webMatch.found) return webMatch;
 
+    // 2. Knowledge Base (Secondary Source)
     const knowledgeMatch = await this.matchKnowledge(clientId, query, language);
     if (knowledgeMatch.found) return knowledgeMatch;
 
-    const webMatch = await this.matchWebsiteContent(clientId, query, language);
-    if (webMatch.found) return webMatch;
+    // 3. FAQs (Tertiary Source)
+    const faqMatch = await this.matchFAQ(clientId, query, language);
+    if (faqMatch.found) return faqMatch;
+
+    // 4. Client Settings (Quaternary Source)
+    const clientSettingsMatch = await this.matchClientSettings(clientId, query, language);
+    if (clientSettingsMatch.found) return clientSettingsMatch;
 
     const quickActionMatch = this.matchQuickAction(query, language);
     if (quickActionMatch.found) return quickActionMatch;
@@ -70,6 +79,66 @@ export class KnowledgeEngine {
       confidence: 0,
       quickActions: DEFAULT_QUICK_ACTIONS,
     };
+  }
+
+  private static async matchClientSettings(
+    clientId: string,
+    query: string,
+    language: string
+  ): Promise<KnowledgeMatch> {
+    const normalized = query.toLowerCase().trim();
+    const clientIds = await this.resolveClientIds(clientId);
+    if (clientIds.length === 0) return { found: false, type: 'unknown', confidence: 0 };
+
+    const [client, config] = await Promise.all([
+      ClientModel.findOne({ _id: { $in: clientIds } }).lean(),
+      ClientConfigModel.findOne({ clientId: { $in: clientIds } }).lean(),
+    ]);
+
+    if (!client && !config) return { found: false, type: 'unknown', confidence: 0 };
+
+    const phone = config?.contactPhone || client?.phone;
+    const email = config?.contactEmail || client?.email;
+    const address = config?.contactAddress;
+    const hours = config?.businessHours;
+
+    if ((normalized.includes('phone') || normalized.includes('call') || normalized.includes('number') || normalized.includes('contact no')) && phone) {
+      return {
+        found: true,
+        type: 'knowledge',
+        answer: language === 'hi' ? `Aap humein is number par call kar sakte hain: ${phone}` : `You can call us at ${phone}`,
+        confidence: 0.9,
+      };
+    }
+
+    if ((normalized.includes('email') || normalized.includes('mail') || normalized.includes('support email')) && email) {
+      return {
+        found: true,
+        type: 'knowledge',
+        answer: language === 'hi' ? `Aap humein is email par sampark kar sakte hain: ${email}` : `You can email us at ${email}`,
+        confidence: 0.9,
+      };
+    }
+
+    if ((normalized.includes('address') || normalized.includes('location') || normalized.includes('where are you') || normalized.includes('office')) && address) {
+      return {
+        found: true,
+        type: 'knowledge',
+        answer: language === 'hi' ? `Humara pata yeh hai: ${address}` : `Our address is: ${address}`,
+        confidence: 0.9,
+      };
+    }
+
+    if ((normalized.includes('hour') || normalized.includes('timing') || normalized.includes('open') || normalized.includes('business hour')) && hours) {
+      return {
+        found: true,
+        type: 'knowledge',
+        answer: language === 'hi' ? `Humare kaam karne ka samay: ${hours}` : `Our business hours are: ${hours}`,
+        confidence: 0.9,
+      };
+    }
+
+    return { found: false, type: 'unknown', confidence: 0 };
   }
 
   private static async matchFAQ(

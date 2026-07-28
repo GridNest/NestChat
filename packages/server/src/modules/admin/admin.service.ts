@@ -133,16 +133,36 @@ export class AdminDashboardService {
     return { chats, total, page, limit, pages: Math.ceil(total / limit) };
   }
 
-  static async listAllInquiries(query: { page?: number; limit?: number; status?: string; search?: string }) {
-    const { page = 1, limit = 10, status, search } = query;
+  static async listAllInquiries(query: { page?: number; limit?: number; status?: string; search?: string; clientId?: string; dateFilter?: string }) {
+    const { page = 1, limit = 10, status, search, clientId, dateFilter } = query;
     const skip = (page - 1) * limit;
     const filter: any = {};
     if (status) filter.status = status;
+    if (clientId) filter.clientId = clientId;
+
+    if (dateFilter && dateFilter !== 'all') {
+      const now = new Date();
+      if (dateFilter === 'today') {
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        filter.createdAt = { $gte: startOfDay };
+      } else if (dateFilter === 'week') {
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay());
+        startOfWeek.setHours(0, 0, 0, 0);
+        filter.createdAt = { $gte: startOfWeek };
+      } else if (dateFilter === 'month') {
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        filter.createdAt = { $gte: startOfMonth };
+      }
+    }
+
     if (search) {
       filter.$or = [
         { name: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } },
+        { phone: { $regex: search, $options: 'i' } },
         { service: { $regex: search, $options: 'i' } },
+        { details: { $regex: search, $options: 'i' } },
       ];
     }
     const [items, total] = await Promise.all([

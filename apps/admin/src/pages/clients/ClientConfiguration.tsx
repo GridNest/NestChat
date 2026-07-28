@@ -97,7 +97,7 @@ export function ClientConfiguration() {
         secondaryColor: client.secondaryColor || '#1E40AF',
         welcomeMessage: config.greetingMessage || DEFAULT_FORM.welcomeMessage,
         botName: client.botName || 'Assistant',
-        botAvatar: '',
+        botAvatar: config.avatarUrl || client.logo || '',
         theme: config.theme || 'light',
         language: client.defaultLanguage || 'en',
         timezone: client.timezone || 'Asia/Kolkata',
@@ -149,6 +149,7 @@ export function ClientConfiguration() {
       await adminApi.updateClientConfig(id!, {
         quickActions: form.quickActions.split(',').map(s => s.trim()).filter(Boolean),
         greetingMessage: form.welcomeMessage,
+        avatarUrl: form.botAvatar || undefined,
         businessHours: form.officeHours || undefined,
         contactEmail: form.supportEmail || undefined,
         contactPhone: form.phone || undefined,

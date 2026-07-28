@@ -6,6 +6,7 @@ export type ThemeMode = 'light' | 'dark' | 'auto';
 
 export interface ClientConfigDocument extends Document {
   clientId: mongoose.Types.ObjectId;
+  avatarUrl?: string;
   greetingMessage: string;
   widgetPosition: WidgetPosition;
   widgetStyle: WidgetStyle;
@@ -43,6 +44,9 @@ const clientConfigSchema = new Schema<ClientConfigDocument>(
       ref: 'Client',
       required: true,
       unique: true,
+    },
+    avatarUrl: {
+      type: String,
     },
     greetingMessage: {
       type: String,

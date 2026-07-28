@@ -5,6 +5,7 @@ export type ThemeMode = 'light' | 'dark' | 'auto';
 export interface ClientConfig {
   _id: string;
   clientId: string;
+  avatarUrl?: string;
   greetingMessage: string;
   widgetPosition: WidgetPosition;
   widgetStyle: WidgetStyle;
@@ -29,6 +30,7 @@ export interface ClientConfig {
   enableInquiryForm: boolean;
   enableLiveAgent: boolean;
   enableAnalytics: boolean;
+  enableWebsiteSync?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -36,6 +38,7 @@ export interface ClientConfig {
 export interface ClientConfigResponse {
   id: string;
   clientId: string;
+  avatarUrl?: string;
   greetingMessage: string;
   widgetPosition: WidgetPosition;
   widgetStyle: WidgetStyle;
@@ -58,9 +61,11 @@ export interface ClientConfigResponse {
   enableInquiryForm: boolean;
   enableLiveAgent: boolean;
   enableAnalytics: boolean;
+  enableWebsiteSync?: boolean;
 }
 
 export interface UpdateClientConfigRequest {
+  avatarUrl?: string;
   greetingMessage?: string;
   widgetPosition?: WidgetPosition;
   widgetStyle?: WidgetStyle;
@@ -85,6 +90,7 @@ export interface UpdateClientConfigRequest {
   enableInquiryForm?: boolean;
   enableLiveAgent?: boolean;
   enableAnalytics?: boolean;
+  enableWebsiteSync?: boolean;
 }
 
 export interface WidgetConfigResponse {
@@ -110,6 +116,7 @@ export interface WidgetConfigResponse {
     darkMode: string;
   };
   config: {
+    avatarUrl?: string;
     greetingMessage: string;
     widgetPosition: string;
     widgetStyle: string;
@@ -132,6 +139,7 @@ export interface WidgetConfigResponse {
     enableInquiryForm: boolean;
     enableLiveAgent: boolean;
     enableAnalytics: boolean;
+    enableWebsiteSync?: boolean;
   };
   modules: {
     name: string;

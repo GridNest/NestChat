@@ -14,7 +14,7 @@ export interface InquiryDocument extends Document {
   details: string;
   company?: string;
   source: 'chatbot' | 'website' | 'manual';
-  status: 'new' | 'contacted' | 'converted' | 'closed';
+  status: 'new' | 'contacted' | 'converted' | 'archived' | 'closed';
   externalApiStatus: 'pending' | 'forwarded' | 'failed' | 'no_api';
   externalApiResponse?: string;
   language: 'en' | 'hi';
@@ -87,7 +87,7 @@ const inquirySchema = new Schema<InquiryDocument>(
     },
     status: {
       type: String,
-      enum: ['new', 'contacted', 'converted', 'closed'],
+      enum: ['new', 'contacted', 'converted', 'archived', 'closed'],
       default: 'new',
     },
     externalApiStatus: {

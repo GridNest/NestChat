@@ -35,6 +35,26 @@ export class UnansweredController {
     }
   }
 
+  static async convert(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { type } = req.body;
+      let result;
+      if (type === 'knowledge') {
+        result = await UnansweredService.convertToKnowledge(id, req.body);
+      } else {
+        result = await UnansweredService.convertToFaq(id, {
+          category: req.body.category || 'General',
+          answer: req.body.answer || 'Answer pending review',
+          keywords: req.body.keywords || [],
+        });
+      }
+      ApiResponseHelper.success(res, result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async getStats(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { clientId } = req.params;

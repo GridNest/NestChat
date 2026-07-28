@@ -7,6 +7,7 @@ import { omitUndefined } from '../../utils/helpers.js';
 export interface ClientConfigResponse {
   id: string;
   clientId: string;
+  avatarUrl?: string;
   greetingMessage: string;
   widgetPosition: string;
   widgetStyle: string;
@@ -31,6 +32,7 @@ export interface ClientConfigResponse {
   enableInquiryForm: boolean;
   enableLiveAgent: boolean;
   enableAnalytics: boolean;
+  enableWebsiteSync?: boolean;
 }
 
 export class ClientConfigService {
@@ -118,6 +120,7 @@ export class ClientConfigService {
     return {
       id: config._id.toString(),
       clientId: config.clientId.toString(),
+      avatarUrl: config.avatarUrl,
       greetingMessage: config.greetingMessage,
       widgetPosition: config.widgetPosition,
       widgetStyle: config.widgetStyle,
@@ -142,6 +145,7 @@ export class ClientConfigService {
       enableInquiryForm: config.enableInquiryForm,
       enableLiveAgent: config.enableLiveAgent,
       enableAnalytics: config.enableAnalytics,
+      enableWebsiteSync: config.enableWebsiteSync,
     };
   }
 }

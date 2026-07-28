@@ -133,6 +133,33 @@ export class UnansweredService {
     return { faqId: faq._id.toString() };
   }
 
+  static async convertToKnowledge(
+    id: string,
+    data?: { category?: string; answer?: string }
+  ): Promise<{ knowledgeId: string }> {
+    const unanswered = await UnansweredModel.findOne({ _id: id });
+    if (!unanswered) {
+      throw ApiError.notFound('Unanswered question not found');
+    }
+
+    const { KnowledgeModel } = await import('../knowledge/knowledge.model.js');
+    const knowledge = await KnowledgeModel.create({
+      clientId: unanswered.clientId,
+      title: unanswered.question,
+      content: data?.answer || `Information regarding: ${unanswered.question}`,
+      category: data?.category || 'General',
+      pageName: 'FAQ-Convert',
+      language: 'en',
+      status: 'published',
+      isActive: true,
+    });
+
+    unanswered.convertedToFaq = true;
+    await unanswered.save();
+
+    return { knowledgeId: knowledge._id.toString() };
+  }
+
   static async getStats(clientId: string): Promise<{
     total: number;
     converted: number;

@@ -60,6 +60,10 @@ app.use(morgan('combined', {
   },
 }));
 
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString(), service: 'nestchat-api' });
+});
+
 app.use('/api', healthRoutes);
 
 app.use('/api/auth', authRoutes);

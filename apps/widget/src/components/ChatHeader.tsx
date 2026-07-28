@@ -18,16 +18,20 @@ export function ChatHeader() {
       style={{ backgroundColor: primaryColor }}
     >
       <div className="flex items-center gap-3">
-        {clientConfig.client.logo && (
+        {(clientConfig.config?.avatarUrl || clientConfig.client?.logo) ? (
           <img
-            src={clientConfig.client.logo}
-            alt={clientConfig.client.name}
-            className="w-10 h-10 rounded-full object-cover"
+            src={clientConfig.config?.avatarUrl || clientConfig.client?.logo}
+            alt={clientConfig.client?.botName || 'Chatbot'}
+            className="w-10 h-10 rounded-full object-cover border-2 border-white/20 shadow-sm"
           />
+        ) : (
+          <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center font-bold text-white shadow-sm border border-white/20">
+            🤖
+          </div>
         )}
         <div>
-          <h3 className="font-semibold">{clientConfig.client.botName}</h3>
-          <p className="text-xs opacity-90">{clientConfig.client.name}</p>
+          <h3 className="font-semibold text-sm sm:text-base leading-snug">{clientConfig.client?.botName || 'Assistant'}</h3>
+          <p className="text-[11px] opacity-90 leading-tight">{clientConfig.client?.name || clientConfig.client?.companyName}</p>
         </div>
       </div>
 

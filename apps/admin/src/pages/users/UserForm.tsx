@@ -115,11 +115,11 @@ export function UserForm() {
           <select
             value={formData.role}
             onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-            className="w-full px-3 py-2 border rounded-lg"
+            className="w-full px-3 py-2 border rounded-lg bg-white text-sm"
           >
-            <option value="admin">Admin</option>
-            <option value="client">Client</option>
-            <option value="staff">Staff</option>
+            <option value="admin">Super Admin (Full System Access)</option>
+            <option value="client">Client Admin (Manages Client Data & Config)</option>
+            <option value="agent">Agent (Access to Chats & Inquiries Only)</option>
           </select>
         </div>
 

@@ -23,15 +23,6 @@ export const INQUIRY_STEPS: InquiryStep[] = [
     validationMessageHi: 'Naam kam se kam 2 characters ka hona chahiye',
   },
   {
-    field: 'email',
-    messageKey: 'inquiryEmail',
-    messageKeyHi: 'inquiryEmail',
-    required: true,
-    validate: isValidEmail,
-    validationMessage: 'Please enter a valid email address',
-    validationMessageHi: 'Kripya sahi email address daalein',
-  },
-  {
     field: 'phone',
     messageKey: 'inquiryPhone',
     messageKeyHi: 'inquiryPhone',
@@ -41,13 +32,22 @@ export const INQUIRY_STEPS: InquiryStep[] = [
     validationMessageHi: 'Kripya sahi phone number daalein',
   },
   {
+    field: 'email',
+    messageKey: 'inquiryEmail',
+    messageKeyHi: 'inquiryEmail',
+    required: true,
+    validate: isValidEmail,
+    validationMessage: 'Please enter a valid email address',
+    validationMessageHi: 'Kripya sahi email address daalein',
+  },
+  {
     field: 'message',
     messageKey: 'inquiryDetails',
     messageKeyHi: 'inquiryDetails',
     required: true,
-    validate: (value) => value.trim().length >= 5,
-    validationMessage: 'Please provide at least 5 characters',
-    validationMessageHi: 'Kripya kam se kam 5 characters batayein',
+    validate: (value) => value.trim().length >= 2,
+    validationMessage: 'Please provide at least 2 characters',
+    validationMessageHi: 'Kripya kam se kam 2 characters batayein',
   },
 ];
 

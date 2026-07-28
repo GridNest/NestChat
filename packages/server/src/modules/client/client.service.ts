@@ -1,5 +1,14 @@
 import { CreateClientRequest, UpdateClientRequest, PaginationQuery } from '@nestchat/shared';
 import { ClientModel, ClientDocument } from './client.model.js';
+import { ClientConfigModel } from '../clientConfig/clientConfig.model.js';
+import { ClientThemeModel } from '../clientTheme/clientTheme.model.js';
+import { ClientModuleModel } from '../clientModule/clientModule.model.js';
+import { KnowledgeModel } from '../knowledge/knowledge.model.js';
+import { FAQModel } from '../faq/faq.model.js';
+import { ChatModel } from '../chat/chat.model.js';
+import { InquiryModel } from '../inquiry/inquiry.model.js';
+import { WebsiteContentModel } from '../websiteContent/websiteContent.model.js';
+import { WebsiteConnectorModel } from '../websiteConnector/websiteConnector.model.js';
 import { ApiError } from '../../utils/apiError.js';
 import { omitUndefined } from '../../utils/helpers.js';
 
@@ -25,21 +34,29 @@ export interface ClientListItem {
 
 export class ClientService {
   static async create(data: CreateClientRequest & { createdBy: string }): Promise<ClientListItem> {
+    const trimmedEmail = data.email.trim();
+    const trimmedName = data.name.trim();
+    const slugId = trimmedName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+
     const existingClient = await ClientModel.findOne({ 
-      $or: [{ email: data.email }, { clientId: data.name.toLowerCase().replace(/\s+/g, '-') }]
+      $or: [
+        { email: { $regex: `^${trimmedEmail}$`, $options: 'i' } },
+        { clientId: slugId },
+        { name: { $regex: `^${trimmedName}$`, $options: 'i' } }
+      ]
     });
     
     if (existingClient) {
-      throw new ApiError(400, 'Client with this email or name already exists');
+      throw new ApiError(400, 'Client with this email, name, or Client ID already exists');
     }
 
     const client = await ClientModel.create({
-      clientId: data.name.toLowerCase().replace(/\s+/g, '-'),
-      name: data.name,
-      email: data.email,
-      companyName: data.companyName,
-      phone: data.phone,
-      website: data.website,
+      clientId: slugId,
+      name: trimmedName,
+      email: trimmedEmail,
+      companyName: data.companyName.trim(),
+      phone: data.phone ? data.phone.trim() : undefined,
+      website: data.website ? data.website.trim() : undefined,
       websiteType: data.websiteType || 'corporate',
       logo: data.logo,
       primaryColor: data.primaryColor || '#3B82F6',
@@ -62,8 +79,10 @@ export class ClientService {
     if (search) {
       filter.$or = [
         { name: { $regex: search, $options: 'i' } },
+        { clientId: { $regex: search, $options: 'i' } },
         { companyName: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } },
+        { website: { $regex: search, $options: 'i' } },
       ];
     }
 
@@ -97,7 +116,22 @@ export class ClientService {
   }
 
   static async update(id: string, data: UpdateClientRequest): Promise<ClientListItem> {
-    const client = await ClientModel.findByIdAndUpdate(id, omitUndefined(data), { new: true });
+    const updatePayload = omitUndefined(data as Record<string, any>);
+
+    if (updatePayload.email || updatePayload.name) {
+      const existing = await ClientModel.findOne({
+        _id: { $ne: id },
+        $or: [
+          ...(updatePayload.email ? [{ email: { $regex: `^${updatePayload.email.trim()}$`, $options: 'i' } }] : []),
+          ...(updatePayload.name ? [{ name: { $regex: `^${updatePayload.name.trim()}$`, $options: 'i' } }] : [])
+        ]
+      });
+      if (existing) {
+        throw new ApiError(400, 'Another client with this email or name already exists');
+      }
+    }
+
+    const client = await ClientModel.findByIdAndUpdate(id, updatePayload, { new: true });
     if (!client) {
       throw new ApiError(404, 'Client not found');
     }
@@ -105,10 +139,25 @@ export class ClientService {
   }
 
   static async delete(id: string): Promise<void> {
-    const client = await ClientModel.findByIdAndDelete(id);
+    const client = await ClientModel.findById(id);
     if (!client) {
       throw new ApiError(404, 'Client not found');
     }
+
+    await ClientModel.findByIdAndDelete(id);
+
+    // Hard purge all associated records for client isolation and cleanup
+    await Promise.allSettled([
+      ClientConfigModel.deleteMany({ clientId: client._id }),
+      ClientThemeModel.deleteMany({ clientId: client._id }),
+      ClientModuleModel.deleteMany({ clientId: client._id }),
+      KnowledgeModel.deleteMany({ clientId: { $in: [client._id.toString(), client.clientId] } }),
+      FAQModel.deleteMany({ clientId: { $in: [client._id.toString(), client.clientId] } }),
+      ChatModel.deleteMany({ clientId: { $in: [client._id.toString(), client.clientId] } }),
+      InquiryModel.deleteMany({ clientId: { $in: [client._id.toString(), client.clientId] } }),
+      WebsiteContentModel.deleteMany({ clientId: { $in: [client._id.toString(), client.clientId] } }),
+      WebsiteConnectorModel.deleteMany({ clientId: { $in: [client._id.toString(), client.clientId] } }),
+    ]);
   }
 
   static async getStats(): Promise<{ total: number; active: number; inactive: number; suspended: number }> {

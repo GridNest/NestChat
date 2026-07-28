@@ -36,7 +36,7 @@ export function InquiryDetail() {
     try {
       setLoading(true);
       const response = await adminApi.getInquiryById(id!);
-      setInquiry(response.data);
+      setInquiry(response.data || response);
     } catch (error) {
       console.error('Failed to fetch inquiry:', error);
     } finally {
@@ -112,11 +112,12 @@ export function InquiryDetail() {
                 <select
                   value={inquiry.status}
                   onChange={(e) => handleStatusUpdate(e.target.value)}
-                  className="px-2 py-1 text-sm border rounded"
+                  className="px-2.5 py-1 text-xs sm:text-sm font-semibold border rounded-lg focus:outline-none cursor-pointer capitalize"
                 >
                   <option value="new">New</option>
                   <option value="contacted">Contacted</option>
                   <option value="converted">Converted</option>
+                  <option value="archived">Archived</option>
                   <option value="closed">Closed</option>
                 </select>
               </dd>

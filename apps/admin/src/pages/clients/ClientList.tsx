@@ -8,6 +8,7 @@ interface Client {
   name: string;
   email: string;
   companyName: string;
+  website?: string;
   websiteType: string;
   status: string;
   isActive: boolean;
@@ -48,7 +49,7 @@ export function ClientList() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this client?')) return;
+    if (!confirm('Are you sure you want to permanently delete this client and all associated data?')) return;
     
     try {
       await adminApi.deleteClient(id);
@@ -60,9 +61,9 @@ export function ClientList() {
 
   const getStatusBadge = (status: string) => {
     const colors: Record<string, string> = {
-      active: 'bg-green-100 text-green-800',
-      inactive: 'bg-gray-100 text-gray-800',
-      suspended: 'bg-red-100 text-red-800',
+      active: 'bg-green-100 text-green-800 border border-green-200',
+      inactive: 'bg-gray-100 text-gray-800 border border-gray-200',
+      suspended: 'bg-red-100 text-red-800 border border-red-200',
     };
     return (
       <span className={`px-2.5 py-1 text-xs font-semibold rounded-full capitalize ${colors[status] || 'bg-gray-100 text-gray-800'}`}>
@@ -96,7 +97,7 @@ export function ClientList() {
             placeholder="Search clients..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm min-h-[44px]"
           />
           <svg className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -122,11 +123,12 @@ export function ClientList() {
             <table className="min-w-full divide-y divide-gray-200 text-left">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 sm:px-6 py-3.5 text-xs font-semibold text-gray-600 uppercase">Client</th>
+                  <th className="px-4 sm:px-6 py-3.5 text-xs font-semibold text-gray-600 uppercase">Client Name & ID</th>
                   <th className="px-4 sm:px-6 py-3.5 text-xs font-semibold text-gray-600 uppercase">Company</th>
-                  <th className="px-4 sm:px-6 py-3.5 text-xs font-semibold text-gray-600 uppercase">Type</th>
+                  <th className="px-4 sm:px-6 py-3.5 text-xs font-semibold text-gray-600 uppercase">Email</th>
+                  <th className="px-4 sm:px-6 py-3.5 text-xs font-semibold text-gray-600 uppercase">Website</th>
                   <th className="px-4 sm:px-6 py-3.5 text-xs font-semibold text-gray-600 uppercase">Status</th>
-                  <th className="px-4 sm:px-6 py-3.5 text-xs font-semibold text-gray-600 uppercase">Created</th>
+                  <th className="px-4 sm:px-6 py-3.5 text-xs font-semibold text-gray-600 uppercase">Created Date</th>
                   <th className="px-4 sm:px-6 py-3.5 text-xs font-semibold text-gray-600 uppercase">Actions</th>
                 </tr>
               </thead>
@@ -134,16 +136,37 @@ export function ClientList() {
                 {clients.map((client) => (
                   <tr key={client.id} className="hover:bg-blue-50/30 transition-colors">
                     <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{client.name}</div>
-                        <div className="text-xs text-gray-500">{client.email}</div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-gray-900">{client.name}</span>
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-mono font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                            ID: {client.clientId}
+                          </span>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
                       {client.companyName}
                     </td>
                     <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {client.websiteType}
+                      {client.email}
+                    </td>
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm">
+                      {client.website ? (
+                        <a
+                          href={client.website.startsWith('http') ? client.website : `https://${client.website}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
+                        >
+                          <span className="truncate max-w-[160px]">{client.website}</span>
+                          <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </a>
+                      ) : (
+                        <span className="text-gray-400 text-xs">-</span>
+                      )}
                     </td>
                     <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(client.status)}
@@ -153,15 +176,15 @@ export function ClientList() {
                     </td>
                     <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center gap-3 min-h-[36px]">
-                        <Link to={`/clients/${client.id}`} className="text-blue-600 hover:text-blue-800 p-1">
+                        <Link to={`/clients/${client.id}`} className="text-blue-600 hover:text-blue-800 font-medium p-1">
                           View
                         </Link>
-                        <Link to={`/clients/${client.id}/edit`} className="text-green-600 hover:text-green-800 p-1">
+                        <Link to={`/clients/${client.id}/edit`} className="text-green-600 hover:text-green-800 font-medium p-1">
                           Edit
                         </Link>
                         <button
                           onClick={() => handleDelete(client.id)}
-                          className="text-red-600 hover:text-red-800 p-1"
+                          className="text-red-600 hover:text-red-800 font-medium p-1"
                         >
                           Delete
                         </button>

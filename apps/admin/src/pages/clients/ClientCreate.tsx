@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { adminApi } from '../../services/api';
+import { useToast } from '../../components/ui/Toast';
 
 export function ClientCreate() {
+  const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -17,18 +21,57 @@ export function ClientCreate() {
     botName: 'Assistant',
     defaultLanguage: 'en',
     timezone: 'Asia/Kolkata',
+    status: 'active',
   });
+
+  useEffect(() => {
+    if (id) {
+      fetchClient();
+    }
+  }, [id]);
+
+  const fetchClient = async () => {
+    try {
+      setFetching(true);
+      const data = await adminApi.getClient(id!);
+      setFormData({
+        name: data.name || '',
+        email: data.email || '',
+        companyName: data.companyName || '',
+        phone: data.phone || '',
+        website: data.website || '',
+        websiteType: data.websiteType || 'corporate',
+        primaryColor: data.primaryColor || '#3B82F6',
+        secondaryColor: data.secondaryColor || '#1E40AF',
+        botName: data.botName || 'Assistant',
+        defaultLanguage: data.defaultLanguage || 'en',
+        timezone: data.timezone || 'Asia/Kolkata',
+        status: data.status || 'active',
+      });
+    } catch (error) {
+      addToast('error', 'Failed to load client details');
+      navigate('/clients');
+    } finally {
+      setFetching(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      await adminApi.createClient(formData);
+      if (id) {
+        await adminApi.updateClient(id, formData);
+        addToast('success', 'Client updated successfully');
+      } else {
+        await adminApi.createClient(formData);
+        addToast('success', 'Client created successfully');
+      }
       navigate('/clients');
-    } catch (error) {
-      console.error('Failed to create client:', error);
-      alert('Failed to create client');
+    } catch (error: any) {
+      console.error('Failed to save client:', error);
+      addToast('error', error.response?.data?.message || (id ? 'Failed to update client' : 'Failed to create client'));
     } finally {
       setLoading(false);
     }
@@ -38,11 +81,19 @@ export function ClientCreate() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  if (fetching) {
+    return <div className="text-center py-12 text-gray-500 text-sm">Loading client data...</div>;
+  }
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">Create New Client</h1>
-        <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Configure client company details and initial widget defaults</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
+          {id ? 'Edit Client' : 'Create New Client'}
+        </h1>
+        <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+          {id ? 'Update client details and widget preferences' : 'Configure client company details and initial widget defaults'}
+        </p>
       </div>
       
       <form onSubmit={handleSubmit} className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200 space-y-5">
@@ -221,7 +272,7 @@ export function ClientCreate() {
             disabled={loading}
             className="w-full sm:w-auto px-5 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50 text-xs sm:text-sm font-medium min-h-[44px] flex items-center justify-center transition-colors shadow-sm"
           >
-            {loading ? 'Creating...' : 'Create Client'}
+            {loading ? (id ? 'Updating...' : 'Creating...') : (id ? 'Save Changes' : 'Create Client')}
           </button>
         </div>
       </form>
