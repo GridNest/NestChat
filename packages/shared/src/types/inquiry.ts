@@ -11,7 +11,7 @@ export interface Inquiry {
   details: string;
   company?: string;
   source: 'chatbot' | 'website' | 'manual';
-  status: 'new' | 'contacted' | 'converted' | 'closed';
+  status: 'new' | 'contacted' | 'converted' | 'archived' | 'closed';
   externalApiStatus?: 'pending' | 'forwarded' | 'failed';
   createdAt: Date;
   updatedAt: Date;
@@ -28,7 +28,7 @@ export interface InquiryResponse {
   details: string;
   company?: string;
   source: 'chatbot' | 'website' | 'manual';
-  status: 'new' | 'contacted' | 'converted' | 'closed';
+  status: 'new' | 'contacted' | 'converted' | 'archived' | 'closed';
   createdAt: Date;
 }
 
@@ -46,6 +46,6 @@ export interface CreateInquiryRequest {
 }
 
 export interface UpdateInquiryRequest {
-  status?: 'new' | 'contacted' | 'converted' | 'closed';
+  status?: 'new' | 'contacted' | 'converted' | 'archived' | 'closed';
   notes?: string;
 }

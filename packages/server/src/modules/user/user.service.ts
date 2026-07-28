@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { UserModel } from '../user/user.model.js';
 import { UserRoleModel } from '../userRole/userRole.model.js';
 import { ApiError } from '../../utils/apiError.js';

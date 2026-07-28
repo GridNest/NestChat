@@ -22,7 +22,7 @@ export interface InquiryListItem {
   details: string;
   company?: string;
   source: 'chatbot' | 'website' | 'manual';
-  status: 'new' | 'contacted' | 'converted' | 'closed';
+  status: 'new' | 'contacted' | 'converted' | 'archived' | 'closed';
   externalApiStatus: 'pending' | 'forwarded' | 'failed' | 'no_api';
   language: 'en' | 'hi';
   submittedAt: Date;
