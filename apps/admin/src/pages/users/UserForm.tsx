@@ -29,8 +29,9 @@ export function UserForm() {
 
   const fetchClients = async () => {
     try {
-      const response = await adminApi.getClients({ limit: '100' });
-      setClients(response.data?.clients || response.clients || []);
+      const response: any = await adminApi.getClients({ limit: '100' });
+      const resData = response?.data || response;
+      setClients(resData?.clients || resData?.data?.clients || []);
     } catch {
       console.error('Failed to fetch clients');
     }

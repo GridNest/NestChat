@@ -36,19 +36,20 @@ export function UserList() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await adminApi.getUsers({
+      const response: any = await adminApi.getUsers({
         page: page.toString(),
         limit: limit.toString(),
         search,
         role: roleFilter,
       });
-      const rawList = response.data?.users || response.users || [];
+      const resData = response?.data || response;
+      const rawList = resData?.users || resData?.data?.users || [];
       const mapped = rawList.map((u: any) => ({
         ...u,
         id: u.id || u._id,
       }));
       setUsers(mapped);
-      setTotal(response.data?.total || response.total || 0);
+      setTotal(resData?.total || resData?.data?.total || 0);
     } catch (error) {
       console.error('Failed to fetch users:', error);
     } finally {
@@ -120,7 +121,7 @@ export function UserList() {
               Edit
             </button>
             <button
-              onClick={() => setDeleteId(targetId)}
+              onClick={() => setDeleteId(targetId || null)}
               className="text-red-600 hover:text-red-800 font-medium text-xs sm:text-sm p-1"
             >
               Delete
