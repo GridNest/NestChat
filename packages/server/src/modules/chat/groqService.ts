@@ -4,6 +4,7 @@ import { logger } from '../../utils/logger.js';
 export interface GroqContextOptions {
   clientName: string;
   companyName: string;
+  websiteUrl?: string;
   websiteType?: string;
   botName?: string;
   businessHours?: string;
@@ -16,6 +17,7 @@ export interface GroqContextOptions {
   faqs?: Array<{ question: string; answer: string }>;
   knowledgeItems?: Array<{ title: string; content: string }>;
   websiteContent?: Array<{ title: string; content: string; category: string }>;
+  liveWebsiteContent?: string;  // Fresh content from Jina AI Reader (highest priority)
   conversationHistory?: Array<{ sender: string; content: string }>;
 }
 
@@ -123,8 +125,8 @@ export class GroqService {
   private static buildSystemPrompt(options: GroqContextOptions): string {
     const {
       clientName, companyName, botName, language, intent,
-      faqs, knowledgeItems, websiteContent,
-      businessHours, contactEmail, contactPhone, contactAddress
+      faqs, knowledgeItems, websiteContent, liveWebsiteContent,
+      businessHours, contactEmail, contactPhone, contactAddress, websiteUrl
     } = options;
 
     const faqContext = (faqs || [])
@@ -152,6 +154,7 @@ export class GroqService {
 
     const businessInfo = [
       `Business Name: ${companyName || clientName}`,
+      websiteUrl ? `Website: ${websiteUrl}` : null,
       businessHours ? `Business Hours: ${businessHours}` : null,
       contactEmail ? `Contact Email: ${contactEmail}` : null,
       contactPhone ? `Contact Phone: ${contactPhone}` : null,
@@ -162,6 +165,11 @@ export class GroqService {
       ? `\nThe user's intent appears to be: "${intent}". Focus your answer on this topic.`
       : '';
 
+    // Live Jina content gets TOP priority — it is the most up-to-date source
+    const liveSection = liveWebsiteContent
+      ? `=== LIVE WEBSITE CONTENT (HIGHEST PRIORITY — fetched right now from ${websiteUrl || 'the website'}) ===\n${truncate(liveWebsiteContent, 8000)}\n`
+      : '';
+
     return `You are "${botName || 'Assistant'}", the official AI chatbot for "${companyName || clientName}". You help visitors of this business's website with their questions.
 
 IMPORTANT: You do NOT know the type of this business in advance. Figure it out from the context provided below. This business may be a web agency, hotel, restaurant, school, hospital, e-commerce store, or anything else. Do NOT assume it's a restaurant or hotel just because chatbot templates exist for those.
@@ -169,24 +177,25 @@ IMPORTANT: You do NOT know the type of this business in advance. Figure it out f
 === BUSINESS INFORMATION ===
 ${businessInfo || 'Not provided'}
 
-=== FAQs ===
+${liveSection}=== FAQs ===
 ${faqContext || 'None'}
 
 === KNOWLEDGE BASE ===
 ${kbContext || 'None'}
 
-=== WEBSITE CONTENT (scraped from website) ===
+=== WEBSITE SNAPSHOT (from previous scan) ===
 ${cleanedWebContent || 'None'}${intentGuidance}
 
 === STRICT RULES ===
 1. Reply ONLY in ${language === 'hi' ? 'Hindi or Hinglish (natural mix)' : 'English'}.
-2. ONLY answer using the information provided above. Do NOT use general knowledge.
-3. NEVER invent prices, services, contact details, hours, or any business info not in the context above.
-4. NEVER assume this is a restaurant or hotel. Answer based on what the business actually is per the context.
-5. NEVER show raw tags like [MENU_ITEM], [PRICING], [STRUCTURED DATA], HTML code, or navigation text.
-6. NEVER mention OpenAI, Groq, Llama, or any AI model.
-7. If the information is not in the context, say: "I couldn't find that specific information. Would you like to contact the team directly?" Do NOT make up an answer.
-8. Keep responses concise (3-6 sentences max for most queries), friendly, and helpful.
-9. When listing items (services, plans, prices etc.), use a clean bullet list format.`;
+2. PRIORITY ORDER for answering: Live Website Content > FAQs > Knowledge Base > Website Snapshot. Always prefer the most up-to-date source.
+3. ONLY answer using the information provided above. Do NOT use general knowledge or make up facts.
+4. NEVER invent prices, services, contact details, hours, or any business info not in the context above.
+5. NEVER assume this is a restaurant or hotel. Answer based on what the business actually is per the context.
+6. NEVER show raw tags like [MENU_ITEM], [PRICING], [STRUCTURED DATA], HTML code, or navigation text in your response.
+7. NEVER mention OpenAI, Groq, Llama, Jina, or any AI/tool names.
+8. If the information is not in any of the provided context sections, say: "I couldn't find that specific information. Would you like to contact the team directly?" Do NOT make up an answer.
+9. Keep responses concise (3-6 sentences for most queries), friendly, and helpful.
+10. When listing items (services, plans, prices etc.), use a clean bullet list format.`;
   }
 }

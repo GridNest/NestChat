@@ -4,6 +4,7 @@ import { IntentDetector, Intent } from './intentDetector.js';
 import { DEFAULT_QUICK_ACTIONS } from '@nestchat/shared';
 import { InquiryEngine } from '../inquiry/inquiryEngine.js';
 import { GroqService } from './groqService.js';
+import { JinaReaderService } from './jinaReaderService.js';
 import { FAQModel } from '../faq/faq.model.js';
 import { KnowledgeModel } from '../knowledge/knowledge.model.js';
 import { WebsiteContentModel } from '../websiteContent/websiteContent.model.js';
@@ -246,14 +247,31 @@ export class ResponseEngine {
         KnowledgeModel.find(queryFilter).limit(10).lean(),
         WebsiteContentModel.find(webFilter)
           .sort({ priority: -1 })
-          .limit(25)
+          .limit(20)
           .lean(),
       ]);
+
+      // ── Layer 3.5: Jina AI Real-time Website Content ──────────────────────
+      // Fetch live website content when we have a website URL configured.
+      // This ensures answers are always based on the actual current website,
+      // not just the last scraped snapshot stored in DB.
+      let jinaContent: string | undefined;
+      const websiteUrl = (client as any)?.website || (clientConfig as any)?.websiteUrl;
+      if (websiteUrl) {
+        try {
+          const fetched = await JinaReaderService.fetchWebsiteContent(websiteUrl);
+          if (fetched) jinaContent = fetched;
+        } catch {
+          // Silent fail — Jina is best-effort only
+        }
+      }
+      // ──────────────────────────────────────────────────────────────────────
 
       const groqResult = await GroqService.generateCompletion({
         clientName,
         companyName: clientName,
         botName: (client as any)?.botName || 'Assistant',
+        websiteUrl,
         businessHours: (clientConfig as any)?.businessHours,
         contactEmail: (clientConfig as any)?.contactEmail,
         contactPhone: (clientConfig as any)?.contactPhone,
@@ -264,6 +282,7 @@ export class ResponseEngine {
         faqs: faqs.map(f => ({ question: f.question, answer: f.answer })),
         knowledgeItems: knowledgeItems.map(k => ({ title: k.title, content: k.content })),
         websiteContent: webContent.map(w => ({ title: w.title, content: w.content, category: w.category })),
+        liveWebsiteContent: jinaContent,
         conversationHistory,
       });
 
