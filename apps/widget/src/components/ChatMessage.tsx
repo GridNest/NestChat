@@ -10,7 +10,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
   const { clientConfig } = useWidgetStore();
   const isBot = message.sender === 'bot';
 
-  const avatarSrc = clientConfig?.config?.avatarUrl || clientConfig?.client?.logo;
+  const avatarSrc = (clientConfig?.config as any)?.avatarUrl || clientConfig?.client?.logo;
 
   return (
     <div className={`flex ${isBot ? 'justify-start' : 'justify-end'} items-end gap-2 w-full`}>

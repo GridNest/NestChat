@@ -18,9 +18,9 @@ export function ChatHeader() {
       style={{ backgroundColor: primaryColor }}
     >
       <div className="flex items-center gap-3">
-        {(clientConfig.config?.avatarUrl || clientConfig.client?.logo) ? (
+        {((clientConfig.config as any)?.avatarUrl || clientConfig.client?.logo) ? (
           <img
-            src={clientConfig.config?.avatarUrl || clientConfig.client?.logo}
+            src={(clientConfig.config as any)?.avatarUrl || clientConfig.client?.logo}
             alt={clientConfig.client?.botName || 'Chatbot'}
             className="w-10 h-10 rounded-full object-cover border-2 border-white/20 shadow-sm"
           />
