@@ -333,37 +333,6 @@ export class KnowledgeEngine {
       return { found: false, type: 'unknown', confidence: 0 };
     }
 
-    // Check for aggregated menu / main course queries
-    const isMenuQuery = normalizedQuery.includes('menu') || normalizedQuery.includes('main course') || normalizedQuery.includes('dish') || normalizedQuery.includes('food');
-    if (isMenuQuery) {
-      const menuItems = webItems.filter(item =>
-        item.category === 'menu' ||
-        item.contentType === 'menu_item' ||
-        item.content.toLowerCase().includes('main course') ||
-        item.title.toLowerCase().includes('main course') ||
-        item.content.includes('$') || item.content.includes('₹')
-      );
-
-      if (menuItems.length > 0) {
-        const formattedList = menuItems.map(item => {
-          if (item.title && item.title !== item.content) {
-            return `• **${item.title}**: ${item.content}`;
-          }
-          return `• ${item.content}`;
-        }).join('\n\n');
-
-        const header = language === 'hi'
-          ? '📜 **Website se Menu Items:**\n\n'
-          : '📜 **Website Menu Items:**\n\n';
-
-        return {
-          found: true,
-          type: 'knowledge',
-          answer: `${header}${formattedList}`,
-          confidence: 0.95,
-        };
-      }
-    }
 
     let bestMatch: any = null;
     let bestScore = 0;
@@ -419,27 +388,33 @@ export class KnowledgeEngine {
   ): KnowledgeMatch {
     const normalizedQuery = normalizeQuestion(query).trim().toLowerCase();
 
+    // Generic action keywords only — no restaurant-specific hardcoded mappings
     const customActionMap: Record<string, string> = {
-      'menu': 'menu',
       'reservations': 'reservations',
       'reservation': 'reservations',
-      'table': 'reservations',
+      'booking': 'reservations',
+      'book': 'reservations',
       'opening hours': 'hours',
       'hours': 'hours',
       'timing': 'hours',
+      'timings': 'hours',
       'contact': 'contact',
       'contact us': 'contact',
-      'phone': 'contact',
-      'email': 'contact',
       'services': 'services',
+      'our services': 'services',
       'pricing': 'pricing',
+      'price': 'pricing',
+      'rates': 'pricing',
       'portfolio': 'portfolio',
+      'our work': 'portfolio',
       'quote': 'get_quote',
+      'get quote': 'get_quote',
       'consultation': 'book_consultation',
+      'book consultation': 'book_consultation',
     };
 
     for (const [key, actionId] of Object.entries(customActionMap)) {
-      if (normalizedQuery === key || normalizedQuery.includes(key)) {
+      if (normalizedQuery === key || normalizedQuery.startsWith(key + ' ') || normalizedQuery.endsWith(' ' + key)) {
         return {
           found: true,
           type: 'quickAction',
@@ -455,9 +430,8 @@ export class KnowledgeEngine {
       const actionKeywords = action.id.replace(/_/g, ' ').toLowerCase();
 
       if (
-        normalizedQuery.includes(actionLabel) ||
-        actionLabel.includes(normalizedQuery) ||
-        normalizedQuery.includes(actionKeywords)
+        normalizedQuery === actionLabel ||
+        normalizedQuery === actionKeywords
       ) {
         return {
           found: true,

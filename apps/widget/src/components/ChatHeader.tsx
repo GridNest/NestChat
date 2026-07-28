@@ -4,6 +4,25 @@ import { LANGUAGES } from '@nestchat/shared';
 
 const LANG_BY_CODE = Object.fromEntries(Object.entries(LANGUAGES).map(([k, v]) => [k, v]));
 
+/**
+ * Converts various image URL formats to a directly embeddable URL.
+ * Handles Google Drive share links → direct download links.
+ */
+function toDirectImageUrl(url?: string): string {
+  if (!url) return '';
+  // Google Drive: https://drive.google.com/file/d/FILE_ID/view?...
+  const driveMatch = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
+  if (driveMatch) {
+    return `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+  }
+  // Google Drive: https://drive.google.com/open?id=FILE_ID
+  const driveOpenMatch = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
+  if (driveOpenMatch) {
+    return `https://drive.google.com/uc?export=view&id=${driveOpenMatch[1]}`;
+  }
+  return url;
+}
+
 export function ChatHeader() {
   const { clientConfig, closeWidget, language, setLanguage } = useWidgetStore();
 
@@ -12,17 +31,28 @@ export function ChatHeader() {
   const allowedLanguages = clientConfig.config.allowedLanguages || [];
   const primaryColor = clientConfig.theme.primaryColor || '#3B82F6';
 
+  // Avatar priority: theme.botAvatar > config.avatarUrl > client.logo
+  const rawAvatarUrl =
+    clientConfig.theme.botAvatar ||
+    (clientConfig.config as any)?.avatarUrl ||
+    clientConfig.client?.logo ||
+    '';
+  const avatarUrl = toDirectImageUrl(rawAvatarUrl);
+
   return (
     <div
       className="p-4 text-white flex items-center justify-between"
       style={{ backgroundColor: primaryColor }}
     >
       <div className="flex items-center gap-3">
-        {((clientConfig.config as any)?.avatarUrl || clientConfig.client?.logo) ? (
+        {avatarUrl ? (
           <img
-            src={(clientConfig.config as any)?.avatarUrl || clientConfig.client?.logo}
+            src={avatarUrl}
             alt={clientConfig.client?.botName || 'Chatbot'}
             className="w-10 h-10 rounded-full object-cover border-2 border-white/20 shadow-sm"
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).style.display = 'none';
+            }}
           />
         ) : (
           <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center font-bold text-white shadow-sm border border-white/20">

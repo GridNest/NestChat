@@ -124,7 +124,7 @@ export class WidgetConfigService {
         borderRadius: theme.borderRadius,
         fontFamily: theme.fontFamily,
         fontSize: theme.fontSize,
-        botAvatar: theme.botAvatar,
+        botAvatar: theme.botAvatar || (config as any)?.avatarUrl || '',
         companyLogo: theme.companyLogo,
         darkMode: theme.darkMode,
       } : {
@@ -137,6 +137,7 @@ export class WidgetConfigService {
         borderRadius: '12px',
         fontFamily: 'Inter, sans-serif',
         fontSize: '14px',
+        botAvatar: (config as any)?.avatarUrl || '',
         darkMode: activeConfig.theme,
       },
       config: {

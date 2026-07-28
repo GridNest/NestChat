@@ -288,23 +288,6 @@ export class ResponseEngine {
     if (match.type === 'faq' || match.type === 'knowledge') {
       const content = language === 'hi' && match.answerHi ? match.answerHi : match.answer || '';
 
-      const isMenuQuery = this.isMenuRelatedQuery(query);
-      if (isMenuQuery && match.type === 'knowledge') {
-        const subCategories = this.detectMenuSubCategory(query, content);
-        if (subCategories && subCategories.length > 0) {
-          return {
-            content: this.formatMenuCategoryResponse(subCategories, language),
-            messageType: 'text',
-            metadata: {
-              matchedType: match.type,
-              matchedId: match.matchedId,
-              confidence: match.confidence,
-            },
-            suggestedQuestions: subCategories.map(c => c.label),
-          };
-        }
-      }
-
       return {
         content,
         messageType: 'text',
@@ -452,19 +435,19 @@ export class ResponseEngine {
   static getSuggestedQuestions(language: Language): string[] {
     if (language === 'hi') {
       return [
-        'Menu kya hai?',
-        'Aapki contact details kya hain?',
-        'Kya timings hain?',
-        'Price kya hai?',
-        'Booking kaise karein?',
+        'Aap kya services provide karte hain?',
+        'Aapka contact number kya hai?',
+        'Timing/working hours kya hain?',
+        'Price/charges kya hain?',
+        'Appointment/booking kaise karein?',
       ];
     }
     return [
-      'What\'s on the menu?',
+      'What services do you offer?',
       'What are your contact details?',
-      'What are your hours?',
-      'What are your prices?',
-      'How do I make a booking?',
+      'What are your working hours?',
+      'What are your pricing plans?',
+      'How do I get in touch?',
     ];
   }
 }

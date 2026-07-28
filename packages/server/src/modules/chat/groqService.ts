@@ -25,6 +25,26 @@ export interface GroqResponse {
   isUnknown: boolean;
 }
 
+// Cleans raw scraped website content before sending to AI
+function cleanScrapedContent(raw: string): string {
+  return raw
+    // Remove tag prefixes like [MENU_ITEM], [PRICING], [CTA], [STRUCTURED DATA], etc.
+    .replace(/^\s*\[[\w_ ]+\]\s*/gm, '')
+    // Remove structured data blocks entirely
+    .replace(/\[STRUCTURED DATA\].*?(\n|$)/g, '')
+    // Remove navigation boilerplate (e.g., "Home Menu Gallery About Testimonials Contact")
+    .replace(/^(Home|Menu|Gallery|About|Testimonials|Contact|Login|Register|Sign In|Sign Up|Cart|Search|Navigation)[\s|•|/]+.{0,200}$/gm, '')
+    // Remove repeated whitespace/newlines
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/\s{3,}/g, ' ')
+    .trim();
+}
+
+function truncate(str: string, maxLen: number): string {
+  if (!str) return '';
+  return str.length > maxLen ? str.slice(0, maxLen) + '...' : str;
+}
+
 export class GroqService {
   static async generateCompletion(options: GroqContextOptions): Promise<GroqResponse | null> {
     const apiKey = env.GROQ_API_KEY;
@@ -40,7 +60,7 @@ export class GroqService {
       ];
 
       if (options.conversationHistory && options.conversationHistory.length > 0) {
-        options.conversationHistory.slice(-8).forEach(msg => {
+        options.conversationHistory.slice(-6).forEach(msg => {
           messages.push({
             role: msg.sender === 'user' ? 'user' : 'assistant',
             content: msg.content,
@@ -63,7 +83,7 @@ export class GroqService {
           model: 'llama-3.3-70b-versatile',
           messages,
           temperature: 0.2,
-          max_tokens: 1024,
+          max_tokens: 800,
         }),
       });
 
@@ -86,7 +106,8 @@ export class GroqService {
                         lowerAnswer.includes('cannot provide') ||
                         lowerAnswer.includes('not available in the context provided') ||
                         lowerAnswer.includes('no information about') ||
-                        lowerAnswer.includes('not mentioned in the');
+                        lowerAnswer.includes('not mentioned in the') ||
+                        lowerAnswer.includes("couldn't find that specific information");
 
       return {
         content: answer,
@@ -106,9 +127,28 @@ export class GroqService {
       businessHours, contactEmail, contactPhone, contactAddress
     } = options;
 
-    const faqContext = (faqs || []).map(f => `Q: ${f.question}\nA: ${f.answer}`).join('\n\n');
-    const kbContext = (knowledgeItems || []).map(k => `Title: ${k.title}\nContent: ${k.content}`).join('\n\n');
-    const webContext = (websiteContent || []).map(w => `[${w.category.toUpperCase()}] ${w.title}: ${w.content}`).join('\n');
+    const faqContext = (faqs || [])
+      .map(f => `Q: ${f.question}\nA: ${truncate(f.answer, 400)}`)
+      .join('\n\n');
+
+    const kbContext = (knowledgeItems || [])
+      .map(k => `${k.title}: ${truncate(k.content, 400)}`)
+      .join('\n\n');
+
+    // Clean and deduplicate website content, limit to 15 most relevant
+    const cleanedWebContent = (websiteContent || [])
+      .slice(0, 15)
+      .map(w => {
+        const cleaned = cleanScrapedContent(w.content);
+        if (!cleaned || cleaned.length < 10) return null;
+        const cleanedTitle = cleanScrapedContent(w.title || '');
+        const display = cleanedTitle && cleanedTitle !== cleaned
+          ? `[${w.category.toUpperCase()}] ${cleanedTitle}: ${truncate(cleaned, 350)}`
+          : `[${w.category.toUpperCase()}] ${truncate(cleaned, 400)}`;
+        return display;
+      })
+      .filter(Boolean)
+      .join('\n\n');
 
     const businessInfo = [
       `Business Name: ${companyName || clientName}`,
@@ -118,32 +158,38 @@ export class GroqService {
       contactAddress ? `Address: ${contactAddress}` : null,
     ].filter(Boolean).join('\n');
 
-    const intentGuidance = intent && intent !== 'unknown' ? `\nThe user's intent appears to be: "${intent}". Focus your answer on this topic using only the provided context.` : '';
+    const intentGuidance = intent && intent !== 'unknown'
+      ? `\nThe user's intent appears to be: "${intent}". Focus your answer on this topic.`
+      : '';
 
-    return `You are "${botName || 'Assistant'}", the official AI assistant for "${companyName || clientName}". You are NOT a general AI. You ONLY know what is provided in the context below.
+    return `You are "${botName || 'Assistant'}", the official AI chatbot for "${companyName || clientName}". You help visitors of this business's website with their questions.
+
+IMPORTANT: You do NOT know the type of this business in advance. Figure it out from the context provided below. This business may be a web agency, hotel, restaurant, school, hospital, e-commerce store, or anything else. Do NOT assume it's a restaurant or hotel just because chatbot templates exist for those.
 
 === BUSINESS INFORMATION ===
 ${businessInfo || 'Not provided'}
 
-=== FAQ CONTEXT ===
-${faqContext || 'Not provided'}
+=== FAQs ===
+${faqContext || 'None'}
 
 === KNOWLEDGE BASE ===
-${kbContext || 'Not provided'}
+${kbContext || 'None'}
 
-=== WEBSITE CONTENT ===
-${webContext || 'Not provided'}${intentGuidance}
+=== WEBSITE CONTENT (scraped from website) ===
+${cleanedWebContent || 'None'}${intentGuidance}
 
-=== STRICT RULES (YOU MUST FOLLOW THESE) ===
-1. Respond ONLY in ${language === 'hi' ? 'Hindi or Hinglish' : 'English'}.
-2. ONLY answer using the business information, FAQs, Knowledge Base, and Website Content provided ABOVE. Nothing else.
-3. NEVER invent, hallucinate, or guess any information. If it's not in the context, you don't know it.
-4. NEVER make up menu items, prices, services, contact details, hours, addresses, or any business information.
-5. NEVER mention OpenAI, Groq, Llama, or any AI model. You are just an assistant.
-6. NEVER say "according to my training", "as an AI", or similar phrases.
-7. Speak naturally and conversationally like a helpful business representative.
-8. If asked about menu and menu items exist in context, list them with details naturally.
-9. If you cannot find the answer in the provided context, say EXACTLY: "I couldn't find that specific information." Then ask if they'd like to connect with the team.
-10. Keep responses concise, friendly, and helpful.`;
+=== STRICT RULES ===
+1. Reply ONLY in ${language === 'hi' ? 'Hindi or Hinglish (natural mix)' : 'English'}.
+2. ONLY answer using the information provided above. Do NOT use general knowledge.
+3. NEVER invent prices, services, contact details, hours, or any business info not in the context above.
+4. NEVER assume this is a restaurant or hotel. Answer based on what the business actually is per the context.
+5. NEVER show raw tags like [MENU_ITEM], [PRICING], [STRUCTURED DATA], HTML code, or navigation text.
+6. NEVER mention OpenAI, Groq, Llama, or any AI model.
+7. If the information is not in the context, say: "I couldn't find that specific information. Would you like to contact the team directly?" Do NOT make up an answer.
+8. Keep responses concise (3-6 sentences max for most queries), friendly, and helpful.
+9. When listing items (services, plans, prices etc.), use a clean bullet list format.`;
+  }
+}
+
   }
 }

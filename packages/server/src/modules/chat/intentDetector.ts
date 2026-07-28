@@ -35,9 +35,8 @@ const INTENT_PATTERNS: Record<Intent, RegExp[]> = {
     /^(hola|bonjour|konnichiwa|ni hao|annyeong|ola)\b/i,
   ],
   menu: [
-    /\b(menu|food|dish|eat|breakfast|lunch|dinner|dessert|drink|beverage|snack|meal|cuisine|appetizer|starter|main course|specials?|today'?s? special)\b/i,
-    /\b(biryani|biryani|curry|roti|naan|pizza|burger|pasta|salad|soup|rice|bread|chicken|mutton|fish|paneer|dal|tandoori|kebab|paratha|dosa|idli|vada|sambar)\b/i,
-    /\b(what (do you have|is on the menu)|show menu|menu card|food menu|dish list|items|options)\b/i,
+    /\b(menu|catalog|catalogue|product list|item list|what (do you (have|offer|sell)|is on the menu)|show (me )?(your )?(menu|products|services|items|catalog))\b/i,
+    /\b(breakfast|lunch|dinner|dessert|drink|beverage|main course|food items|dish|cuisine)\b/i,
   ],
   booking: [
     /\b(book|reservation|reserve|table|booking|appointment|schedule|seat|party of|cabinet|slot)\b/i,

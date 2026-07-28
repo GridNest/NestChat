@@ -443,7 +443,7 @@ export class WebsiteScraperService {
       let match;
       while ((match = pattern.exec(html)) !== null) {
         const text = this.stripHtml(match[1]).trim();
-        if (text.length < 15 || text.length > 2000) continue;
+        if (text.length < 15 || text.length > 2000 || this.isNavigationText(text)) continue;
 
         let contentType: ExtractedContent['contentType'] = 'paragraph';
         let category = this.categorizePage(pagePath);
@@ -470,7 +470,7 @@ export class WebsiteScraperService {
 
         if (!items.some(i => i.content === text)) {
           items.push({
-            title: `[${contentType.toUpperCase()}] ${text.substring(0, 50)}`,
+            title: text.substring(0, 60),
             content: text,
             contentType,
             category,
@@ -757,11 +757,23 @@ export class WebsiteScraperService {
   }
 
   private static isNavigationText(text: string): boolean {
-    const navKeywords = ['home', 'menu', 'about us', 'contact us', 'services', 'gallery',
+    const lower = text.toLowerCase().trim();
+    const navKeywords = ['home', 'menu', 'about', 'about us', 'contact', 'contact us', 'services', 'gallery',
       'login', 'sign up', 'register', 'search', 'cart', 'wishlist', 'profile',
       'logout', 'blog', 'news', 'careers', 'faq', 'terms', 'privacy',
-      'skip to content', 'toggle navigation', 'open menu', 'close'];
-    return navKeywords.some(k => text.toLowerCase().trim() === k);
+      'skip to content', 'toggle navigation', 'open menu', 'close', 'our menu', 'testimonials'];
+
+    if (navKeywords.some(k => lower === k)) return true;
+
+    // Check for concatenated nav bar lists e.g. "Home Menu Gallery About Testimonials Contact"
+    if (lower.includes('home') && lower.includes('menu') && lower.includes('gallery') && lower.includes('about')) {
+      return true;
+    }
+    if (lower.includes('culinary artistry') || lower.includes('michelin-inspired') || lower.includes('crafted with passion')) {
+      return true;
+    }
+
+    return false;
   }
 
   private static stripHtml(html: string): string {

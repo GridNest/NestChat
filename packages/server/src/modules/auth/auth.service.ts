@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import { AuthResponse, LoginRequest, RegisterRequest } from '@nestchat/shared';
 import { UserModel, UserDocument } from '../user/user.model.js';
 import { ClientModel } from '../client/client.model.js';
@@ -80,12 +81,19 @@ export class AuthService {
   }
 
   static async login(data: LoginRequest): Promise<AuthResponse> {
-    const user = await UserModel.findOne({ email: data.email });
+    const email = (data.email || '').trim().toLowerCase();
+    const user = await UserModel.findOne({ email });
     if (!user) {
       throw ApiError.unauthorized('Invalid email or password');
     }
 
-    const isPasswordValid = await user.comparePassword(data.password);
+    let isPasswordValid = await user.comparePassword(data.password);
+    if (!isPasswordValid && user.password === data.password) {
+      isPasswordValid = true;
+      const salt = await bcrypt.genSalt(12);
+      user.password = await bcrypt.hash(data.password, salt);
+    }
+
     if (!isPasswordValid) {
       throw ApiError.unauthorized('Invalid email or password');
     }

@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 import { UserModel } from '../user/user.model.js';
 import { UserRoleModel } from '../userRole/userRole.model.js';
 import { ApiError } from '../../utils/apiError.js';
@@ -73,7 +74,12 @@ export class UserService {
     const updateData: any = { ...data };
     if (updateData.email) updateData.email = updateData.email.trim().toLowerCase();
     if (updateData.name) updateData.name = updateData.name.trim();
-    if (!updateData.password) delete updateData.password;
+    if (updateData.password && updateData.password.trim()) {
+      const salt = await bcrypt.genSalt(12);
+      updateData.password = await bcrypt.hash(updateData.password.trim(), salt);
+    } else {
+      delete updateData.password;
+    }
     if (updateData.clientId === 'none') updateData.clientId = null;
 
     const user = await UserModel.findByIdAndUpdate(id, updateData, { new: true }).populate('clientId', 'name companyName clientId').select('-password').lean();
