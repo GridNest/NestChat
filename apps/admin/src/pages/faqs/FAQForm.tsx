@@ -202,11 +202,11 @@ export function FAQForm() {
         </div>
 
         <div>
-          <label className={labelClass}>Tags (comma separated)</label>
+          <label className={labelClass}>Keywords / Tags (comma separated)</label>
           <input
             type="text"
-            value={formData.tags}
-            onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+            value={formData.keywords}
+            onChange={(e) => setFormData({ ...formData, keywords: e.target.value })}
             placeholder="faq, pricing, support"
             className={inputClass}
           />

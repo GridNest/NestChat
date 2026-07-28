@@ -40,6 +40,8 @@ import { logger } from './utils/logger.js';
 
 const app: Express = express();
 
+app.set('trust proxy', 1);
+
 app.use(helmet());
 app.use(cors(corsOptions));
 app.use(globalLimiter);

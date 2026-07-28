@@ -1,3 +1,4 @@
+import { Types } from 'mongoose';
 import { CreateKnowledgeRequest, UpdateKnowledgeRequest, PaginationQuery } from '@nestchat/shared';
 import { KnowledgeModel, KnowledgeDocument } from './knowledge.model.js';
 import { ClientModel } from '../client/client.model.js';
@@ -255,17 +256,18 @@ export class KnowledgeService {
     );
   }
 
-  static async getCategories(clientId: string): Promise<string[]> {
-    const categories = await KnowledgeModel.distinct('category', {
-      clientId,
-      isDeleted: false,
-    });
+  static async getCategories(clientId?: string): Promise<string[]> {
+    const filter: any = { isDeleted: false };
+    if (clientId && Types.ObjectId.isValid(clientId)) {
+      filter.clientId = clientId;
+    }
+    const categories = await KnowledgeModel.distinct('category', filter);
     return categories.sort();
   }
 
   static async getAllCategories(clientId?: string): Promise<string[]> {
     const filter: any = { isDeleted: false };
-    if (clientId) filter.clientId = clientId;
+    if (clientId && Types.ObjectId.isValid(clientId)) filter.clientId = clientId;
     const categories = await KnowledgeModel.distinct('category', filter);
     return categories.sort();
   }
