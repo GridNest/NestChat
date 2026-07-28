@@ -15,6 +15,7 @@ interface FAQ {
   isActive: boolean;
   status: string;
   createdAt: string;
+  clientId?: string | { _id: string; companyName: string; name: string; clientId: string };
 }
 
 export function FAQList() {

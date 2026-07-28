@@ -690,28 +690,33 @@ export class WebsiteScraperService {
       seen.add(key);
 
       const category = item.category || 'general';
-      const slug = `web-${category}-${item.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 50)}`;
+      const slug = `web-${category}-${item.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 40)}-${Math.random().toString(36).substring(2, 6)}`;
 
-      const existing = await KnowledgeModel.findOne({
-        clientId,
-        slug,
-        isDeleted: false,
-      });
-
-      if (!existing) {
-        await KnowledgeModel.create({
+      try {
+        const existing = await KnowledgeModel.findOne({
           clientId,
-          pageName: `${companyName} Website`,
           slug,
-          title: item.title,
-          content: item.content,
-          tags: [item.contentType, item.category, 'website_sync'].filter(Boolean),
-          category,
-          language: 'en' as const,
-          priority: item.priority,
-          isActive: true,
           isDeleted: false,
         });
+
+        if (!existing) {
+          await KnowledgeModel.create({
+            clientId,
+            pageName: `${companyName} Website`,
+            slug,
+            title: item.title,
+            content: item.content,
+            tags: [item.contentType, item.category, 'website_sync'].filter(Boolean),
+            category,
+            language: 'en' as const,
+            priority: item.priority,
+            isActive: true,
+            isDeleted: false,
+          });
+        }
+      } catch (err) {
+        // Safe catch for any duplicate slug or validation edge case
+        logger.warn(`[WebsiteScraper] Skipping duplicate Knowledge entry for slug ${slug}`);
       }
     }
   }
