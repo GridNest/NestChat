@@ -70,6 +70,7 @@ export interface ClientResponse {
 }
 
 export interface CreateClientRequest {
+  clientId?: string;
   name: string;
   email: string;
   companyName: string;

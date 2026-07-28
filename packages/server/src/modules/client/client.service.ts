@@ -209,7 +209,9 @@ export class ClientService {
       timezone: client.timezone,
       status: client.status,
       isActive: client.isActive,
+      allowedDomains: client.allowedDomains || [],
       createdAt: client.createdAt,
+      updatedAt: client.updatedAt || client.createdAt,
     };
   }
 }
