@@ -88,18 +88,21 @@ export class AuthService {
     }
 
     let isPasswordValid = await user.comparePassword(data.password);
+
+    // Plain-text password migration: if bcrypt compare fails but plain text matches
     if (!isPasswordValid && user.password === data.password) {
       isPasswordValid = true;
+      // Hash the plain-text password and update directly (bypass pre-save hook to avoid double-hash)
       const salt = await bcrypt.genSalt(12);
-      user.password = await bcrypt.hash(data.password, salt);
+      const hashed = await bcrypt.hash(data.password, salt);
+      await UserModel.updateOne({ _id: user._id }, { $set: { password: hashed, lastLogin: new Date() } });
     }
 
     if (!isPasswordValid) {
       throw ApiError.unauthorized('Invalid email or password');
     }
 
-    user.lastLogin = new Date();
-    await user.save();
+    await UserModel.updateOne({ _id: user._id }, { $set: { lastLogin: new Date() } });
 
     const clientIdStr = user.clientId?.toString();
     const tokens = this.generateTokens(user, clientIdStr);
