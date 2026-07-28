@@ -190,6 +190,3 @@ ${cleanedWebContent || 'None'}${intentGuidance}
 9. When listing items (services, plans, prices etc.), use a clean bullet list format.`;
   }
 }
-
-  }
-}
