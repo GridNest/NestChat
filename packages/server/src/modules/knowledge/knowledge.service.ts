@@ -80,6 +80,9 @@ export class KnowledgeService {
   }
 
   static async getById(id: string): Promise<KnowledgeListItem> {
+    if (!id || id === 'undefined' || !Types.ObjectId.isValid(id)) {
+      throw ApiError.badRequest('Invalid Knowledge ID');
+    }
     const knowledge = await KnowledgeModel.findOne({ _id: id, isDeleted: false });
     if (!knowledge) {
       throw ApiError.notFound('Knowledge entry not found');
