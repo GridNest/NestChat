@@ -26,12 +26,15 @@ export function UserForm() {
     try {
       setLoading(true);
       const response = await adminApi.getUserById(id!);
-      setFormData({
-        name: response.data.name || '',
-        email: response.data.email || '',
-        password: '',
-        role: response.data.role || 'client',
-      });
+      const userData = response?.data || response;
+      if (userData) {
+        setFormData({
+          name: userData.name || '',
+          email: userData.email || '',
+          password: '',
+          role: userData.role || 'client',
+        });
+      }
     } catch (error) {
       addToast('error', 'Failed to fetch user');
     } finally {

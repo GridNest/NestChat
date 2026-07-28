@@ -102,7 +102,8 @@ class AdminApi {
     return response.data;
   }
 
-  async getKnowledgeCategories(clientId: string) {
+  async getKnowledgeCategories(clientId?: string) {
+    if (!clientId) return { success: true, data: [] };
     const response = await this.client.get(`/knowledge/${clientId}/categories`, {
       headers: { Authorization: `Bearer ${localStorage.getItem('nestchat_admin_token')}` },
     });
@@ -284,6 +285,7 @@ class AdminApi {
   }
 
   async getUserById(id: string) {
+    if (!id || id === 'undefined') return null;
     const response = await this.client.get(`/users/${id}`);
     return response.data.data;
   }

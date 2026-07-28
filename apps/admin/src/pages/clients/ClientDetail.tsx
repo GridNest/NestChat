@@ -82,7 +82,7 @@ export function ClientDetail() {
         fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/client-modules/${id}`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('nestchat_admin_token')}` }
         }).then(r => r.json()),
-        adminApi.getKnowledge(id!),
+        adminApi.getKnowledgeByClient(id!),
         adminApi.getFAQs({ clientId: id! }),
         adminApi.getWebsiteContent(id!),
       ]);
