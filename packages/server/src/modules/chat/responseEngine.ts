@@ -22,6 +22,8 @@ export interface BotResponse {
     matchedType: 'faq' | 'knowledge' | 'quickAction' | 'website' | 'unknown' | 'inquiry_trigger';
     matchedId?: string;
     confidence: number;
+    inquiryCreated?: boolean;
+    fallbackTriggered?: boolean;
   };
   quickActions?: typeof DEFAULT_QUICK_ACTIONS;
   suggestedQuestions?: string[];
@@ -339,7 +341,7 @@ export class ResponseEngine {
         query,
         intent: intent || 'unknown',
         faqs: faqs.map(f => ({ question: f.question, answer: f.answer })),
-        knowledgeItems: knowledgeItems.map(k => ({ title: k.title, content: k.content })),
+        knowledgeItems: knowledgeItems.map(k => ({ title: k.title, content: k.content, tags: k.tags })),
         websiteContent: webContent.map(w => ({ title: w.title, content: w.content, category: w.category })),
         conversationHistory,
         isRAGMode: false,

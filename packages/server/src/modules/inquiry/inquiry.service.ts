@@ -41,7 +41,7 @@ export class InquiryService {
     return client ? client._id : clientId;
   }
 
-  static async create(data: CreateInquiryRequest & { chatId?: string; visitorId?: string; language?: string }): Promise<InquiryListItem> {
+  static async create(data: CreateInquiryRequest & { chatId?: string; visitorId?: string; language?: string; originalQuestion?: string }): Promise<InquiryListItem> {
     const resolvedClientId = await this.resolveClientId(data.clientId);
 
     const inquiry = await InquiryModel.create({

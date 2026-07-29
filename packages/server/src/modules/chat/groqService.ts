@@ -20,7 +20,7 @@ export interface GroqContextOptions {
   ragContext?: string;
   // Legacy: still accepted for non-RAG fallback
   faqs?: Array<{ question: string; answer: string }>;
-  knowledgeItems?: Array<{ title: string; content: string }>;
+  knowledgeItems?: Array<{ title: string; content: string; tags?: string[] }>;
   websiteContent?: Array<{ title: string; content: string; category: string }>;
   conversationHistory?: Array<{ sender: string; content: string }>;
   isRAGMode?: boolean;  // When true, uses strict RAG-only prompt
