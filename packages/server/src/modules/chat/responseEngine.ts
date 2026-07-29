@@ -4,13 +4,16 @@ import { IntentDetector, Intent } from './intentDetector.js';
 import { DEFAULT_QUICK_ACTIONS } from '@nestchat/shared';
 import { InquiryEngine } from '../inquiry/inquiryEngine.js';
 import { GroqService } from './groqService.js';
-import { JinaReaderService } from './jinaReaderService.js';
+import { RagService } from './ragService.js';
+
 import { FAQModel } from '../faq/faq.model.js';
 import { KnowledgeModel } from '../knowledge/knowledge.model.js';
 import { WebsiteContentModel } from '../websiteContent/websiteContent.model.js';
 import { ClientModel } from '../client/client.model.js';
 import { ClientConfigModel } from '../clientConfig/clientConfig.model.js';
 import mongoose from 'mongoose';
+
+// ─── Interfaces ───────────────────────────────────────────────────────────────
 
 export interface BotResponse {
   content: string;
@@ -34,6 +37,8 @@ export interface ResponseEngineOptions {
   isInquiryMode?: boolean;
 }
 
+// ─── Menu Category Keywords ───────────────────────────────────────────────────
+
 const MENU_CATEGORY_KEYWORDS: Record<string, string[]> = {
   breakfast: ['breakfast', 'morning', 'brunch'],
   lunch: ['lunch', 'afternoon'],
@@ -44,6 +49,8 @@ const MENU_CATEGORY_KEYWORDS: Record<string, string[]> = {
   main_course: ['main course', 'main', 'entree', 'entrée'],
   specials: ['special', 'chef special', 'today special', 'recommended'],
 };
+
+// ─── Response Engine ──────────────────────────────────────────────────────────
 
 export class ResponseEngine {
   private static async resolveClientIds(clientId: string): Promise<mongoose.Types.ObjectId[]> {
@@ -69,9 +76,11 @@ export class ResponseEngine {
 
     return validIds;
   }
+
   static async generateResponse(options: ResponseEngineOptions): Promise<BotResponse> {
     const { clientId, language, query, clientName, conversationHistory, isInquiryMode } = options;
 
+    // Cancel request check
     if (InquiryEngine.isCancelRequest(query)) {
       return {
         content: LanguageEngine.getInquiryCancelled(language),
@@ -99,14 +108,6 @@ export class ResponseEngine {
       };
     }
 
-    // Handle FAQ intent - show only question list
-    if (intent.intent === 'faq') {
-      const faqMatch = await KnowledgeEngine.search({ clientId, language, query });
-      if (faqMatch.found) {
-        return this.buildMatchResponse(faqMatch, language, clientId, query);
-      }
-    }
-
     // Handle human agent intent
     if (intent.intent === 'human_agent') {
       return {
@@ -119,50 +120,43 @@ export class ResponseEngine {
       };
     }
 
-    // Layer 1: Knowledge Engine Search (FAQ, KB, Website Content)
-    let match = await KnowledgeEngine.search({
-      clientId,
-      language,
-      query,
-    });
+    // ── LAYER 1: FAQ Priority (exact match, no Groq needed) ──────────────────
+    if (intent.intent === 'faq') {
+      const faqMatch = await KnowledgeEngine.search({ clientId, language, query });
+      if (faqMatch.found) {
+        return this.buildMatchResponse(faqMatch, language, clientId, query);
+      }
+    }
 
-    // Layer 2: Contextual re-match with conversation history
+    // ── LAYER 2: Knowledge Engine (FAQ + KB + Website Content keyword search) ─
+    let match = await KnowledgeEngine.search({ clientId, language, query });
+
+    // Layer 2b: Contextual re-match using last user message
     if (!match.found && conversationHistory && conversationHistory.length > 0) {
       const lastUserMsg = conversationHistory.filter(m => m.sender === 'user').pop();
       if (lastUserMsg && lastUserMsg.content && lastUserMsg.content.trim() !== query.trim()) {
         const contextualQuery = `${lastUserMsg.content.trim()} ${query.trim()}`;
-        const contextMatch = await KnowledgeEngine.search({
-          clientId,
-          language,
-          query: contextualQuery,
-        });
-        if (contextMatch.found) {
-          match = contextMatch;
-        }
+        const contextMatch = await KnowledgeEngine.search({ clientId, language, query: contextualQuery });
+        if (contextMatch.found) match = contextMatch;
       }
     }
 
-    // Check if it's a follow-up query about a previous topic (conversation memory)
+    // Layer 2c: Follow-up resolution (e.g., "how much?" after bot described a service)
     if (!match.found && conversationHistory && conversationHistory.length >= 2) {
       const lastBotMsg = [...conversationHistory].reverse().find(m => m.sender === 'bot');
-      if (lastBotMsg && this.isFollowUpQuery(query, lastBotMsg.content)) {
+      if (lastBotMsg && this.isFollowUpQuery(query)) {
         const combinedQuery = `${lastBotMsg.content} ${query}`;
-        const followUpMatch = await KnowledgeEngine.search({
-          clientId,
-          language,
-          query: combinedQuery,
-        });
-        if (followUpMatch.found) {
-          match = followUpMatch;
-        }
+        const followUpMatch = await KnowledgeEngine.search({ clientId, language, query: combinedQuery });
+        if (followUpMatch.found) match = followUpMatch;
       }
     }
 
-    if (match.found) {
+    if (match.found && match.type !== 'quickAction') {
       return this.buildMatchResponse(match, language, clientId, query);
     }
 
-    // Layer 3: Groq AI with full context (if AI is enabled)
+    // ── LAYER 3: RAG — Semantic vector search + Groq (primary AI path) ───────
+
     const clientConfig = await ClientConfigModel.findOne({
       clientId: { $in: await this.resolveClientIds(clientId) }
     }).lean();
@@ -170,26 +164,107 @@ export class ResponseEngine {
     const aiEnabled = clientConfig ? (clientConfig as any).enableAI !== false : true;
 
     if (aiEnabled) {
-      const groqResult = await this.generateGroqWithFullContext({
+      // 3a: Try RAG pipeline first
+      const ragResult = await this.generateResponseWithRAG({
         clientId, language, query, clientName, conversationHistory, intent: intent.intent,
       });
-      if (groqResult) {
-        return groqResult;
-      }
+      if (ragResult) return ragResult;
+
+      // 3b: Fall back to legacy Groq with full context if no embeddings exist
+      const legacyResult = await this.generateGroqWithFullContext({
+        clientId, language, query, clientName, conversationHistory, intent: intent.intent,
+      });
+      if (legacyResult) return legacyResult;
     }
 
-    // Layer 4: Inquiry Flow - Ask permission first
+    // Handle quickAction match (after AI attempt, so AI can answer if content available)
+    if (match.found && match.type === 'quickAction') {
+      return this.buildMatchResponse(match, language, clientId, query);
+    }
+
+    // ── LAYER 4: Inquiry Fallback ─────────────────────────────────────────────
     return this.buildPermissionResponse(language);
   }
 
-  private static isFollowUpQuery(query: string, lastBotContent: string): boolean {
-    const followUpWords = ['price', 'cost', 'how much', 'tell me more', 'more', 'details',
-      'about', 'what about', 'show me', 'example', 'information', 'phone', 'email',
-      'address', 'timing', 'hours', 'location', 'contact', 'menu', 'rate', 'charges',
-      'book', 'reserve', 'order', 'delivery', 'available'];
-    const lower = query.toLowerCase();
-    return followUpWords.some(w => lower.includes(w) || lower === w);
+  // ─── RAG Response Generator ─────────────────────────────────────────────────
+
+  private static async generateResponseWithRAG(options: {
+    clientId: string;
+    language: Language;
+    query: string;
+    clientName: string;
+    conversationHistory?: Array<{ sender: string; content: string }>;
+    intent?: Intent;
+  }): Promise<BotResponse | null> {
+    const { clientId, language, query, clientName, conversationHistory, intent } = options;
+
+    try {
+      // Step 1: Check if embeddings exist for this client
+      const hasEmbeddings = await RagService.hasEmbeddings(clientId);
+      if (!hasEmbeddings) return null;
+
+      // Step 2: Retrieve semantically relevant chunks
+      const ragResult = await RagService.retrieveRelevantChunks(clientId, query, 5);
+
+      // Step 3: Confidence gate — if no relevant chunks, skip Groq and fall back to inquiry
+      if (!ragResult.found || ragResult.maxSimilarity < 0.35) {
+        return null;
+      }
+
+      // Step 4: Load supplementary data (FAQs, client config)
+      const clientObjIds = await this.resolveClientIds(clientId);
+      const [faqs, client, clientConfig] = await Promise.all([
+        FAQModel.find({ clientId: { $in: clientObjIds }, isActive: true, isDeleted: false }).limit(8).lean(),
+        ClientModel.findOne({ _id: { $in: clientObjIds } }).lean(),
+        ClientConfigModel.findOne({ clientId: { $in: clientObjIds } }).lean(),
+      ]);
+
+      const websiteUrl = (client as any)?.website || (clientConfig as any)?.websiteUrl;
+
+      // Step 5: Build enhanced query that includes conversation context
+      const effectiveQuery = this.buildContextAwareQuery(query, conversationHistory);
+
+      // Step 6: Call Groq in RAG mode
+      const groqResult = await GroqService.generateCompletion({
+        clientName,
+        companyName: (client as any)?.companyName || clientName,
+        botName: (client as any)?.botName || 'Assistant',
+        websiteUrl,
+        businessHours: (clientConfig as any)?.businessHours,
+        contactEmail: (clientConfig as any)?.contactEmail,
+        contactPhone: (clientConfig as any)?.contactPhone,
+        contactAddress: (clientConfig as any)?.contactAddress,
+        language,
+        query: effectiveQuery,
+        intent: intent || 'unknown',
+        ragContext: ragResult.context,
+        faqs: faqs.map(f => ({ question: f.question, answer: f.answer })),
+        conversationHistory,
+        isRAGMode: true,
+      });
+
+      if (!groqResult) return null;
+
+      // Step 7: If Groq says "I don't know", trigger inquiry flow
+      if (groqResult.isUnknown) {
+        return this.buildPermissionResponse(language);
+      }
+
+      return {
+        content: groqResult.content,
+        messageType: 'text',
+        metadata: {
+          matchedType: 'knowledge',
+          confidence: groqResult.confidence,
+        },
+      };
+    } catch (err) {
+      // Non-critical — fall through to legacy or inquiry
+      return null;
+    }
   }
+
+  // ─── Legacy Groq (fallback when embeddings not yet generated) ───────────────
 
   private static async generateGroqWithFullContext(options: {
     clientId: string;
@@ -217,8 +292,8 @@ export class ResponseEngine {
       const client = await ClientModel.findOne({ _id: { $in: clientObjIds } }).lean();
       const clientConfig = await ClientConfigModel.findOne({ clientId: { $in: clientObjIds } }).lean();
 
-      // Filter content based on intent for better relevance
-      const webFilter: any = { ...queryFilter, isActive: true, isDeleted: false };
+      // Filter website content by intent
+      const webFilter: any = { ...queryFilter };
       if (intent && intent !== 'unknown' && intent !== 'greeting') {
         const intentCategoryMap: Record<string, string[]> = {
           menu: ['menu', 'menu_item', 'heading'],
@@ -244,32 +319,16 @@ export class ResponseEngine {
 
       const [faqs, knowledgeItems, webContent] = await Promise.all([
         FAQModel.find(queryFilter).limit(10).lean(),
-        KnowledgeModel.find(queryFilter).limit(10).lean(),
-        WebsiteContentModel.find(webFilter)
-          .sort({ priority: -1 })
-          .limit(20)
-          .lean(),
+        // Exclude RAG chunks from legacy mode to avoid duplication
+        KnowledgeModel.find({ ...queryFilter, tags: { $ne: 'rag_chunk' } }).limit(10).lean(),
+        WebsiteContentModel.find(webFilter).sort({ priority: -1 }).limit(20).lean(),
       ]);
 
-      // ── Layer 3.5: Jina AI Real-time Website Content ──────────────────────
-      // Fetch live website content when we have a website URL configured.
-      // This ensures answers are always based on the actual current website,
-      // not just the last scraped snapshot stored in DB.
-      let jinaContent: string | undefined;
       const websiteUrl = (client as any)?.website || (clientConfig as any)?.websiteUrl;
-      if (websiteUrl) {
-        try {
-          const fetched = await JinaReaderService.fetchWebsiteContent(websiteUrl);
-          if (fetched) jinaContent = fetched;
-        } catch {
-          // Silent fail — Jina is best-effort only
-        }
-      }
-      // ──────────────────────────────────────────────────────────────────────
 
       const groqResult = await GroqService.generateCompletion({
         clientName,
-        companyName: clientName,
+        companyName: (client as any)?.companyName || clientName,
         botName: (client as any)?.botName || 'Assistant',
         websiteUrl,
         businessHours: (clientConfig as any)?.businessHours,
@@ -282,8 +341,8 @@ export class ResponseEngine {
         faqs: faqs.map(f => ({ question: f.question, answer: f.answer })),
         knowledgeItems: knowledgeItems.map(k => ({ title: k.title, content: k.content })),
         websiteContent: webContent.map(w => ({ title: w.title, content: w.content, category: w.category })),
-        liveWebsiteContent: jinaContent,
         conversationHistory,
+        isRAGMode: false,
       });
 
       if (groqResult && !groqResult.isUnknown && groqResult.content) {
@@ -301,6 +360,47 @@ export class ResponseEngine {
     }
 
     return null;
+  }
+
+  // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+  /**
+   * Build a context-aware query by prepending the last bot message when the
+   * current query is a follow-up (e.g., "how much?" after a service description).
+   */
+  private static buildContextAwareQuery(
+    query: string,
+    conversationHistory?: Array<{ sender: string; content: string }>
+  ): string {
+    if (!conversationHistory || conversationHistory.length === 0) return query;
+
+    const lowerQuery = query.toLowerCase().trim();
+    const followUpTriggers = ['how much', 'price', 'cost', 'what is the', 'tell me more',
+      'more details', 'about it', 'about that', 'which one', 'can you', 'kitna',
+      'kya price', 'aur batao', 'kitne', 'what about'];
+
+    const isFollowUp = followUpTriggers.some(t => lowerQuery.startsWith(t) || lowerQuery === t);
+
+    if (isFollowUp) {
+      const lastBotMsg = [...conversationHistory].reverse().find(m => m.sender === 'bot');
+      if (lastBotMsg && lastBotMsg.content.length < 500) {
+        return `Context: "${lastBotMsg.content.trim()}"\n\nUser question: ${query}`;
+      }
+    }
+
+    return query;
+  }
+
+  private static isFollowUpQuery(query: string): boolean {
+    const followUpWords = [
+      'price', 'cost', 'how much', 'tell me more', 'more', 'details',
+      'about', 'what about', 'show me', 'example', 'information', 'phone', 'email',
+      'address', 'timing', 'hours', 'location', 'contact', 'menu', 'rate', 'charges',
+      'book', 'reserve', 'order', 'delivery', 'available',
+      'kitna', 'kya price', 'aur', 'batao', 'bata', 'woh', 'yeh',
+    ];
+    const lower = query.toLowerCase();
+    return followUpWords.some(w => lower.includes(w) || lower === w);
   }
 
   private static buildMatchResponse(match: KnowledgeMatch, language: Language, clientId: string, query: string): BotResponse {
@@ -356,8 +456,8 @@ export class ResponseEngine {
 
   private static buildPermissionResponse(language: Language): BotResponse {
     const content = language === 'hi'
-      ? 'Main yeh jaankari nahi dhundh paaya.\n\nKya aap chahte hain ki main aapki baat humari team tak pahuncha doon?'
-      : 'I couldn\'t find that information.\n\nWould you like me to help you contact the business?';
+      ? 'Mujhe yeh jaankari nahi mili.\n\nKya aap chahenge ki hamari team aapko contact kare?'
+      : "I'm sorry, I couldn't find that information.\n\nWould you like our team to contact you?";
     return {
       content,
       messageType: 'inquiry',
@@ -368,6 +468,8 @@ export class ResponseEngine {
       triggerInquiry: true,
     };
   }
+
+  // ─── Utility Helpers ──────────────────────────────────────────────────────────
 
   private static isMenuRelatedQuery(query: string): boolean {
     const lower = query.toLowerCase();
@@ -428,7 +530,7 @@ export class ResponseEngine {
       drinks: 'Drinks & Beverages',
       appetizers: 'Appetizers',
       main_course: 'Main Course',
-      specials: 'Today\'s Specials',
+      specials: "Today's Specials",
       all: 'View All Items',
     };
     return labels[id] || id;

@@ -13,6 +13,7 @@ export interface InquiryDocument extends Document {
   service: string;
   details: string;
   company?: string;
+  originalQuestion?: string;  // The visitor question that triggered this inquiry
   source: 'chatbot' | 'website' | 'manual';
   status: 'new' | 'contacted' | 'converted' | 'archived' | 'closed';
   externalApiStatus: 'pending' | 'forwarded' | 'failed' | 'no_api';
@@ -77,6 +78,11 @@ const inquirySchema = new Schema<InquiryDocument>(
       required: true,
     },
     company: {
+      type: String,
+      trim: true,
+    },
+    // The visitor question that triggered this inquiry (for knowledge gap analysis)
+    originalQuestion: {
       type: String,
       trim: true,
     },

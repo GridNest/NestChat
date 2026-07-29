@@ -141,6 +141,27 @@ export class AnalyticsController {
       });
     }
   }
+
+  // ─── NEW: Admin Insights ─────────────────────────────────────────────────
+
+  async getInsights(req: Request, res: Response) {
+    try {
+      const { clientId } = req.params;
+      const days = parseInt(req.query.days as string) || 30;
+
+      const insights = await analyticsService.getInsights(clientId, days);
+
+      res.json({
+        success: true,
+        data: insights,
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to get insights',
+      });
+    }
+  }
 }
 
 export const analyticsController = new AnalyticsController();

@@ -6,6 +6,7 @@ import { InquiryEngine, INQUIRY_STEPS } from '../inquiry/inquiryEngine.js';
 import { InquiryService } from '../inquiry/inquiry.service.js';
 import { UnansweredService } from '../unanswered/unanswered.service.js';
 import { NotificationService } from '../notification/notification.service.js';
+import { EventBus } from './eventBus.js';
 import { ApiError } from '../../utils/apiError.js';
 import { emitToUser, emitToClient } from '../socket/socket.service.js';
 import mongoose from 'mongoose';
@@ -164,6 +165,10 @@ export class ChatService {
           },
         };
       } else if (inquiryResult.isComplete && inquiryResult.data) {
+        // Retrieve the original question that triggered this inquiry
+        const inquiryState = await InquiryEngine.getState(chat._id.toString());
+        const originalQuestion = (inquiryState as any)?.originalQuestion || '';
+
         const inquiry = await InquiryService.create({
           clientId: targetClientId,
           chatId: chat._id.toString(),
@@ -175,6 +180,7 @@ export class ChatService {
           service: 'chat_inquiry',
           details: inquiryResult.data.message || inquiryResult.data.details || '',
           language: chat.language,
+          originalQuestion,
         });
 
         try {
@@ -199,8 +205,14 @@ export class ChatService {
           metadata: {
             matchedType: 'inquiry_trigger',
             confidence: 1,
+            inquiryCreated: true,
           },
         };
+
+        // Fire-and-forget: mark inquiry completed in analytics
+        // (EventBus will handle this after botMessage is saved)
+        (botResponse as any)._inquiryCreated = true;
+        (botResponse as any)._originalQuestion = originalQuestion;
       } else {
         botResponse = {
           content: inquiryResult.message,
@@ -228,20 +240,18 @@ export class ChatService {
           visitorId: chat.visitorId,
           language: (data.language || chat.language) as any,
           currentStep: '__consent__',
+          // Store the trigger question so it can be saved on inquiry completion
+          originalQuestion: data.content,
         });
       }
 
-      if (botResponse.metadata.matchedType === 'unknown') {
-        await UnansweredService.track({
-          clientId: targetClientId,
-          question: data.content,
-          sessionId: data.sessionId,
-          visitorId: chat.visitorId,
-        });
-      }
+      // EventBus replaces direct UnansweredService.track() call
+      // (EventBus handles: analytics + unanswered + message metadata)
     }
 
     const responseTimeMs = Date.now() - startTime;
+
+    const inquiryCreated = (botResponse as any)._inquiryCreated === true;
 
     const botMessage = await ChatMessageModel.create({
       chatId: chat._id,
@@ -253,10 +263,30 @@ export class ChatService {
         matchedId: botResponse.metadata.matchedId,
         confidence: botResponse.metadata.confidence,
         responseTimeMs,
+        fallbackTriggered: !!botResponse.triggerInquiry,
+        inquiryCreated,
       },
     });
 
     await ChatModel.findByIdAndUpdate(chat._id, { $inc: { messageCount: 2 } });
+
+    // Fire EventBus asynchronously (non-blocking to visitor)
+    EventBus.process({
+      clientId: targetClientId,
+      chatId: chat._id.toString(),
+      sessionId: data.sessionId,
+      visitorId: chat.visitorId,
+      language: (data.language || chat.language) as string,
+      question: data.content,
+      botMessageId: botMessage._id.toString(),
+      botResponse,
+      responseTimeMs,
+      isInquiryMode,
+      inquiryCreated,
+      originalQuestion: (botResponse as any)._originalQuestion,
+    }).catch(err => {
+      // EventBus failure must never affect the visitor response
+    });
 
     const userMsg = this.formatMessage(userMessage);
     const botMsg = this.formatMessage(botMessage);

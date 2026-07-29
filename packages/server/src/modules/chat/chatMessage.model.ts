@@ -6,10 +6,14 @@ export interface ChatMessageDocument extends Document {
   content: string;
   messageType: 'text' | 'quickAction' | 'inquiry' | 'system' | 'agent';
   metadata?: {
-    matchedType?: 'faq' | 'knowledge' | 'quickAction' | 'unknown';
+    matchedType?: 'faq' | 'knowledge' | 'quickAction' | 'unknown' | 'inquiry_trigger' | 'website';
     matchedId?: string;
     confidence?: number;
     responseTimeMs?: number;
+    // Admin-only fields (never exposed to widget visitors)
+    retrievedChunkIds?: string[];   // RAG chunk IDs used to generate this response
+    fallbackTriggered?: boolean;    // True if inquiry/handover flow was triggered
+    inquiryCreated?: boolean;       // True if an Inquiry record was successfully created
   };
   timestamp: Date;
   createdAt: Date;
@@ -40,11 +44,15 @@ const chatMessageSchema = new Schema<ChatMessageDocument>(
     metadata: {
       matchedType: {
         type: String,
-        enum: ['faq', 'knowledge', 'quickAction', 'unknown'],
+        enum: ['faq', 'knowledge', 'quickAction', 'unknown', 'inquiry_trigger', 'website'],
       },
       matchedId: String,
       confidence: Number,
       responseTimeMs: Number,
+      // Admin-only fields
+      retrievedChunkIds: [String],
+      fallbackTriggered: Boolean,
+      inquiryCreated: Boolean,
     },
     timestamp: {
       type: Date,

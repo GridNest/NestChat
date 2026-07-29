@@ -64,6 +64,7 @@ export class InquiryEngine {
     language: Language;
     data?: Record<string, string>;
     currentStep?: string;
+    originalQuestion?: string;
   }): Promise<InquiryStateDocument> {
     const existing = await InquiryStateModel.findOne({
       chatId: data.chatId,
@@ -85,6 +86,7 @@ export class InquiryEngine {
       skippedFields: [],
       data: data.data || {},
       status: 'active',
+      originalQuestion: data.originalQuestion,
       startedAt: new Date(),
     });
   }

@@ -3,11 +3,14 @@ import mongoose, { Document, Schema } from 'mongoose';
 export interface UnansweredQuestionDocument extends Document {
   clientId: mongoose.Types.ObjectId;
   question: string;
+  conversationId?: mongoose.Types.ObjectId;  // Chat ID for trace-back
   sessionId: string;
   visitorId: string;
   count: number;
   firstAsked: Date;
   lastAsked: Date;
+  confidenceScore?: number;  // AI confidence at time of failure (0.0–1.0)
+  reason?: 'knowledge_not_found' | 'low_similarity' | 'empty_knowledge_base' | 'model_uncertain' | 'low_confidence';
   convertedToFaq: boolean;
   faqId?: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -45,6 +48,22 @@ const unansweredSchema = new Schema<UnansweredQuestionDocument>(
     lastAsked: {
       type: Date,
       default: Date.now,
+    },
+    // AI confidence score at the time question was unanswered
+    confidenceScore: {
+      type: Number,
+      min: 0,
+      max: 1,
+    },
+    // Reason why the question was unanswered
+    reason: {
+      type: String,
+      enum: ['knowledge_not_found', 'low_similarity', 'empty_knowledge_base', 'model_uncertain', 'low_confidence'],
+    },
+    // Link back to the conversation for admin review
+    conversationId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Chat',
     },
     convertedToFaq: {
       type: Boolean,

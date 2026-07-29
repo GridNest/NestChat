@@ -27,4 +27,11 @@ router.post(
   analyticsController.trackVisitor
 );
 
+// Admin intelligence insights — top topics, knowledge gaps, confidence trends
+router.get(
+  '/:clientId/insights',
+  authenticate,
+  analyticsController.getInsights.bind(analyticsController)
+);
+
 export const analyticsRoutes = router;

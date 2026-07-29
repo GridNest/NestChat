@@ -21,6 +21,7 @@ export interface InquiryListItem {
   service: string;
   details: string;
   company?: string;
+  originalQuestion?: string;
   source: 'chatbot' | 'website' | 'manual';
   status: 'new' | 'contacted' | 'converted' | 'archived' | 'closed';
   externalApiStatus: 'pending' | 'forwarded' | 'failed' | 'no_api';
@@ -56,6 +57,7 @@ export class InquiryService {
       service: data.service,
       details: data.details,
       company: data.company,
+      originalQuestion: (data as any).originalQuestion,
       source: 'chatbot',
       language: data.language || 'en',
       externalApiStatus: 'pending',
@@ -200,6 +202,7 @@ export class InquiryService {
       service: inquiry.service,
       details: inquiry.details,
       company: inquiry.company,
+      originalQuestion: inquiry.originalQuestion,
       source: inquiry.source,
       status: inquiry.status,
       externalApiStatus: inquiry.externalApiStatus,

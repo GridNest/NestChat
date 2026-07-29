@@ -13,6 +13,9 @@ export interface KnowledgeDocument extends Document {
   priority: number;
   isActive: boolean;
   isDeleted: boolean;
+  // RAG fields — optional, added for semantic vector search
+  embedding?: number[];   // Dense embedding vector (e.g. 768-dim from nomic-embed-text)
+  chunkIndex?: number;    // Chunk order within original scraped page
   createdBy?: mongoose.Types.ObjectId;
   updatedBy?: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -84,6 +87,17 @@ const knowledgeSchema = new Schema<KnowledgeDocument>(
       type: Schema.Types.ObjectId,
       ref: 'User',
     },
+    // RAG: Dense embedding vector for semantic retrieval
+    embedding: {
+      type: [Number],
+      default: undefined,
+      select: false, // Excluded from normal queries to keep payloads small
+    },
+    // RAG: Chunk index within original page (for ordering)
+    chunkIndex: {
+      type: Number,
+      default: undefined,
+    },
   },
   {
     timestamps: true,
@@ -94,6 +108,11 @@ knowledgeSchema.index({ clientId: 1, slug: 1 }, { unique: true });
 knowledgeSchema.index({ clientId: 1, isActive: 1, isDeleted: 1 });
 knowledgeSchema.index({ clientId: 1, tags: 1 });
 knowledgeSchema.index({ clientId: 1, category: 1 });
+// Sparse index: only indexes docs that have an embedding (RAG docs)
+knowledgeSchema.index(
+  { clientId: 1, embedding: 1 },
+  { sparse: true, name: 'rag_embedding_idx' }
+);
 knowledgeSchema.index(
   { title: 'text', content: 'text', tags: 'text', metaDescription: 'text' },
   { weights: { title: 10, tags: 8, content: 5, metaDescription: 2 } }

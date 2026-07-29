@@ -1,8 +1,11 @@
 import { WebsiteContentModel } from './websiteContent.model.js';
 import { ClientModel } from '../client/client.model.js';
 import { KnowledgeModel } from '../knowledge/knowledge.model.js';
+import { RagService } from '../chat/ragService.js';
 import { logger } from '../../utils/logger.js';
 import mongoose from 'mongoose';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 interface ExtractedContent {
   title: string;
@@ -13,6 +16,26 @@ interface ExtractedContent {
   pagePath: string;
   priority: number;
 }
+
+interface PageChunk {
+  title: string;
+  content: string;
+  category: string;
+  section: string;
+  pagePath: string;
+  priority: number;
+  chunkIndex: number;
+}
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const CHUNK_TARGET_WORDS = 400;
+const CHUNK_MAX_WORDS = 500;
+const MAX_PAGES = 25;
+const JINA_TIMEOUT_MS = 15000;
+const FETCH_TIMEOUT_MS = 15000;
+
+// ─── Scraper ─────────────────────────────────────────────────────────────────
 
 export class WebsiteScraperService {
   static async syncWebsite(clientId: string): Promise<{ success: boolean; pagesScraped: number; itemsExtracted: number; error?: string }> {
@@ -43,9 +66,16 @@ export class WebsiteScraperService {
       const resolvedId = client._id as mongoose.Types.ObjectId;
       logs.push(`Starting crawl for ${client.companyName || client.name}`);
 
+      // Mark all existing website content as deleted (soft delete)
       await WebsiteContentModel.updateMany(
         { clientId: resolvedId },
         { $set: { isDeleted: true } }
+      );
+
+      // Also clear old RAG knowledge chunks from previous crawl
+      await KnowledgeModel.updateMany(
+        { clientId: resolvedId, tags: 'website_sync', isDeleted: false },
+        { $set: { isDeleted: true, isActive: false } }
       );
 
       const normalizedUrl = websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`;
@@ -89,8 +119,9 @@ export class WebsiteScraperService {
         logs.push(`Stored ${docs.length} items in database`);
       }
 
-      await this.syncToKnowledgeBase(resolvedId, allItems, client.companyName || client.name);
-      logs.push(`Synced ${allItems.length} important items to Knowledge Base`);
+      // Build semantic knowledge chunks + embeddings from the scraped content
+      const chunkCount = await this.buildRAGKnowledge(resolvedId, allItems, client.companyName || client.name, normalizedUrl);
+      logs.push(`Built ${chunkCount} RAG knowledge chunks with embeddings`);
 
       // Update crawl metadata
       const successCount = pagesToScrape.length - failedUrls.length;
@@ -109,7 +140,7 @@ export class WebsiteScraperService {
         }
       );
 
-      logger.info(`[WebsiteScraper] Synced ${allItems.length} items from ${successCount}/${pagesToScrape.length} pages for client ${clientId}`);
+      logger.info(`[WebsiteScraper] Synced ${allItems.length} items + ${chunkCount} RAG chunks from ${successCount}/${pagesToScrape.length} pages for client ${clientId}`);
 
       if (allItems.length === 0) {
         return {
@@ -153,6 +184,8 @@ export class WebsiteScraperService {
     }
   }
 
+  // ─── Page Discovery ─────────────────────────────────────────────────────────
+
   private static async discoverPages(baseUrl: string): Promise<string[]> {
     const pages = new Set<string>();
     pages.add(baseUrl);
@@ -182,7 +215,7 @@ export class WebsiteScraperService {
               const locUrl = new URL(locMatch[1]);
               if (locUrl.hostname === baseHost) {
                 const cleanUrl = locUrl.origin + locUrl.pathname.replace(/\/$/, '');
-                if (pages.size < 30) pages.add(cleanUrl);
+                if (pages.size < MAX_PAGES) pages.add(cleanUrl);
               }
             } catch { /* skip */ }
           }
@@ -205,7 +238,7 @@ export class WebsiteScraperService {
           },
         });
 
-        if (!response.ok) return Array.from(pages).slice(0, 25);
+        if (!response.ok) return Array.from(pages).slice(0, MAX_PAGES);
 
         const html = await response.text();
         const baseHost = new URL(baseUrl).hostname;
@@ -220,7 +253,7 @@ export class WebsiteScraperService {
             const fullUrl = new URL(href, baseUrl);
             if (fullUrl.hostname === baseHost && !fullUrl.pathname.match(/\.(pdf|zip|png|jpg|jpeg|gif|svg|css|js|xml|json|ico|webp)$/i)) {
               const cleanUrl = fullUrl.origin + fullUrl.pathname.replace(/\/$/, '');
-              if (pages.size < 25) {
+              if (pages.size < MAX_PAGES) {
                 pages.add(cleanUrl);
               }
             }
@@ -233,14 +266,26 @@ export class WebsiteScraperService {
       }
     }
 
-    return Array.from(pages).slice(0, 25);
+    return Array.from(pages).slice(0, MAX_PAGES);
   }
+
+  // ─── Page Scraping ──────────────────────────────────────────────────────────
 
   private static async scrapePage(pageUrl: string, baseUrl: string): Promise<ExtractedContent[]> {
     const items: ExtractedContent[] = [];
 
+    // Try Jina Reader first (handles JS-rendered React/Next.js/Vue pages)
+    const jinaContent = await this.fetchViaJinaReader(pageUrl);
+    if (jinaContent) {
+      const parsed = this.parseJinaMarkdown(jinaContent, pageUrl);
+      if (parsed.length > 0) {
+        return parsed;
+      }
+    }
+
+    // Fallback: direct fetch + HTML parsing
     const response = await fetch(pageUrl, {
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; NestChatBot/1.0)',
         'Accept': 'text/html,application/xhtml+xml',
@@ -258,13 +303,343 @@ export class WebsiteScraperService {
     this.extractListItems(html, items, pagePath);
     this.extractTables(html, items, pagePath);
     this.extractCardsAndSections(html, items, pagePath);
-    this.extractButtons(html, items, pagePath);
     this.extractStructuredData(html, items, pagePath);
-    this.extractImageAlts(html, items, pagePath);
     this.extractContactInfo(html, items, pagePath);
 
     return items;
   }
+
+  /**
+   * Fetch page content via Jina AI Reader (https://r.jina.ai/).
+   * Returns clean Markdown text — handles React, Next.js, Vue, SPA pages.
+   */
+  private static async fetchViaJinaReader(pageUrl: string): Promise<string | null> {
+    try {
+      const jinaUrl = `https://r.jina.ai/${pageUrl}`;
+      const response = await fetch(jinaUrl, {
+        signal: AbortSignal.timeout(JINA_TIMEOUT_MS),
+        headers: {
+          'Accept': 'text/plain,text/markdown',
+          'X-Return-Format': 'markdown',
+          'X-Timeout': '12',
+          'X-Remove-Selector': 'nav,header,footer,.cookie-banner,.navbar,.nav-menu,.cookie-notice,#cookie,#nav,#header,#footer',
+        },
+      });
+
+      if (!response.ok) return null;
+
+      const text = await response.text();
+      if (!text || text.length < 100) return null;
+
+      return text;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Parse Jina Markdown output into structured ExtractedContent items.
+   * Applies aggressive cleaning to strip navigation, CTAs, and repeated boilerplate.
+   */
+  private static parseJinaMarkdown(markdown: string, pageUrl: string): ExtractedContent[] {
+    const pagePath = new URL(pageUrl).pathname;
+    const items: ExtractedContent[] = [];
+
+    // Clean Jina-specific metadata headers
+    const cleaned = markdown
+      // Remove Jina metadata lines (Title:, URL:, Published Time:, etc.)
+      .replace(/^(Title|URL|Published Time|Description|Keywords|Source):.*$/gm, '')
+      // Remove markdown image syntax
+      .replace(/!\[.*?\]\(.*?\)/g, '')
+      // Remove markdown link syntax but keep text
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      // Remove HTML-style tags
+      .replace(/<[^>]+>/g, ' ')
+      // Remove horizontal rules
+      .replace(/^[-*_]{3,}$/gm, '')
+      // Collapse excessive whitespace
+      .replace(/\n{3,}/g, '\n\n')
+      .replace(/[ \t]{2,}/g, ' ')
+      .trim();
+
+    // Split into paragraphs/sections by double newlines
+    const sections = cleaned.split(/\n{2,}/);
+
+    for (const rawSection of sections) {
+      const text = rawSection.trim();
+      if (!text || text.length < 15) continue;
+
+      // Skip navigation boilerplate
+      if (this.isNavigationText(text)) continue;
+
+      // Skip pure CTA lines
+      if (this.isCTAText(text)) continue;
+
+      // Skip lines that are just heading markers with no content
+      if (/^#{1,6}\s*$/.test(text)) continue;
+
+      // Detect section level (headings)
+      const headingMatch = text.match(/^(#{1,6})\s+(.+)/);
+      if (headingMatch) {
+        const headingText = headingMatch[2].trim();
+        if (headingText.length < 3 || this.isNavigationText(headingText)) continue;
+
+        const level = headingMatch[1].length;
+        const category = this.categorizeHeading(headingText, pagePath);
+
+        items.push({
+          title: headingText,
+          content: headingText,
+          contentType: 'heading',
+          category,
+          section: `h${level}`,
+          pagePath,
+          priority: 10 - level,
+        });
+        continue;
+      }
+
+      // Paragraphs / body text
+      const lineText = text.replace(/^#+\s*/, '').trim();
+      if (lineText.length < 20) continue;
+
+      const category = this.categorizeParagraph(lineText, pagePath);
+      let contentType: ExtractedContent['contentType'] = 'paragraph';
+      let priority = 3;
+
+      const lower = lineText.toLowerCase();
+      if (lower.match(/\$|₹|€|£|\brs\b|\bprice\b|\bcost\b|\bfee\b|\brate\b/)) {
+        contentType = 'pricing';
+        category === 'general' && (contentType = 'pricing');
+        priority = 8;
+      } else if (lower.match(/\bphone\b|\bemail\b|\baddress\b|\bcontact\b/)) {
+        contentType = 'contact';
+        priority = 9;
+      } else if (lower.match(/\bhour\b|\btiming\b|\bopen\b|\bclosed\b/)) {
+        contentType = 'hours';
+        priority = 8;
+      } else if (lower.match(/\bservice\b|\boffer\b|\bprovide\b|\bsolution\b/)) {
+        contentType = 'service';
+        priority = 7;
+      }
+
+      items.push({
+        title: lineText.substring(0, 60),
+        content: lineText,
+        contentType,
+        category,
+        section: 'paragraph',
+        pagePath,
+        priority,
+      });
+    }
+
+    return items;
+  }
+
+  // ─── RAG Knowledge Builder ─────────────────────────────────────────────────
+
+  /**
+   * Build semantic knowledge chunks from scraped content and store embeddings.
+   * Each chunk is ~400 words. Embeddings are generated via Groq.
+   */
+  private static async buildRAGKnowledge(
+    clientId: mongoose.Types.ObjectId,
+    items: ExtractedContent[],
+    companyName: string,
+    baseUrl: string
+  ): Promise<number> {
+    // Group items by page path for coherent chunking
+    const pageGroups = new Map<string, ExtractedContent[]>();
+    for (const item of items) {
+      const key = item.pagePath || '/';
+      if (!pageGroups.has(key)) pageGroups.set(key, []);
+      pageGroups.get(key)!.push(item);
+    }
+
+    let chunkCount = 0;
+
+    for (const [pagePath, pageItems] of pageGroups.entries()) {
+      // Filter to meaningful content only (skip image alts, CTA buttons, headings < 5 words)
+      const meaningful = pageItems.filter(item => {
+        if (item.contentType === 'gallery') return false; // image alts not useful
+        if (item.content.length < 20) return false;
+        if (this.isCTAText(item.content)) return false;
+        return true;
+      });
+
+      if (meaningful.length === 0) continue;
+
+      // Sort by priority (highest first)
+      meaningful.sort((a, b) => b.priority - a.priority);
+
+      // Build raw page text
+      const pageText = meaningful.map(i => i.content).join('\n\n');
+
+      // Split into semantic chunks (~400 words)
+      const chunks = this.splitIntoChunks(pageText, CHUNK_TARGET_WORDS, CHUNK_MAX_WORDS);
+
+      // Determine page-level category
+      const pageCategory = this.categorizePage(pagePath);
+
+      for (let idx = 0; idx < chunks.length; idx++) {
+        const chunkText = chunks[idx].trim();
+        if (!chunkText || chunkText.length < 30) continue;
+
+        const chunkTitle = `${companyName} — ${pageCategory} (chunk ${idx + 1})`;
+        const slug = `rag-${pageCategory}-${this.hashText(chunkText).slice(0, 12)}`;
+
+        // Skip if this exact chunk already exists
+        const existing = await KnowledgeModel.findOne({
+          clientId,
+          slug,
+          isDeleted: false,
+        }).lean();
+
+        if (existing) continue;
+
+        // Generate embedding
+        let embedding: number[] | undefined;
+        try {
+          const emb = await RagService.generateEmbedding(chunkText);
+          if (emb) embedding = emb;
+        } catch (embErr) {
+          logger.warn(`[WebsiteScraper] Embedding failed for chunk ${idx} on ${pagePath}:`, embErr);
+        }
+
+        // Store chunk as a knowledge record
+        try {
+          await KnowledgeModel.create({
+            clientId,
+            pageName: `${companyName} Website — ${pageCategory}`,
+            slug,
+            title: chunkTitle,
+            content: chunkText,
+            tags: [pageCategory, 'website_sync', 'rag_chunk'],
+            category: pageCategory,
+            language: 'en' as const,
+            priority: 5,
+            isActive: true,
+            isDeleted: false,
+            ...(embedding ? { embedding } : {}),
+            chunkIndex: idx,
+          });
+          chunkCount++;
+        } catch (err: any) {
+          // Ignore duplicate key errors (E11000)
+          if (!err.message?.includes('E11000')) {
+            logger.warn(`[WebsiteScraper] Chunk insert error on ${pagePath}[${idx}]:`, err.message);
+          }
+        }
+      }
+    }
+
+    logger.info(`[WebsiteScraper] RAG: created ${chunkCount} knowledge chunks`);
+    return chunkCount;
+  }
+
+  /**
+   * Split text into semantic chunks of approximately targetWords words.
+   * Splits at paragraph boundaries to preserve sentence coherence.
+   */
+  private static splitIntoChunks(text: string, targetWords: number, maxWords: number): string[] {
+    const paragraphs = text.split(/\n{2,}/);
+    const chunks: string[] = [];
+    let currentChunk: string[] = [];
+    let currentWordCount = 0;
+
+    for (const para of paragraphs) {
+      const paraWords = para.trim().split(/\s+/).length;
+      if (paraWords === 0) continue;
+
+      if (currentWordCount + paraWords > maxWords && currentChunk.length > 0) {
+        // Flush current chunk
+        chunks.push(currentChunk.join('\n\n'));
+        currentChunk = [];
+        currentWordCount = 0;
+      }
+
+      currentChunk.push(para.trim());
+      currentWordCount += paraWords;
+
+      // If chunk is at target size, flush
+      if (currentWordCount >= targetWords) {
+        chunks.push(currentChunk.join('\n\n'));
+        currentChunk = [];
+        currentWordCount = 0;
+      }
+    }
+
+    // Flush remaining
+    if (currentChunk.length > 0) {
+      chunks.push(currentChunk.join('\n\n'));
+    }
+
+    return chunks.filter(c => c.trim().length > 0);
+  }
+
+  /**
+   * Simple hash function for deduplication (djb2 variant).
+   */
+  private static hashText(text: string): string {
+    let hash = 5381;
+    for (let i = 0; i < text.length; i++) {
+      hash = ((hash << 5) + hash) ^ text.charCodeAt(i);
+    }
+    return Math.abs(hash).toString(36);
+  }
+
+  // ─── Legacy KB Sync (preserved for backward-compat) ────────────────────────
+
+  private static async syncToKnowledgeBase(
+    clientId: mongoose.Types.ObjectId,
+    items: ExtractedContent[],
+    companyName: string
+  ): Promise<void> {
+    const importantItems = items.filter(i =>
+      ['menu_item', 'pricing', 'contact', 'hours', 'service', 'policy'].includes(i.contentType) &&
+      i.content.length > 5
+    );
+
+    const seen = new Set<string>();
+
+    for (const item of importantItems) {
+      const key = item.content.toLowerCase().trim();
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const category = item.category || 'general';
+      const slug = `web-${category}-${item.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 40)}-${Math.random().toString(36).substring(2, 6)}`;
+
+      try {
+        const existing = await KnowledgeModel.findOne({
+          clientId,
+          slug,
+          isDeleted: false,
+        });
+
+        if (!existing) {
+          await KnowledgeModel.create({
+            clientId,
+            pageName: `${companyName} Website`,
+            slug,
+            title: item.title,
+            content: item.content,
+            tags: [item.contentType, item.category, 'website_sync'].filter(Boolean),
+            category,
+            language: 'en' as const,
+            priority: item.priority,
+            isActive: true,
+            isDeleted: false,
+          });
+        }
+      } catch (err) {
+        logger.warn(`[WebsiteScraper] Skipping duplicate Knowledge entry for slug ${slug}`);
+      }
+    }
+  }
+
+  // ─── HTML Extraction Helpers ─────────────────────────────────────────────────
 
   private static extractMetaContent(html: string, items: ExtractedContent[], pagePath: string): void {
     const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
@@ -324,6 +699,7 @@ export class WebsiteScraperService {
     while ((match = paragraphRegex.exec(html)) !== null) {
       const text = this.stripHtml(match[1]).trim();
       if (text.length < 20 || this.isNavigationText(text) || text.match(/^\s*$/)) continue;
+      if (this.isCTAText(text)) continue;
 
       const category = this.categorizeParagraph(text, pagePath);
       items.push({
@@ -344,7 +720,7 @@ export class WebsiteScraperService {
 
     while ((match = listRegex.exec(html)) !== null) {
       const text = this.stripHtml(match[1]).trim();
-      if (text.length < 5 || this.isNavigationText(text)) continue;
+      if (text.length < 5 || this.isNavigationText(text) || this.isCTAText(text)) continue;
 
       let contentType: ExtractedContent['contentType'] = 'paragraph';
       let category = this.categorizePage(pagePath);
@@ -443,7 +819,7 @@ export class WebsiteScraperService {
       let match;
       while ((match = pattern.exec(html)) !== null) {
         const text = this.stripHtml(match[1]).trim();
-        if (text.length < 15 || text.length > 2000 || this.isNavigationText(text)) continue;
+        if (text.length < 15 || text.length > 2000 || this.isNavigationText(text) || this.isCTAText(text)) continue;
 
         let contentType: ExtractedContent['contentType'] = 'paragraph';
         let category = this.categorizePage(pagePath);
@@ -483,28 +859,6 @@ export class WebsiteScraperService {
     }
   }
 
-  private static extractButtons(html: string, items: ExtractedContent[], pagePath: string): void {
-    const buttonRegex = /<(?:button|a)[^>]*class="[^"]*(?:btn|button|cta)[^"]*"[^>]*>([\s\S]*?)<\/(?:button|a)>/gi;
-    let match;
-
-    while ((match = buttonRegex.exec(html)) !== null) {
-      const text = this.stripHtml(match[1]).trim();
-      if (text.length < 3 || text.length > 100 || this.isNavigationText(text)) continue;
-
-      if (!items.some(i => i.content === `[CTA] ${text}`)) {
-        items.push({
-          title: `CTA Button: ${text}`,
-          content: `[CTA] ${text}`,
-          contentType: 'paragraph',
-          category: this.categorizePage(pagePath),
-          section: 'cta_button',
-          pagePath,
-          priority: 4,
-        });
-      }
-    }
-  }
-
   private static extractStructuredData(html: string, items: ExtractedContent[], pagePath: string): void {
     const jsonLdRegex = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
     let match;
@@ -530,36 +884,12 @@ export class WebsiteScraperService {
     }
   }
 
-  private static extractImageAlts(html: string, items: ExtractedContent[], pagePath: string): void {
-    const imgRegex = /<img[^>]*alt=["']([^"']+)["'][^>]*>/gi;
-    let match;
-    const seen = new Set<string>();
-
-    while ((match = imgRegex.exec(html)) !== null) {
-      const alt = match[1].trim();
-      if (alt.length < 5 || alt.length > 200 || seen.has(alt)) continue;
-      seen.add(alt);
-
-      items.push({
-        title: `Image: ${alt}`,
-        content: alt,
-        contentType: 'gallery',
-        category: 'gallery',
-        section: 'image_alt',
-        pagePath,
-        priority: 2,
-      });
-    }
-  }
-
   private static flattenStructuredData(data: any, prefix: string): string | null {
     if (!data || typeof data !== 'object') return null;
 
     const parts: string[] = [];
 
-    if (data['@type']) {
-      parts.push(`Type: ${data['@type']}`);
-    }
+    if (data['@type']) parts.push(`Type: ${data['@type']}`);
     if (data.name) parts.push(`Name: ${data.name}`);
     if (data.description) parts.push(`Description: ${data.description}`);
     if (data.telephone) parts.push(`Phone: ${data.telephone}`);
@@ -590,24 +920,10 @@ export class WebsiteScraperService {
     if (data.priceRange) parts.push(`Price Range: ${data.priceRange}`);
     if (data.servesCuisine) parts.push(`Cuisine: ${data.servesCuisine}`);
     if (data.menu) parts.push(`Menu: ${typeof data.menu === 'string' ? data.menu : JSON.stringify(data.menu)}`);
-
-    if (data.hasMenu) {
-      if (data.hasMenu.name) parts.push(`Menu Name: ${data.hasMenu.name}`);
-      if (data.hasMenu.description) parts.push(`Menu Description: ${data.hasMenu.description}`);
-    }
-
     if (data.aggregateRating) {
       const ar = data.aggregateRating;
       if (ar.ratingValue) parts.push(`Rating: ${ar.ratingValue}/5`);
       if (ar.reviewCount) parts.push(`Reviews: ${ar.reviewCount}`);
-    }
-
-    if (data.review) {
-      const reviews = Array.isArray(data.review) ? data.review : [data.review];
-      reviews.forEach((r: any) => {
-        if (r.reviewRating?.ratingValue) parts.push(`Review Rating: ${r.reviewRating.ratingValue}/5`);
-        if (r.reviewBody) parts.push(`Review: ${r.reviewBody}`);
-      });
     }
 
     return parts.length > 0 ? `[STRUCTURED DATA] ${parts.join(' | ')}` : null;
@@ -675,54 +991,7 @@ export class WebsiteScraperService {
     }
   }
 
-  private static async syncToKnowledgeBase(
-    clientId: mongoose.Types.ObjectId,
-    items: ExtractedContent[],
-    companyName: string
-  ): Promise<void> {
-    const importantItems = items.filter(i =>
-      ['menu_item', 'pricing', 'contact', 'hours', 'service', 'policy'].includes(i.contentType) &&
-      i.content.length > 5
-    );
-
-    const seen = new Set<string>();
-
-    for (const item of importantItems) {
-      const key = item.content.toLowerCase().trim();
-      if (seen.has(key)) continue;
-      seen.add(key);
-
-      const category = item.category || 'general';
-      const slug = `web-${category}-${item.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 40)}-${Math.random().toString(36).substring(2, 6)}`;
-
-      try {
-        const existing = await KnowledgeModel.findOne({
-          clientId,
-          slug,
-          isDeleted: false,
-        });
-
-        if (!existing) {
-          await KnowledgeModel.create({
-            clientId,
-            pageName: `${companyName} Website`,
-            slug,
-            title: item.title,
-            content: item.content,
-            tags: [item.contentType, item.category, 'website_sync'].filter(Boolean),
-            category,
-            language: 'en' as const,
-            priority: item.priority,
-            isActive: true,
-            isDeleted: false,
-          });
-        }
-      } catch (err) {
-        // Safe catch for any duplicate slug or validation edge case
-        logger.warn(`[WebsiteScraper] Skipping duplicate Knowledge entry for slug ${slug}`);
-      }
-    }
-  }
+  // ─── Categorization Helpers ─────────────────────────────────────────────────
 
   private static categorizePage(pagePath: string): string {
     const path = pagePath.toLowerCase();
@@ -735,6 +1004,8 @@ export class WebsiteScraperService {
     if (path.includes('faq')) return 'faq';
     if (path.includes('policy') || path.includes('term') || path.includes('privacy')) return 'policy';
     if (path.includes('reservation') || path.includes('booking') || path.includes('appointment')) return 'booking';
+    if (path.includes('blog') || path.includes('news')) return 'blog';
+    if (path.includes('product')) return 'products';
     return 'general';
   }
 
@@ -749,6 +1020,7 @@ export class WebsiteScraperService {
     if (lower.match(/\babout\b/)) return 'about';
     if (lower.match(/\bpolicy\b|\bterm\b|\bprivacy\b/)) return 'policy';
     if (lower.match(/\breservation\b|\bbook\b|\bappointment\b/)) return 'booking';
+    if (lower.match(/\bproduct\b|\bitem\b/)) return 'products';
     return this.categorizePage(pagePath);
   }
 
@@ -756,25 +1028,61 @@ export class WebsiteScraperService {
     return this.categorizeHeading(text, pagePath);
   }
 
+  // ─── Content Quality Filters ────────────────────────────────────────────────
+
   private static isNavigationText(text: string): boolean {
     const lower = text.toLowerCase().trim();
-    const navKeywords = ['home', 'menu', 'about', 'about us', 'contact', 'contact us', 'services', 'gallery',
-      'login', 'sign up', 'register', 'search', 'cart', 'wishlist', 'profile',
-      'logout', 'blog', 'news', 'careers', 'faq', 'terms', 'privacy',
-      'skip to content', 'toggle navigation', 'open menu', 'close', 'our menu', 'testimonials'];
 
+    // Single navigation keywords
+    const navKeywords = [
+      'home', 'menu', 'about', 'about us', 'contact', 'contact us', 'services',
+      'gallery', 'login', 'sign up', 'register', 'search', 'cart', 'wishlist',
+      'profile', 'logout', 'blog', 'news', 'careers', 'faq', 'terms', 'privacy',
+      'skip to content', 'toggle navigation', 'open menu', 'close', 'our menu',
+      'testimonials', 'portfolio', 'get started', 'back to top', 'scroll up',
+    ];
     if (navKeywords.some(k => lower === k)) return true;
 
-    // Check for concatenated nav bar lists e.g. "Home Menu Gallery About Testimonials Contact"
-    if (lower.includes('home') && lower.includes('menu') && lower.includes('gallery') && lower.includes('about')) {
-      return true;
-    }
-    if (lower.includes('culinary artistry') || lower.includes('michelin-inspired') || lower.includes('crafted with passion')) {
-      return true;
+    // Concatenated nav bar lists e.g. "Home Menu Gallery About Testimonials Contact"
+    const navCount = ['home', 'menu', 'gallery', 'about', 'contact', 'services', 'blog']
+      .filter(w => lower.includes(w)).length;
+    if (navCount >= 3 && lower.length < 100) return true;
+
+    // Known boilerplate phrases
+    const boilerplate = [
+      'culinary artistry', 'michelin-inspired', 'crafted with passion',
+      'powered by', 'all rights reserved', '© copyright',
+      'cookie policy', 'accept all cookies', 'we use cookies',
+    ];
+    if (boilerplate.some(b => lower.includes(b))) return true;
+
+    return false;
+  }
+
+  private static isCTAText(text: string): boolean {
+    const lower = text.toLowerCase().trim();
+
+    // Pure CTA phrases that add no knowledge value
+    const ctaPhrases = [
+      'read more', 'learn more', 'click here', 'book now', 'order now',
+      'get started', 'sign up now', 'contact us', 'call us', 'get a quote',
+      'find out more', 'see more', 'view all', 'show more', 'load more',
+      'buy now', 'shop now', 'subscribe', 'download now', 'try free',
+      'explore menu', 'view menu', 'see menu', 'check menu',
+    ];
+
+    // Exact match or very short (< 5 words) CTA
+    if (ctaPhrases.includes(lower)) return true;
+
+    // Multi-word CTA check for short strings
+    if (lower.split(/\s+/).length <= 4) {
+      return ctaPhrases.some(cta => lower.includes(cta));
     }
 
     return false;
   }
+
+  // ─── HTML Utilities ─────────────────────────────────────────────────────────
 
   private static stripHtml(html: string): string {
     return html

@@ -9,9 +9,12 @@ export interface UnansweredListItem {
   id: string;
   clientId: string;
   question: string;
+  conversationId?: string;
   count: number;
   firstAsked: Date;
   lastAsked: Date;
+  confidenceScore?: number;
+  reason?: string;
   convertedToFaq: boolean;
   faqId?: string;
   createdAt: Date;
@@ -32,6 +35,9 @@ export class UnansweredService {
     question: string;
     sessionId: string;
     visitorId: string;
+    conversationId?: string;   // Chat ID for trace-back
+    confidenceScore?: number;  // AI confidence at failure time
+    reason?: 'knowledge_not_found' | 'low_similarity' | 'empty_knowledge_base' | 'model_uncertain' | 'low_confidence';
   }): Promise<void> {
     const normalized = normalizeQuestion(data.question);
     const resolvedClientId = await this.resolveClientId(data.clientId);
@@ -44,6 +50,13 @@ export class UnansweredService {
     if (existing) {
       existing.count += 1;
       existing.lastAsked = new Date();
+      // Update confidence to the most recent value (lower is more concerning)
+      if (data.confidenceScore !== undefined) {
+        existing.confidenceScore = data.confidenceScore;
+      }
+      if (data.reason) {
+        existing.reason = data.reason;
+      }
       await existing.save();
       return;
     }
@@ -53,6 +66,9 @@ export class UnansweredService {
       question: data.question,
       sessionId: data.sessionId,
       visitorId: data.visitorId,
+      conversationId: data.conversationId,
+      confidenceScore: data.confidenceScore,
+      reason: data.reason,
       count: 1,
       firstAsked: new Date(),
       lastAsked: new Date(),
@@ -192,9 +208,12 @@ export class UnansweredService {
       id: ((item as any)._id || (item as any).id).toString(),
       clientId: item.clientId.toString(),
       question: item.question,
+      conversationId: item.conversationId?.toString(),
       count: item.count,
       firstAsked: item.firstAsked,
       lastAsked: item.lastAsked,
+      confidenceScore: item.confidenceScore,
+      reason: item.reason,
       convertedToFaq: item.convertedToFaq,
       faqId: item.faqId?.toString(),
       createdAt: item.createdAt,
