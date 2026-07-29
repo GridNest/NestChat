@@ -128,6 +128,19 @@ export class AdminController {
     }
   }
 
+  static async resetDatabase(req: AuthRequest, res: Response, next: NextFunction) {
+    try {
+      if (req.user?.role !== 'admin') {
+        return res.status(403).json({ success: false, error: 'Unauthorized. Super Admin role required.' });
+      }
+      const { resetDatabase: doReset } = await import('../../resetDb.js');
+      await doReset(true);
+      res.json({ success: true, message: 'Production database reset completed successfully. Test data cleared.' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async globalSearch(req: AuthRequest, res: Response, next: NextFunction) {
     try {
       const { q } = req.query;

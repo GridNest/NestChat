@@ -122,6 +122,104 @@ export class ResponseEngine {
       };
     }
 
+    // ── DEDICATED INTENT WORKFLOWS ────────────────────────────────────────────
+
+    // Requirement 1 & 3: Booking Intent Workflow (bypasses RAG to avoid hero section returns)
+    if (intent.intent === 'booking') {
+      const bookingMsg = language === 'hi'
+        ? 'Main aapki booking / reservation mein madad kar sakta hoon. Kya aap chahenge ki hamari team aapki booking detail confirm kare?'
+        : 'I would be happy to help you with your booking / reservation request. Would you like our team to assist you with the booking details?';
+      return {
+        content: bookingMsg,
+        messageType: 'inquiry',
+        metadata: { matchedType: 'quickAction', matchedId: 'booking', confidence: 1 },
+        triggerInquiry: true,
+      };
+    }
+
+    // Requirement 1: Contact, Location, Business Hours Dedicated Workflows
+    if (['contact', 'location', 'hours'].includes(intent.intent)) {
+      const clientObjIds = await this.resolveClientIds(clientId);
+      const [client, clientConfig] = await Promise.all([
+        ClientModel.findOne({ _id: { $in: clientObjIds } }).lean(),
+        ClientConfigModel.findOne({ clientId: { $in: clientObjIds } }).lean(),
+      ]);
+
+      const phone = (clientConfig as any)?.contactPhone || (client as any)?.phone;
+      const email = (clientConfig as any)?.contactEmail || (client as any)?.email;
+      const address = (clientConfig as any)?.contactAddress;
+      const hours = (clientConfig as any)?.businessHours;
+      const websiteUrl = (client as any)?.website;
+
+      if (intent.intent === 'contact') {
+        const contactParts: string[] = [];
+        if (phone) contactParts.push(`📞 Phone: ${phone}`);
+        if (email) contactParts.push(`📧 Email: ${email}`);
+        if (address) contactParts.push(`📍 Address: ${address}`);
+        if (websiteUrl) contactParts.push(`🌐 Website: ${websiteUrl}`);
+
+        if (contactParts.length > 0) {
+          const content = language === 'hi'
+            ? `Aap humse in madhyamon se sampark kar sakte hain:\n\n${contactParts.join('\n')}`
+            : `You can reach us through the following contact details:\n\n${contactParts.join('\n')}`;
+          return {
+            content,
+            messageType: 'text',
+            metadata: { matchedType: 'knowledge', confidence: 0.95 },
+          };
+        }
+      }
+
+      if (intent.intent === 'location') {
+        if (address) {
+          const mapsUrl = `https://maps.google.com/?q=${encodeURIComponent(address)}`;
+          const content = language === 'hi'
+            ? `📍 Hamara pata:\n${address}\n\n🗺️ Google Maps link: ${mapsUrl}`
+            : `📍 Our Address:\n${address}\n\n🗺️ Google Maps link: ${mapsUrl}`;
+          return {
+            content,
+            messageType: 'text',
+            metadata: { matchedType: 'knowledge', confidence: 0.95 },
+          };
+        }
+      }
+
+      if (intent.intent === 'hours') {
+        if (hours) {
+          const content = language === 'hi'
+            ? `🕒 Hamari timing/working hours:\n${hours}`
+            : `🕒 Our Business Hours:\n${hours}`;
+          return {
+            content,
+            messageType: 'text',
+            metadata: { matchedType: 'knowledge', confidence: 0.95 },
+          };
+        }
+      }
+    }
+
+    // Requirement 1: Menu Dedicated Workflow
+    if (intent.intent === 'menu') {
+      const clientObjIds = await this.resolveClientIds(clientId);
+      const menuItems = await WebsiteContentModel.find({
+        clientId: { $in: clientObjIds },
+        contentType: { $in: ['menu_item', 'pricing'] },
+        isDeleted: false,
+      }).limit(12).lean();
+
+      if (menuItems.length > 0) {
+        const formattedList = menuItems.map(m => `• ${m.title || m.content.slice(0, 60)}`).join('\n');
+        const content = language === 'hi'
+          ? `🍽️ Hamari menu ki mukhya jhalak:\n\n${formattedList}\n\nKya aap kisi specific item ke daam ya details janna chahte hain?`
+          : `🍽️ Here is a highlight of our menu items:\n\n${formattedList}\n\nWould you like more details or prices for any item?`;
+        return {
+          content,
+          messageType: 'text',
+          metadata: { matchedType: 'knowledge', confidence: 0.9 },
+        };
+      }
+    }
+
     // ── LAYER 1: FAQ Priority (exact match, no Groq needed) ──────────────────
     if (intent.intent === 'faq') {
       const faqMatch = await KnowledgeEngine.search({ clientId, language, query });

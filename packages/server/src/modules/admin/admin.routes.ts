@@ -18,5 +18,6 @@ router.post('/chats/bulk-delete', authenticate, AdminController.bulkDeleteChats)
 router.delete('/chats', authenticate, AdminController.bulkDeleteChats);
 router.get('/inquiries', authenticate, AdminController.listInquiries);
 router.get('/unanswered', authenticate, AdminController.listUnanswered);
+router.post('/reset-database', authenticate, AdminController.resetDatabase);
 
 export const adminRoutes = router;

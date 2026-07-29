@@ -233,6 +233,7 @@ export class ChatService {
       });
 
       if (botResponse.triggerInquiry && !isInquiryMode) {
+        const clientIndustry = await this.getClientIndustry(data.clientId || targetClientId);
         await InquiryEngine.createState({
           chatId: chat._id.toString(),
           sessionId: data.sessionId,
@@ -242,6 +243,7 @@ export class ChatService {
           currentStep: '__consent__',
           // Store the trigger question so it can be saved on inquiry completion
           originalQuestion: data.content,
+          industry: clientIndustry,
         });
       }
 
@@ -405,6 +407,22 @@ export class ChatService {
       return (client as any)?.name || (client as any)?.companyName || 'NestChat';
     } catch {
       return 'NestChat';
+    }
+  }
+
+  private static async getClientIndustry(clientId: string): Promise<string> {
+    try {
+      const ClientModel = mongoose.model('Client');
+      let client: any = null;
+      if (mongoose.Types.ObjectId.isValid(clientId)) {
+        client = await ClientModel.findById(clientId).lean();
+      }
+      if (!client) {
+        client = await ClientModel.findOne({ clientId: clientId.trim().toLowerCase() }).lean();
+      }
+      return (client as any)?.websiteType || (client as any)?.industry || 'corporate';
+    } catch {
+      return 'corporate';
     }
   }
 

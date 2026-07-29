@@ -53,6 +53,57 @@ export const INQUIRY_STEPS: InquiryStep[] = [
 
 export const CANCEL_KEYWORDS = ['cancel', 'restart', 'start over', 'exit', 'quit', 'band karo', 'rok do', 'nahi', 'no thanks', "no, don't", "don't", 'no'];
 
+export function getIndustryStepPrompt(field: string, industry?: string, lang: 'en' | 'hi' = 'en'): string {
+  if (field !== 'message') {
+    const step = INQUIRY_STEPS.find(s => s.field === field);
+    if (!step) return '';
+    return LanguageEngine.getMessage(lang, step.messageKey as any);
+  }
+
+  const norm = (industry || 'corporate').toLowerCase().replace(/[^a-z0-9_]/g, '_');
+  const prompts: Record<string, { en: string; hi: string }> = {
+    restaurant: {
+      en: 'Please share your booking requirement (e.g. date, time, number of guests).',
+      hi: 'Kripya apni booking requirement batayein (date, time, number of guests).',
+    },
+    hotel: {
+      en: 'Please share your stay requirement (e.g. check-in date, rooms, guests).',
+      hi: 'Kripya apni stay requirement batayein (check-in date, rooms).',
+    },
+    hospital: {
+      en: 'Please describe your appointment requirement (e.g. department, doctor).',
+      hi: 'Kripya apni appointment requirement batayein (department, doctor).',
+    },
+    clinic: {
+      en: 'Please describe your appointment requirement (e.g. doctor, preferred timing).',
+      hi: 'Kripya apni appointment requirement batayein (doctor, timing).',
+    },
+    school: {
+      en: 'Please share your admission inquiry (e.g. class/grade, academic year).',
+      hi: 'Kripya apni admission inquiry batayein (class, academic year).',
+    },
+    corporate: {
+      en: 'Please describe your project requirement.',
+      hi: 'Kripya apni project requirement batayein.',
+    },
+    salon: {
+      en: 'Please describe your appointment requirement (e.g. service, preferred time).',
+      hi: 'Kripya apni appointment requirement batayein (service, time).',
+    },
+    real_estate: {
+      en: 'Please share your property requirement (e.g. location, budget, type).',
+      hi: 'Kripya apni property requirement batayein (location, budget).',
+    },
+    ecommerce: {
+      en: 'Please describe your product requirement or order inquiry.',
+      hi: 'Kripya apni product requirement ya order inquiry batayein.',
+    },
+  };
+
+  const p = prompts[norm] || prompts.corporate;
+  return lang === 'hi' ? p.hi : p.en;
+}
+
 const CONSENT_KEYWORDS = ['yes', 'haan', 'hmm', 'ok', 'sure', 'okay', 'haa', 'haanji', 'theek hai', 'haye', 'plz', 'please'];
 
 export class InquiryEngine {
@@ -65,6 +116,7 @@ export class InquiryEngine {
     data?: Record<string, string>;
     currentStep?: string;
     originalQuestion?: string;
+    industry?: string;
   }): Promise<InquiryStateDocument> {
     const existing = await InquiryStateModel.findOne({
       chatId: data.chatId,
@@ -87,6 +139,7 @@ export class InquiryEngine {
       data: data.data || {},
       status: 'active',
       originalQuestion: data.originalQuestion,
+      industry: data.industry,
       startedAt: new Date(),
     });
   }
@@ -187,7 +240,7 @@ export class InquiryEngine {
       await state.save();
 
       const lang = state.language;
-      const message = LanguageEngine.getMessage(lang, nextStep.messageKey as any);
+      const message = getIndustryStepPrompt(nextStep.field, state.industry, lang);
 
       return {
         success: true,
@@ -248,7 +301,7 @@ export class InquiryEngine {
     const currentStep = INQUIRY_STEPS.find(s => s.field === state.currentStep);
     if (!currentStep) return null;
 
-    return LanguageEngine.getMessage(state.language, currentStep.messageKey as any);
+    return getIndustryStepPrompt(currentStep.field, state.industry, state.language);
   }
 
   static getProgress(chatId: string): Promise<{

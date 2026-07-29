@@ -21,6 +21,7 @@ export interface InquiryStateDocument extends Document {
   };
   status: 'active' | 'completed' | 'cancelled' | 'failed';
   originalQuestion?: string;
+  industry?: string;
   startedAt: Date;
   completedAt?: Date;
   cancelledAt?: Date;
@@ -80,6 +81,10 @@ const inquiryStateSchema = new Schema<InquiryStateDocument>(
       default: 'active',
     },
     originalQuestion: {
+      type: String,
+      trim: true,
+    },
+    industry: {
       type: String,
       trim: true,
     },
