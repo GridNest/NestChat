@@ -179,7 +179,7 @@ export class GroqService {
    */
   private static buildRAGSystemPrompt(options: GroqContextOptions): string {
     const {
-      clientName, companyName, botName, language, ragContext,
+      clientName, companyName, botName, language, ragContext, websiteType,
       businessHours, contactEmail, contactPhone, contactAddress, websiteUrl,
       faqs, conversationHistory,
     } = options;
