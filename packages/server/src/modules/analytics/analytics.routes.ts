@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { analyticsController } from './analytics.controller.js';
-import { authenticate } from '../../middleware/auth.js';
+import { authenticate, enforceTenantIsolation } from '../../middleware/auth.js';
 
 const router: Router = Router();
 
@@ -13,12 +13,14 @@ router.get(
 router.get(
   '/:clientId/dashboard',
   authenticate,
+  enforceTenantIsolation,
   analyticsController.getDashboardStats
 );
 
 router.get(
   '/:clientId/chats',
   authenticate,
+  enforceTenantIsolation,
   analyticsController.getChatAnalytics
 );
 
@@ -31,6 +33,7 @@ router.post(
 router.get(
   '/:clientId/insights',
   authenticate,
+  enforceTenantIsolation,
   analyticsController.getInsights.bind(analyticsController)
 );
 

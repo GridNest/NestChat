@@ -25,6 +25,31 @@ export class AuditLogService {
     });
   }
 
+  static async logActionFromReq(
+    req: any,
+    action: string,
+    moduleName: string,
+    resourceId?: string,
+    newValue?: any
+  ) {
+    try {
+      const user = req.user;
+      if (!user) return;
+      await this.create({
+        userId: user.id || user._id,
+        clientId: user.clientId || req.params?.clientId || req.body?.clientId,
+        action,
+        module: moduleName,
+        resourceId,
+        newValue,
+        ipAddress: req.ip || req.socket?.remoteAddress,
+        userAgent: req.headers?.['user-agent'],
+      });
+    } catch (err) {
+      // Non-critical logging error
+    }
+  }
+
   static async list(query: {
     clientId?: string;
     module?: string;

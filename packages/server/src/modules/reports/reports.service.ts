@@ -8,7 +8,7 @@ import { FAQModel } from '../faq/faq.model.js';
 export class ReportsService {
   async generateReport(
     clientId: string,
-    type: 'chats' | 'leads' | 'visitors' | 'knowledge' | 'faq' | 'inquiries',
+    type: 'chats' | 'leads' | 'visitors' | 'knowledge' | 'faq' | 'inquiries' | 'unanswered' | 'client_performance',
     startDate: Date,
     endDate: Date
   ): Promise<{ data: any[]; headers: string[] }> {
@@ -25,6 +25,10 @@ export class ReportsService {
         return this.generateFAQReport(clientId, startDate, endDate);
       case 'inquiries':
         return this.generateInquiriesReport(clientId, startDate, endDate);
+      case 'unanswered':
+        return this.generateUnansweredReport(clientId, startDate, endDate);
+      case 'client_performance':
+        return this.generatePerformanceReport(clientId, startDate, endDate);
       default:
         throw new Error(`Invalid report type: ${type}`);
     }
@@ -207,6 +211,46 @@ export class ReportsService {
       inquiry.updatedAt.toISOString().split('T')[0],
     ]);
 
+    return { headers, data };
+  }
+
+  private async generateUnansweredReport(clientId: string, startDate: Date, endDate: Date) {
+    const UnansweredModel = (await import('../unanswered/unanswered.model.js')).UnansweredModel;
+    const items = await UnansweredModel.find({
+      clientId,
+      lastAsked: { $gte: startDate, $lte: endDate },
+    }).sort({ count: -1 }).lean();
+
+    const headers = ['Question', 'Count', 'First Asked', 'Last Asked', 'Confidence', 'Reason', 'Converted To FAQ'];
+    const data = items.map((item: any) => [
+      item.question,
+      item.count,
+      item.firstAsked?.toISOString().split('T')[0] || 'N/A',
+      item.lastAsked?.toISOString().split('T')[0] || 'N/A',
+      item.confidenceScore ? `${Math.round(item.confidenceScore * 100)}%` : 'N/A',
+      item.reason || 'knowledge_not_found',
+      item.convertedToFaq ? 'Yes' : 'No',
+    ]);
+    return { headers, data };
+  }
+
+  private async generatePerformanceReport(clientId: string, startDate: Date, endDate: Date) {
+    const analytics = await Analytics.find({
+      clientId,
+      date: { $gte: startDate, $lte: endDate },
+      period: 'daily',
+    }).sort({ date: 1 }).lean();
+
+    const headers = ['Date', 'Visitors', 'Chats', 'Inquiries', 'Answered Questions', 'Unanswered Questions', 'Avg Confidence %'];
+    const data = analytics.map((a: any) => [
+      a.date.toISOString().split('T')[0],
+      a.metrics.visitors,
+      a.metrics.chats,
+      a.metrics.inquiriesGenerated || a.metrics.leads,
+      a.metrics.answeredQuestions,
+      a.metrics.unansweredQuestions,
+      a.metrics.averageConfidenceScore ? `${Math.round(a.metrics.averageConfidenceScore * 100)}%` : 'N/A',
+    ]);
     return { headers, data };
   }
 

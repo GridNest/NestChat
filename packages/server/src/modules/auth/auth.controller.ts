@@ -16,6 +16,15 @@ export class AuthController {
   static async login(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const result = await AuthService.login(req.body);
+      const { AuditLogService } = await import('../auditLog/auditLog.service.js');
+      AuditLogService.create({
+        userId: result.user.id,
+        clientId: result.user.clientId,
+        action: 'user_login',
+        module: 'auth',
+        ipAddress: req.ip || req.socket?.remoteAddress,
+        userAgent: req.headers['user-agent'],
+      }).catch(() => {});
       ApiResponseHelper.success(res, result);
     } catch (error) {
       next(error);

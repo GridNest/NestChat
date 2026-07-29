@@ -50,6 +50,17 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function RoleRoute({ allowedRoles, children }: { allowedRoles: string[]; children: React.ReactNode }) {
+  const { user } = useAuthStore();
+  const role = user?.role || 'client';
+
+  if (!allowedRoles.includes(role)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+}
+
 function App() {
   const { checkAuth } = useAuthStore();
 
@@ -70,36 +81,42 @@ function App() {
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/clients" element={<ClientList />} />
-                    <Route path="/clients/new" element={<ClientCreate />} />
-                    <Route path="/clients/:id" element={<ClientDetail />} />
-                    <Route path="/clients/:id/edit" element={<ClientCreate />} />
-                    <Route path="/clients/:id/theme" element={<ClientTheme />} />
-                    <Route path="/clients/:id/config" element={<ClientConfiguration />} />
-                    <Route path="/knowledge" element={<KnowledgeList />} />
-                    <Route path="/knowledge/new" element={<KnowledgeForm />} />
-                    <Route path="/knowledge/:id/edit" element={<KnowledgeForm />} />
-                    <Route path="/faqs" element={<FAQList />} />
-                    <Route path="/faqs/new" element={<FAQForm />} />
-                    <Route path="/faqs/:id/edit" element={<FAQForm />} />
+                    
+                    {/* Super Admin Only Routes */}
+                    <Route path="/clients" element={<RoleRoute allowedRoles={['admin']}><ClientList /></RoleRoute>} />
+                    <Route path="/clients/new" element={<RoleRoute allowedRoles={['admin']}><ClientCreate /></RoleRoute>} />
+                    <Route path="/clients/:id" element={<RoleRoute allowedRoles={['admin']}><ClientDetail /></RoleRoute>} />
+                    <Route path="/clients/:id/edit" element={<RoleRoute allowedRoles={['admin']}><ClientCreate /></RoleRoute>} />
+                    <Route path="/clients/:id/theme" element={<RoleRoute allowedRoles={['admin']}><ClientTheme /></RoleRoute>} />
+                    <Route path="/clients/:id/config" element={<RoleRoute allowedRoles={['admin']}><ClientConfiguration /></RoleRoute>} />
+                    <Route path="/users" element={<RoleRoute allowedRoles={['admin']}><UserList /></RoleRoute>} />
+                    <Route path="/users/new" element={<RoleRoute allowedRoles={['admin']}><UserForm /></RoleRoute>} />
+                    <Route path="/users/:id/edit" element={<RoleRoute allowedRoles={['admin']}><UserForm /></RoleRoute>} />
+                    <Route path="/roles" element={<RoleRoute allowedRoles={['admin']}><RoleList /></RoleRoute>} />
+                    <Route path="/translations" element={<RoleRoute allowedRoles={['admin']}><TranslationsPage /></RoleRoute>} />
+                    <Route path="/settings" element={<RoleRoute allowedRoles={['admin']}><SettingsPage /></RoleRoute>} />
+                    <Route path="/audit-logs" element={<RoleRoute allowedRoles={['admin']}><AuditLogList /></RoleRoute>} />
+                    <Route path="/system-logs" element={<RoleRoute allowedRoles={['admin']}><SystemLogsPage /></RoleRoute>} />
+                    <Route path="/reports" element={<RoleRoute allowedRoles={['admin']}><ReportsPage /></RoleRoute>} />
+
+                    {/* Client Admin & Super Admin Routes */}
+                    <Route path="/knowledge" element={<RoleRoute allowedRoles={['admin', 'client']}><KnowledgeList /></RoleRoute>} />
+                    <Route path="/knowledge/new" element={<RoleRoute allowedRoles={['admin', 'client']}><KnowledgeForm /></RoleRoute>} />
+                    <Route path="/knowledge/:id/edit" element={<RoleRoute allowedRoles={['admin', 'client']}><KnowledgeForm /></RoleRoute>} />
+                    <Route path="/faqs" element={<RoleRoute allowedRoles={['admin', 'client']}><FAQList /></RoleRoute>} />
+                    <Route path="/faqs/new" element={<RoleRoute allowedRoles={['admin', 'client']}><FAQForm /></RoleRoute>} />
+                    <Route path="/faqs/:id/edit" element={<RoleRoute allowedRoles={['admin', 'client']}><FAQForm /></RoleRoute>} />
+                    <Route path="/unanswered" element={<RoleRoute allowedRoles={['admin', 'client']}><UnansweredList /></RoleRoute>} />
+                    <Route path="/analytics" element={<RoleRoute allowedRoles={['admin', 'client']}><AnalyticsDashboard /></RoleRoute>} />
+
+                    {/* All Roles (Super Admin, Client Admin, Agent) */}
                     <Route path="/chats" element={<ChatList />} />
                     <Route path="/chats/:id" element={<ChatDetail />} />
                     <Route path="/inquiries" element={<InquiryList />} />
                     <Route path="/inquiries/:id" element={<InquiryDetail />} />
-                    <Route path="/unanswered" element={<UnansweredList />} />
-                    <Route path="/users" element={<UserList />} />
-                    <Route path="/users/new" element={<UserForm />} />
-                    <Route path="/users/:id/edit" element={<UserForm />} />
-                    <Route path="/roles" element={<RoleList />} />
-                    <Route path="/translations" element={<TranslationsPage />} />
-                    <Route path="/settings" element={<SettingsPage />} />
-                    <Route path="/audit-logs" element={<AuditLogList />} />
                     <Route path="/notifications" element={<NotificationList />} />
                     <Route path="/clients/:clientId/widget" element={<WidgetGenerator />} />
                     <Route path="/clients/:clientId/widget/preview" element={<WidgetPreview />} />
-                    <Route path="/analytics" element={<AnalyticsDashboard />} />
-                    <Route path="/reports" element={<ReportsPage />} />
-                    <Route path="/system-logs" element={<SystemLogsPage />} />
                   </Routes>
                 </AdminLayout>
               </ProtectedRoute>

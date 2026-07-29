@@ -12,7 +12,7 @@ export type AuthRequest<
   user?: {
     id: string;
     email: string;
-    role: 'admin' | 'client';
+    role: 'admin' | 'client' | 'agent';
     clientId?: string;
   };
   body: ReqBody;
@@ -33,7 +33,7 @@ export function authenticate(req: AuthRequest, res: Response, next: NextFunction
     const decoded = jwt.verify(token, env.JWT_SECRET) as {
       id: string;
       email: string;
-      role: 'admin' | 'client';
+      role: 'admin' | 'client' | 'agent';
       clientId?: string;
     };
 
@@ -80,7 +80,7 @@ export function optionalAuth(req: AuthRequest, res: Response, next: NextFunction
     const decoded = jwt.verify(token, env.JWT_SECRET) as {
       id: string;
       email: string;
-      role: 'admin' | 'client';
+      role: 'admin' | 'client' | 'agent';
       clientId?: string;
     };
 
@@ -89,4 +89,37 @@ export function optionalAuth(req: AuthRequest, res: Response, next: NextFunction
   } catch (error) {
     next();
   }
+}
+
+export function enforceTenantIsolation(req: AuthRequest, res: Response, next: NextFunction): void {
+  if (!req.user) {
+    next(ApiError.unauthorized('Not authenticated'));
+    return;
+  }
+
+  // Super Admin can access any tenant
+  if (req.user.role === 'admin') {
+    next();
+    return;
+  }
+
+  const userClientId = req.user.clientId;
+  if (!userClientId) {
+    next(ApiError.forbidden('Tenant isolation error: No client assigned to user'));
+    return;
+  }
+
+  // Validate target clientId if specified in request
+  const targetClientId = req.params.clientId || req.query.clientId || req.body?.clientId;
+
+  if (targetClientId && targetClientId !== userClientId && targetClientId !== 'all') {
+    next(ApiError.forbidden('Tenant isolation error: Cannot access another client data'));
+    return;
+  }
+
+  // Auto-scope query and params to user's assigned clientId
+  if (req.query) req.query.clientId = userClientId;
+  if (req.params && req.params.clientId) req.params.clientId = userClientId;
+
+  next();
 }
