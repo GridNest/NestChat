@@ -204,7 +204,26 @@ export class GroqService {
       ? 'Reply ONLY in Hindi or natural Hinglish (Hindi-English mix). Never reply in English only.'
       : 'Reply ONLY in English. Do not switch to other languages.';
 
-    return `You are "${bot}", the official AI assistant for "${name}".
+    const industryGoalGuidance: Record<string, string> = {
+      restaurant: 'Goal: Help visitors explore the menu, check pricing/dishes, and guide them to reserve a table or request an inquiry.',
+      hotel: 'Goal: Assist visitors with room options, amenities, and guide them to book a stay or submit a reservation inquiry.',
+      hospital: 'Goal: Help visitors with medical specialties, doctors, timings, and guide them to book an appointment or submit an inquiry.',
+      clinic: 'Goal: Help visitors with consultation services, doctor hours, and guide them to book an appointment or submit an inquiry.',
+      school: 'Goal: Help parents/students with courses, admission fees, and guide them to submit an admission inquiry.',
+      corporate: 'Goal: Help visitors understand services, pricing plans, and guide them to request a demo or business inquiry.',
+      ecommerce: 'Goal: Help visitors with product specs, pricing, and guide them to make a purchase or product inquiry.',
+      real_estate: 'Goal: Help visitors with property listings, location, pricing, and guide them to schedule a site visit or inquiry.',
+      salon: 'Goal: Help visitors with grooming services, price list, and guide them to book an appointment or inquiry.',
+    };
+
+    const typeKey = (websiteType || 'corporate').toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    const goalGuidance = industryGoalGuidance[typeKey] || industryGoalGuidance['corporate'];
+
+    return `You are "${bot}", the official AI Sales & Support Assistant for "${name}".
+
+=== INDUSTRY PERSONA & GOAL ===
+Industry Category: ${websiteType || 'Corporate Business'}
+${goalGuidance}
 
 Your ONLY job is to answer questions about "${name}" using the company knowledge provided below.
 

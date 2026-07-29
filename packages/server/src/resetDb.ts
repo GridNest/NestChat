@@ -13,6 +13,7 @@ import { Analytics } from './modules/analytics/analytics.model.js';
 import { InquiryModel } from './modules/inquiry/inquiry.model.js';
 import { InquiryStateModel } from './modules/inquiry/inquiryState.model.js';
 import { UnansweredModel } from './modules/unanswered/unanswered.model.js';
+import { NotificationModel } from './modules/notification/notification.model.js';
 import { logger } from './utils/logger.js';
 
 export async function resetDatabase(keepAdminUser: boolean = true): Promise<void> {
@@ -39,9 +40,10 @@ export async function resetDatabase(keepAdminUser: boolean = true): Promise<void
     const inquiryStateRes = await InquiryStateModel.deleteMany({});
     logger.info(`Cleared ${inquiryRes.deletedCount} inquiries and ${inquiryStateRes.deletedCount} active inquiry states`);
 
-    // 4. Delete Unanswered Questions
+    // 4. Delete Unanswered Questions & Notifications
     const unansweredRes = await UnansweredModel.deleteMany({});
-    logger.info(`Cleared ${unansweredRes.deletedCount} unanswered questions`);
+    const notifRes = await NotificationModel.deleteMany({});
+    logger.info(`Cleared ${unansweredRes.deletedCount} unanswered questions and ${notifRes.deletedCount} test notifications`);
 
     // 5. Delete Knowledge Base, FAQs, and Website Scraped Content
     const kbRes = await KnowledgeModel.deleteMany({});

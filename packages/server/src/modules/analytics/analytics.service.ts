@@ -230,6 +230,7 @@ export class AnalyticsService {
   async getInsights(clientId: string, days: number = 30): Promise<{
     topRequestedTopics: Array<{ topic: string; category: string; count: number }>;
     knowledgeGaps: Array<{ question: string; count: number }>;
+    recommendations: Array<{ question: string; count: number; recommendation: string }>;
     topAnsweredCategories: Array<{ category: string; count: number }>;
     confidenceTrend: Array<{ date: string; avgConfidence: number }>;
     inquiryTriggerReasons: Array<{ reason: string; count: number }>;
@@ -290,6 +291,15 @@ export class AnalyticsService {
       .sort((a, b) => b.count - a.count)
       .slice(0, 8);
 
+    // Generate AI Actionable Knowledge Gap Recommendations for Client Admin
+    const recommendations = gapQuestions
+      .map(q => ({
+        question: q._id as string,
+        count: q.count as number,
+        recommendation: `Add information or an FAQ on your website for "${q._id}" (${q.count} visitor${q.count > 1 ? 's' : ''} asked about this).`,
+      }))
+      .slice(0, 10);
+
     return {
       topRequestedTopics: topTopics.map(t => ({
         topic: t._id.topic,
@@ -300,6 +310,7 @@ export class AnalyticsService {
         question: q._id,
         count: q.count,
       })),
+      recommendations,
       topAnsweredCategories,
       confidenceTrend: confidenceTrend.map(c => ({
         date: c.dateStr,

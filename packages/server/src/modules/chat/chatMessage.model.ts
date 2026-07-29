@@ -11,6 +11,7 @@ export interface ChatMessageDocument extends Document {
     confidence?: number;
     responseTimeMs?: number;
     // Admin-only fields (never exposed to widget visitors)
+    intent?: string;                // Detected intent (e.g. pricing, menu, booking, contact)
     retrievedChunkIds?: string[];   // RAG chunk IDs used to generate this response
     fallbackTriggered?: boolean;    // True if inquiry/handover flow was triggered
     inquiryCreated?: boolean;       // True if an Inquiry record was successfully created
@@ -50,6 +51,7 @@ const chatMessageSchema = new Schema<ChatMessageDocument>(
       confidence: Number,
       responseTimeMs: Number,
       // Admin-only fields
+      intent: String,
       retrievedChunkIds: [String],
       fallbackTriggered: Boolean,
       inquiryCreated: Boolean,

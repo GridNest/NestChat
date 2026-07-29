@@ -24,6 +24,8 @@ export interface EventContext {
   botMessageId?: string;   // MongoDB _id of the saved ChatMessage
   botResponse: BotResponse;
   responseTimeMs: number;
+  intent?: string;         // Detected intent (e.g. pricing, menu, booking)
+  retrievedChunkIds?: string[]; // RAG chunk IDs used
   isInquiryMode?: boolean; // True if already in inquiry step flow
   inquiryCreated?: boolean; // True if an Inquiry record was just created
   originalQuestion?: string; // The trigger question before inquiry flow
@@ -166,6 +168,14 @@ export class EventBus {
     const updates: Record<string, any> = {
       'metadata.fallbackTriggered': !!ctx.botResponse.triggerInquiry,
     };
+
+    if (ctx.intent) {
+      updates['metadata.intent'] = ctx.intent;
+    }
+
+    if (ctx.retrievedChunkIds && ctx.retrievedChunkIds.length > 0) {
+      updates['metadata.retrievedChunkIds'] = ctx.retrievedChunkIds;
+    }
 
     if (ctx.inquiryCreated !== undefined) {
       updates['metadata.inquiryCreated'] = ctx.inquiryCreated;
