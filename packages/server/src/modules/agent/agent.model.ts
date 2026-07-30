@@ -21,7 +21,7 @@ const agentSchema = new Schema<AgentDocument>(
     clientId: {
       type: Schema.Types.ObjectId,
       ref: 'Client',
-      required: true,
+      required: false,
       index: true,
     },
     status: {

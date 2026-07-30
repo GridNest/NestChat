@@ -25,25 +25,36 @@ export interface AgentStats {
 }
 
 export class AgentService {
-  static async getOrCreate(userId: string, clientId: string): Promise<AgentListItem> {
+  static async getOrCreate(userId: string, clientId?: string): Promise<AgentListItem> {
     let agent = await AgentModel.findOne({ userId });
     if (!agent) {
-      agent = await AgentModel.create({ userId, clientId, status: 'offline' });
+      const validClientId = (clientId && mongoose.Types.ObjectId.isValid(clientId))
+        ? clientId
+        : undefined;
+
+      agent = await AgentModel.create({
+        userId,
+        ...(validClientId ? { clientId: validClientId } : {}),
+        status: 'online',
+      });
     }
     return this.format(agent);
   }
 
   static async setStatus(userId: string, status: 'online' | 'offline' | 'away'): Promise<AgentListItem> {
-    const agent = await AgentModel.findOneAndUpdate(
+    let agent = await AgentModel.findOneAndUpdate(
       { userId },
       { $set: { status, lastActiveAt: new Date() } },
       { new: true }
     );
-    if (!agent) throw ApiError.notFound('Agent not found');
-    emitToClient(agent.clientId.toString(), 'agent:status', {
-      userId,
-      status,
-    });
+    if (!agent) {
+      agent = await AgentModel.create({ userId, status });
+    }
+    if (agent.clientId) {
+      try {
+        emitToClient(agent.clientId.toString(), 'agent:status', { userId, status });
+      } catch (_) {}
+    }
     return this.format(agent);
   }
 
@@ -69,18 +80,29 @@ export class AgentService {
   }
 
   static async assignChat(chatId: string, userId: string): Promise<void> {
-    const agent = await AgentModel.findOne({ userId });
-    if (!agent) throw ApiError.notFound('Agent not found');
+    const chat = await ChatModel.findById(chatId);
+    if (!chat) throw ApiError.notFound('Chat not found');
 
-    if (agent.assignedChats.length >= agent.maxChats) {
-      throw ApiError.badRequest('Agent has reached maximum chat capacity');
+    let agent = await AgentModel.findOne({ userId });
+    if (!agent) {
+      agent = await AgentModel.create({
+        userId,
+        clientId: chat.clientId,
+        status: 'online',
+      });
     }
 
     await ChatModel.findByIdAndUpdate(chatId, { $set: { assignedTo: agent._id } });
-    await AgentModel.findByIdAndUpdate(agent._id, { $push: { assignedChats: chatId } });
+    if (!agent.assignedChats?.some(id => id.toString() === chatId)) {
+      await AgentModel.findByIdAndUpdate(agent._id, { $addToSet: { assignedChats: chatId } });
+    }
 
-    emitToUser(userId, 'chat:assigned', { chatId });
-    emitToClient(agent.clientId.toString(), 'agent:assigned', { chatId, userId });
+    try {
+      emitToUser(userId, 'chat:assigned', { chatId });
+      if (agent.clientId) {
+        emitToClient(agent.clientId.toString(), 'agent:assigned', { chatId, userId });
+      }
+    } catch (_) {}
   }
 
   static async unassignChat(chatId: string, userId: string): Promise<void> {

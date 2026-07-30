@@ -8,7 +8,7 @@ export class AgentController {
   static async getStatus(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       const userId = req.user!.id as string;
-      const clientId = req.user!.clientId as string;
+      const clientId = req.user!.clientId;
       const agent = await AgentService.getOrCreate(userId, clientId);
       ApiResponseHelper.success(res, agent);
     } catch (error) {
