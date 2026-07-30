@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { AuthService } from './auth.service.js';
 import { ApiResponseHelper } from '../../utils/apiResponse.js';
 import { AuthRequest } from '../../middleware/auth.js';
+import { logger } from '../systemLog/logger.service.js';
 
 export class AuthController {
   static async register(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -20,11 +21,12 @@ export class AuthController {
       AuditLogService.create({
         userId: result.user.id,
         clientId: result.user.clientId,
-        action: 'user_login',
-        module: 'auth',
+        action: 'login',
+        module: 'settings',
         ipAddress: req.ip || req.socket?.remoteAddress,
         userAgent: req.headers['user-agent'],
       }).catch(() => {});
+      logger.info('auth', `User login: ${result.user.email}`, { userId: result.user.id, role: result.user.role }).catch(() => {});
       ApiResponseHelper.success(res, result);
     } catch (error) {
       next(error);

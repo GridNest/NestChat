@@ -1,15 +1,15 @@
 import { Router } from 'express';
 import { ClientController } from './client.controller.js';
-import { authenticate, AuthRequest } from '../../middleware/auth.js';
+import { authenticate, authorize } from '../../middleware/auth.js';
 
 const router: Router = Router();
 
-router.post('/', authenticate, ClientController.create);
-router.get('/', authenticate, ClientController.list);
-router.get('/stats', authenticate, ClientController.getStats);
-router.get('/clientId/:clientId', authenticate, ClientController.getByClientId);
-router.get('/:id', authenticate, ClientController.getById);
-router.put('/:id', authenticate, ClientController.update);
-router.delete('/:id', authenticate, ClientController.delete);
+router.post('/', authenticate, authorize('admin'), ClientController.create);
+router.get('/', authenticate, authorize('admin'), ClientController.list);
+router.get('/stats', authenticate, authorize('admin'), ClientController.getStats);
+router.get('/clientId/:clientId', authenticate, authorize('admin'), ClientController.getByClientId);
+router.get('/:id', authenticate, authorize('admin'), ClientController.getById);
+router.put('/:id', authenticate, authorize('admin'), ClientController.update);
+router.delete('/:id', authenticate, authorize('admin'), ClientController.delete);
 
 export const clientRoutes = router;

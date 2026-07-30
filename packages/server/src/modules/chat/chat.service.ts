@@ -8,7 +8,7 @@ import { UnansweredService } from '../unanswered/unanswered.service.js';
 import { NotificationService } from '../notification/notification.service.js';
 import { EventBus } from './eventBus.js';
 import { ApiError } from '../../utils/apiError.js';
-import { emitToUser, emitToClient } from '../socket/socket.service.js';
+import { emitToUser, emitToClient, createAndEmitNotification } from '../socket/socket.service.js';
 import mongoose from 'mongoose';
 
 export interface ChatSession {
@@ -187,13 +187,15 @@ export class ChatService {
           const ClientModel = mongoose.model('Client');
           const clientDoc = await ClientModel.findById(targetClientId).lean();
           if (clientDoc) {
-            await NotificationService.create({
-              userId: (clientDoc as any).createdBy?.toString() || '',
-              type: 'inquiry',
-              title: 'New Inquiry Received',
-              message: `New inquiry from ${inquiryResult.data.name || 'Unknown'}`,
-              data: { inquiryId: inquiry.id, clientId: targetClientId },
-            });
+            const adminUserId = (clientDoc as any).createdBy?.toString();
+            if (adminUserId) {
+              await createAndEmitNotification(adminUserId, {
+                type: 'inquiry',
+                title: 'New Inquiry Received',
+                message: `New inquiry from ${inquiryResult.data.name || 'Unknown'}`,
+                data: { inquiryId: inquiry.id, clientId: targetClientId },
+              });
+            }
           }
         } catch (notifErr) {
           // Notification failure is non-critical

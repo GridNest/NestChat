@@ -5,8 +5,8 @@ import { UserRoleModel } from '../userRole/userRole.model.js';
 import { ApiError } from '../../utils/apiError.js';
 
 export class UserService {
-  static async list(query: { page?: number; limit?: number; search?: string; role?: string }) {
-    const { page = 1, limit = 10, search, role } = query;
+  static async list(query: { page?: number; limit?: number; search?: string; role?: string; clientId?: string }) {
+    const { page = 1, limit = 10, search, role, clientId } = query;
     const skip = (page - 1) * limit;
 
     const filter: any = {};
@@ -17,6 +17,7 @@ export class UserService {
       ];
     }
     if (role) filter.role = role;
+    if (clientId) filter.clientId = clientId;
 
     const [users, total] = await Promise.all([
       UserModel.find(filter)

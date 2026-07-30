@@ -326,18 +326,16 @@ export class AnalyticsService {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
+    const analyticsFilter: any = { date: { $gte: startDate }, period: 'daily' };
+    if (clientId) analyticsFilter.clientId = clientId;
+    const analyticsMatch: any = { date: { $gte: startDate } };
+    if (clientId) analyticsMatch.clientId = clientId;
+
     const [dailyStats, totals] = await Promise.all([
-      Analytics.find({
-        clientId,
-        date: { $gte: startDate },
-        period: 'daily',
-      }).sort({ date: 1 }),
+      Analytics.find(analyticsFilter).sort({ date: 1 }),
       Analytics.aggregate([
         {
-          $match: {
-            clientId: clientId,
-            date: { $gte: startDate },
-          },
+          $match: analyticsMatch,
         },
         {
           $group: {
@@ -363,12 +361,11 @@ export class AnalyticsService {
       ]),
     ]);
 
+    const langMatch: any = { date: { $gte: startDate } };
+    if (clientId) langMatch.clientId = clientId;
     const languageDistribution = await Analytics.aggregate([
       {
-        $match: {
-          clientId,
-          date: { $gte: startDate },
-        },
+        $match: langMatch,
       },
       {
         $project: {
@@ -389,12 +386,11 @@ export class AnalyticsService {
       },
     ]);
 
+    const topQMatch: any = { date: { $gte: startDate } };
+    if (clientId) topQMatch.clientId = clientId;
     const topQuestions = await Analytics.aggregate([
       {
-        $match: {
-          clientId,
-          date: { $gte: startDate },
-        },
+        $match: topQMatch,
       },
       {
         $unwind: '$topQuestions',
@@ -417,10 +413,13 @@ export class AnalyticsService {
 
     // Live fallback: If daily aggregate records don't exist yet, compute directly from live collections
     if (!raw || (raw.totalVisitors === 0 && raw.totalChats === 0)) {
+      const chatFilter: any = { startTime: { $gte: startDate } };
+      const inquiryFilter: any = { createdAt: { $gte: startDate } };
+      if (clientId) { chatFilter.clientId = clientId; inquiryFilter.clientId = clientId; }
       const [liveChats, liveInquiries, liveVisitors] = await Promise.all([
-        ChatAnalytics.countDocuments({ clientId, startTime: { $gte: startDate } }),
-        (await import('../inquiry/inquiry.model.js')).InquiryModel.countDocuments({ clientId, createdAt: { $gte: startDate } }),
-        ChatAnalytics.distinct('visitorId', { clientId, startTime: { $gte: startDate } }),
+        ChatAnalytics.countDocuments(chatFilter),
+        (await import('../inquiry/inquiry.model.js')).InquiryModel.countDocuments(inquiryFilter),
+        ChatAnalytics.distinct('visitorId', chatFilter),
       ]);
 
       const liveMessagesCount = await (await import('../chat/chatMessage.model.js')).ChatMessageModel.countDocuments({});
@@ -485,7 +484,8 @@ export class AnalyticsService {
     page?: number;
     limit?: number;
   }) {
-    const query: any = { clientId };
+    const query: any = {};
+    if (clientId) query.clientId = clientId;
     
     if (filters.startDate || filters.endDate) {
       query.startTime = {};

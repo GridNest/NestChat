@@ -117,6 +117,20 @@ export function requestLogger(req: Request, res: Response, next: NextFunction) {
 
     if (res.statusCode >= 400) {
       console.error('[REQUEST_ERROR]', JSON.stringify(log));
+      import('../modules/systemLog/logger.service.js').then(({ logger }) => {
+        logger.log({
+          level: res.statusCode >= 500 ? 'error' : 'warn',
+          category: 'api',
+          message: `${req.method} ${req.originalUrl} - ${res.statusCode}`,
+          details: log,
+          method: req.method,
+          url: req.originalUrl,
+          statusCode: res.statusCode,
+          duration,
+          ip: req.ip || req.socket.remoteAddress,
+          userAgent: req.headers['user-agent'],
+        }).catch(() => {});
+      });
     } else if (process.env.NODE_ENV !== 'production') {
       console.log('[REQUEST]', JSON.stringify(log));
     }

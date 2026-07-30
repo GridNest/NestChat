@@ -81,8 +81,8 @@ export class AdminDashboardService {
     };
   }
 
-  static async listAllKnowledge(query: { page?: number; limit?: number; search?: string; category?: string; status?: string }) {
-    const { page = 1, limit = 10, search, category, status } = query;
+  static async listAllKnowledge(query: { page?: number; limit?: number; search?: string; category?: string; status?: string; clientId?: string }) {
+    const { page = 1, limit = 10, search, category, status, clientId } = query;
     const skip = (page - 1) * limit;
     const filter: any = { isDeleted: false };
     if (search) {
@@ -93,6 +93,7 @@ export class AdminDashboardService {
     }
     if (category) filter.category = category;
     if (status) filter.isActive = status === 'published';
+    if (clientId) filter.clientId = clientId;
     const [items, total] = await Promise.all([
       KnowledgeModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('clientId', 'name companyName').lean(),
       KnowledgeModel.countDocuments(filter),
@@ -101,8 +102,8 @@ export class AdminDashboardService {
     return { knowledge, total, page, limit, pages: Math.ceil(total / limit) };
   }
 
-  static async listAllFAQs(query: { page?: number; limit?: number; search?: string; category?: string }) {
-    const { page = 1, limit = 10, search, category } = query;
+  static async listAllFAQs(query: { page?: number; limit?: number; search?: string; category?: string; clientId?: string }) {
+    const { page = 1, limit = 10, search, category, clientId } = query;
     const skip = (page - 1) * limit;
     const filter: any = { isDeleted: false };
     if (search) {
@@ -112,6 +113,7 @@ export class AdminDashboardService {
       ];
     }
     if (category) filter.category = category;
+    if (clientId) filter.clientId = clientId;
     const [items, total] = await Promise.all([
       FAQModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('clientId', 'name companyName').lean(),
       FAQModel.countDocuments(filter),
@@ -120,11 +122,12 @@ export class AdminDashboardService {
     return { faqs, total, page, limit, pages: Math.ceil(total / limit) };
   }
 
-  static async listAllChats(query: { page?: number; limit?: number; status?: string }) {
-    const { page = 1, limit = 10, status } = query;
+  static async listAllChats(query: { page?: number; limit?: number; status?: string; clientId?: string }) {
+    const { page = 1, limit = 10, status, clientId } = query;
     const skip = (page - 1) * limit;
     const filter: any = {};
     if (status) filter.status = status;
+    if (clientId) filter.clientId = clientId;
     const [items, total] = await Promise.all([
       ChatModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('clientId', 'name companyName').lean(),
       ChatModel.countDocuments(filter),
@@ -173,13 +176,15 @@ export class AdminDashboardService {
     return { inquiries, total, page, limit, pages: Math.ceil(total / limit) };
   }
 
-  static async listAllUnanswered(query: { page?: number; limit?: number }) {
-    const { page = 1, limit = 10 } = query;
+  static async listAllUnanswered(query: { page?: number; limit?: number; clientId?: string }) {
+    const { page = 1, limit = 10, clientId } = query;
     const skip = (page - 1) * limit;
+    const filter: any = {};
+    if (clientId) filter.clientId = clientId;
     const { UnansweredModel } = await import('../unanswered/unanswered.model.js');
     const [items, total] = await Promise.all([
-      UnansweredModel.find().sort({ createdAt: -1 }).skip(skip).limit(limit).populate('clientId', 'name companyName').lean(),
-      UnansweredModel.countDocuments(),
+      UnansweredModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('clientId', 'name companyName').lean(),
+      UnansweredModel.countDocuments(filter),
     ]);
     const questions = items.map((item: any) => ({ ...item, id: item._id.toString() }));
     return { questions, total, page, limit, pages: Math.ceil(total / limit) };
