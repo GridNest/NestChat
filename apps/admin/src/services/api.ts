@@ -458,8 +458,8 @@ class AdminApi {
   }
 
   // Reports
-  async exportReport(type: string, startDate: string, endDate: string) {
-    const clientId = await this.getCurrentClientId();
+  async exportReport(type: string, startDate: string, endDate: string, selectedClientId?: string) {
+    const clientId = selectedClientId || await this.getCurrentClientId();
     const response = await this.client.get(`/reports/${clientId}/export`, {
       params: { type, startDate, endDate },
       responseType: 'blob',
@@ -467,8 +467,8 @@ class AdminApi {
     return response;
   }
 
-  async getReportPreview(type: string, startDate: string, endDate: string) {
-    const clientId = await this.getCurrentClientId();
+  async getReportPreview(type: string, startDate: string, endDate: string, selectedClientId?: string) {
+    const clientId = selectedClientId || await this.getCurrentClientId();
     const response = await this.client.get(`/reports/${clientId}/preview`, {
       params: { type, startDate, endDate },
     });

@@ -35,10 +35,11 @@ export class ReportsService {
   }
 
   private async generateChatsReport(clientId: string, startDate: Date, endDate: Date) {
-    const chats = await ChatAnalytics.find({
-      clientId,
+    const filter: any = {
       startTime: { $gte: startDate, $lte: endDate },
-    }).sort({ startTime: -1 }).lean();
+    };
+    if (clientId) filter.clientId = clientId;
+    const chats = await ChatAnalytics.find(filter).sort({ startTime: -1 }).lean();
 
     const headers = [
       'Date',
@@ -68,11 +69,12 @@ export class ReportsService {
   }
 
   private async generateLeadsReport(clientId: string, startDate: Date, endDate: Date) {
-    const inquiries = await InquiryModel.find({
-      clientId,
+    const filter: any = {
       createdAt: { $gte: startDate, $lte: endDate },
       status: { $in: ['new', 'contacted', 'qualified'] },
-    }).sort({ createdAt: -1 }).lean();
+    };
+    if (clientId) filter.clientId = clientId;
+    const inquiries = await InquiryModel.find(filter).sort({ createdAt: -1 }).lean();
 
     const headers = [
       'Date',
@@ -100,11 +102,12 @@ export class ReportsService {
   }
 
   private async generateVisitorsReport(clientId: string, startDate: Date, endDate: Date) {
-    const analytics = await Analytics.find({
-      clientId,
+    const filter: any = {
       date: { $gte: startDate, $lte: endDate },
       period: 'daily',
-    }).sort({ date: 1 }).lean();
+    };
+    if (clientId) filter.clientId = clientId;
+    const analytics = await Analytics.find(filter).sort({ date: 1 }).lean();
 
     const headers = [
       'Date',
@@ -136,7 +139,9 @@ export class ReportsService {
   }
 
   private async generateKnowledgeReport(clientId: string, startDate: Date, endDate: Date) {
-    const knowledge = await KnowledgeModel.find({ clientId }).lean();
+    const filter: any = {};
+    if (clientId) filter.clientId = clientId;
+    const knowledge = await KnowledgeModel.find(filter).lean();
 
     const headers = [
       'Title',
@@ -158,7 +163,9 @@ export class ReportsService {
   }
 
   private async generateFAQReport(clientId: string, startDate: Date, endDate: Date) {
-    const faqs = await FAQModel.find({ clientId }).lean();
+    const filter: any = {};
+    if (clientId) filter.clientId = clientId;
+    const faqs = await FAQModel.find(filter).lean();
 
     const headers = [
       'Question',
@@ -180,10 +187,11 @@ export class ReportsService {
   }
 
   private async generateInquiriesReport(clientId: string, startDate: Date, endDate: Date) {
-    const inquiries = await InquiryModel.find({
-      clientId,
+    const filter: any = {
       createdAt: { $gte: startDate, $lte: endDate },
-    }).sort({ createdAt: -1 }).lean();
+    };
+    if (clientId) filter.clientId = clientId;
+    const inquiries = await InquiryModel.find(filter).sort({ createdAt: -1 }).lean();
 
     const headers = [
       'Date',
@@ -216,10 +224,11 @@ export class ReportsService {
 
   private async generateUnansweredReport(clientId: string, startDate: Date, endDate: Date) {
     const UnansweredModel = (await import('../unanswered/unanswered.model.js')).UnansweredModel;
-    const items = await UnansweredModel.find({
-      clientId,
+    const filter: any = {
       lastAsked: { $gte: startDate, $lte: endDate },
-    }).sort({ count: -1 }).lean();
+    };
+    if (clientId) filter.clientId = clientId;
+    const items = await UnansweredModel.find(filter).sort({ count: -1 }).lean();
 
     const headers = ['Question', 'Count', 'First Asked', 'Last Asked', 'Confidence', 'Reason', 'Converted To FAQ'];
     const data = items.map((item: any) => [
@@ -235,11 +244,12 @@ export class ReportsService {
   }
 
   private async generatePerformanceReport(clientId: string, startDate: Date, endDate: Date) {
-    const analytics = await Analytics.find({
-      clientId,
+    const filter: any = {
       date: { $gte: startDate, $lte: endDate },
       period: 'daily',
-    }).sort({ date: 1 }).lean();
+    };
+    if (clientId) filter.clientId = clientId;
+    const analytics = await Analytics.find(filter).sort({ date: 1 }).lean();
 
     const headers = ['Date', 'Visitors', 'Chats', 'Inquiries', 'Answered Questions', 'Unanswered Questions', 'Avg Confidence %'];
     const data = analytics.map((a: any) => [

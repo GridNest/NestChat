@@ -1,7 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { adminApi } from '../../services/api';
+import { useAuthStore } from '../../store/authStore';
 
 type ReportType = 'chats' | 'leads' | 'visitors' | 'knowledge' | 'faq' | 'inquiries';
+
+interface Client {
+  _id: string;
+  name: string;
+}
 
 const reportTypes: Array<{ value: ReportType; label: string; description: string }> = [
   { value: 'chats', label: 'Chat Reports', description: 'Conversation details and metrics' },
@@ -13,6 +19,8 @@ const reportTypes: Array<{ value: ReportType; label: string; description: string
 ];
 
 export function ReportsPage() {
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'admin';
   const [selectedType, setSelectedType] = useState<ReportType>('chats');
   const [startDate, setStartDate] = useState(
     new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
@@ -20,11 +28,22 @@ export function ReportsPage() {
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<any>(null);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [selectedClientId, setSelectedClientId] = useState<string>('');
+
+  useEffect(() => {
+    if (isAdmin) {
+      adminApi.getClients().then((res: any) => {
+        const list = res.data?.data || res.data || [];
+        setClients(list);
+      }).catch(() => {});
+    }
+  }, []);
 
   const handlePreview = async () => {
     try {
       setLoading(true);
-      const response = await adminApi.getReportPreview(selectedType, startDate, endDate);
+      const response = await adminApi.getReportPreview(selectedType, startDate, endDate, selectedClientId);
       setPreview(response.data);
     } catch (error) {
       console.error('Failed to preview report:', error);
@@ -36,7 +55,7 @@ export function ReportsPage() {
   const handleExport = async () => {
     try {
       setLoading(true);
-      const response = await adminApi.exportReport(selectedType, startDate, endDate);
+      const response = await adminApi.exportReport(selectedType, startDate, endDate, selectedClientId);
       
       const blob = new Blob([response.data], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
@@ -62,7 +81,26 @@ export function ReportsPage() {
       </div>
 
       <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {isAdmin && (
+            <div>
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
+                Client
+              </label>
+              <select
+                value={selectedClientId}
+                onChange={(e) => setSelectedClientId(e.target.value)}
+                className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm bg-white min-h-[44px]"
+              >
+                <option value="">All Clients</option>
+                {clients.map((client) => (
+                  <option key={client._id} value={client._id}>
+                    {client.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div>
             <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
               Report Type
