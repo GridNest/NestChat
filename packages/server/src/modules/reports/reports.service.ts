@@ -5,6 +5,10 @@ import { InquiryModel } from '../inquiry/inquiry.model.js';
 import { KnowledgeModel } from '../knowledge/knowledge.model.js';
 import { FAQModel } from '../faq/faq.model.js';
 
+function isValidClientId(clientId?: string): boolean {
+  return !!clientId && clientId !== 'all' && clientId !== 'global' && clientId !== 'undefined' && clientId !== 'null';
+}
+
 export class ReportsService {
   async generateReport(
     clientId: string,
@@ -38,7 +42,7 @@ export class ReportsService {
     const filter: any = {
       startTime: { $gte: startDate, $lte: endDate },
     };
-    if (clientId) filter.clientId = clientId;
+    if (isValidClientId(clientId)) filter.clientId = clientId;
     const chats = await ChatAnalytics.find(filter).sort({ startTime: -1 }).lean();
 
     const headers = [
@@ -73,7 +77,7 @@ export class ReportsService {
       createdAt: { $gte: startDate, $lte: endDate },
       status: { $in: ['new', 'contacted', 'qualified'] },
     };
-    if (clientId) filter.clientId = clientId;
+    if (isValidClientId(clientId)) filter.clientId = clientId;
     const inquiries = await InquiryModel.find(filter).sort({ createdAt: -1 }).lean();
 
     const headers = [
@@ -106,7 +110,7 @@ export class ReportsService {
       date: { $gte: startDate, $lte: endDate },
       period: 'daily',
     };
-    if (clientId) filter.clientId = clientId;
+    if (isValidClientId(clientId)) filter.clientId = clientId;
     const analytics = await Analytics.find(filter).sort({ date: 1 }).lean();
 
     const headers = [
@@ -140,7 +144,7 @@ export class ReportsService {
 
   private async generateKnowledgeReport(clientId: string, startDate: Date, endDate: Date) {
     const filter: any = {};
-    if (clientId) filter.clientId = clientId;
+    if (isValidClientId(clientId)) filter.clientId = clientId;
     const knowledge = await KnowledgeModel.find(filter).lean();
 
     const headers = [
@@ -164,7 +168,7 @@ export class ReportsService {
 
   private async generateFAQReport(clientId: string, startDate: Date, endDate: Date) {
     const filter: any = {};
-    if (clientId) filter.clientId = clientId;
+    if (isValidClientId(clientId)) filter.clientId = clientId;
     const faqs = await FAQModel.find(filter).lean();
 
     const headers = [
@@ -190,7 +194,7 @@ export class ReportsService {
     const filter: any = {
       createdAt: { $gte: startDate, $lte: endDate },
     };
-    if (clientId) filter.clientId = clientId;
+    if (isValidClientId(clientId)) filter.clientId = clientId;
     const inquiries = await InquiryModel.find(filter).sort({ createdAt: -1 }).lean();
 
     const headers = [
@@ -227,7 +231,7 @@ export class ReportsService {
     const filter: any = {
       lastAsked: { $gte: startDate, $lte: endDate },
     };
-    if (clientId) filter.clientId = clientId;
+    if (isValidClientId(clientId)) filter.clientId = clientId;
     const items = await UnansweredModel.find(filter).sort({ count: -1 }).lean();
 
     const headers = ['Question', 'Count', 'First Asked', 'Last Asked', 'Confidence', 'Reason', 'Converted To FAQ'];
@@ -248,7 +252,7 @@ export class ReportsService {
       date: { $gte: startDate, $lte: endDate },
       period: 'daily',
     };
-    if (clientId) filter.clientId = clientId;
+    if (isValidClientId(clientId)) filter.clientId = clientId;
     const analytics = await Analytics.find(filter).sort({ date: 1 }).lean();
 
     const headers = ['Date', 'Visitors', 'Chats', 'Inquiries', 'Answered Questions', 'Unanswered Questions', 'Avg Confidence %'];

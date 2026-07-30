@@ -457,10 +457,10 @@ class AdminApi {
     return response.data;
   }
 
-  // Reports
   async exportReport(type: string, startDate: string, endDate: string, selectedClientId?: string) {
     const clientId = selectedClientId || await this.getCurrentClientId();
-    const response = await this.client.get(`/reports/${clientId}/export`, {
+    const endpoint = clientId && clientId !== 'all' ? `/reports/${clientId}/export` : `/reports/export`;
+    const response = await this.client.get(endpoint, {
       params: { type, startDate, endDate },
       responseType: 'blob',
     });
@@ -469,7 +469,8 @@ class AdminApi {
 
   async getReportPreview(type: string, startDate: string, endDate: string, selectedClientId?: string) {
     const clientId = selectedClientId || await this.getCurrentClientId();
-    const response = await this.client.get(`/reports/${clientId}/preview`, {
+    const endpoint = clientId && clientId !== 'all' ? `/reports/${clientId}/preview` : `/reports/preview`;
+    const response = await this.client.get(endpoint, {
       params: { type, startDate, endDate },
     });
     return response.data;
