@@ -38,9 +38,9 @@ export function ClientList() {
       if (search) params.search = search;
       if (statusFilter) params.status = statusFilter;
 
-      const response = await adminApi.getClients(params);
-      const clientList = response.clients || response.data?.clients || (Array.isArray(response) ? response : []);
-      const totalCount = response.total || response.data?.total || 0;
+      const response: any = await adminApi.getClients(params);
+      const clientList = response?.clients || response?.data?.clients || (Array.isArray(response) ? response : []);
+      const totalCount = response?.total || response?.data?.total || 0;
       setClients(clientList);
       setTotal(totalCount);
     } catch (error) {

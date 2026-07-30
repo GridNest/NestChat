@@ -42,6 +42,7 @@ export function UserList() {
         search,
         role: roleFilter,
       });
+      const resData = response?.data || response;
       const rawList = resData?.users || resData?.data?.users || (Array.isArray(resData) ? resData : []);
       const mapped = (Array.isArray(rawList) ? rawList : []).map((u: any) => ({
         ...u,
