@@ -45,7 +45,8 @@ export function InquiryList() {
   const fetchClients = async () => {
     try {
       const res = await adminApi.getClients({ limit: '100' });
-      setClients(res.data?.clients || []);
+      const clientList = res.clients || res.data?.clients || (Array.isArray(res) ? res : []);
+      setClients(clientList);
     } catch (error) {
       console.error('Failed to fetch client options:', error);
     }

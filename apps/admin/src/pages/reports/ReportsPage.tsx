@@ -34,9 +34,11 @@ export function ReportsPage() {
   useEffect(() => {
     if (isAdmin) {
       adminApi.getClients().then((res: any) => {
-        const list = res.data?.data || res.data || [];
-        setClients(list);
-      }).catch(() => {});
+        const list = res.data?.clients || res.clients || res.data?.data || (Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []));
+        setClients(Array.isArray(list) ? list : []);
+      }).catch(() => {
+        setClients([]);
+      });
     }
   }, []);
 
@@ -175,7 +177,7 @@ export function ReportsPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  {preview.headers.map((header: string, index: number) => (
+                  {(Array.isArray(preview.headers) ? preview.headers : []).map((header: string, index: number) => (
                     <th
                       key={index}
                       className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -186,9 +188,9 @@ export function ReportsPage() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {preview.rows.map((row: any[], rowIndex: number) => (
+                {(Array.isArray(preview.rows) ? preview.rows : []).map((row: any[], rowIndex: number) => (
                   <tr key={rowIndex}>
-                    {row.map((cell, cellIndex) => (
+                    {(Array.isArray(row) ? row : []).map((cell, cellIndex) => (
                       <td key={cellIndex} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {cell}
                       </td>

@@ -152,7 +152,7 @@ export function Dashboard() {
         </>
       )}
 
-      {isSuperAdmin && stats.recentActivities && (
+      {isSuperAdmin && Array.isArray(stats.recentActivities) && (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
           <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Recent Activities</h2>
           <div className="space-y-3">

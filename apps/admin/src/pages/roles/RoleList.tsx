@@ -70,7 +70,7 @@ export function RoleList() {
       label: 'Permissions',
       render: (item: Role) => (
         <div className="flex flex-wrap gap-1 max-w-sm">
-          {item.permissions.map((p, idx) => (
+          {(Array.isArray(item.permissions) ? item.permissions : []).map((p, idx) => (
             <span key={idx} className="px-2 py-0.5 text-[11px] bg-gray-100 text-gray-700 rounded-md">
               {p}
             </span>

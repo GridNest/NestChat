@@ -32,7 +32,8 @@ export function FAQForm() {
   const fetchClients = async () => {
     try {
       const response = await adminApi.getClients({ page: '1', limit: '100' });
-      setClients(response.data.clients.map((c: any) => ({ id: c.id, name: c.name })));
+      const clientList = response.clients || response.data?.clients || (Array.isArray(response) ? response : []);
+      setClients(clientList.map((c: any) => ({ id: c.id || c._id, name: c.name || c.companyName })));
     } catch {
       console.error('Failed to fetch clients');
     }
