@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { AgentModel, AgentDocument } from './agent.model.js';
 import { ChatModel } from '../chat/chat.model.js';
 import { ApiError } from '../../utils/apiError.js';
