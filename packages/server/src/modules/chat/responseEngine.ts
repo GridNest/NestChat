@@ -3,7 +3,7 @@ import { LanguageEngine, Language } from './languageEngine.js';
 import { IntentDetector, Intent } from './intentDetector.js';
 import { DEFAULT_QUICK_ACTIONS } from '@nestchat/shared';
 import { InquiryEngine } from '../inquiry/inquiryEngine.js';
-import { GroqService } from './groqService.js';
+import { GroqService, cleanResponseText } from './groqService.js';
 import { RagService } from './ragService.js';
 
 import { FAQModel } from '../faq/faq.model.js';
@@ -198,64 +198,7 @@ export class ResponseEngine {
       }
     }
 
-    // Requirement 1: Menu Dedicated Workflow
-    if (intent.intent === 'menu') {
-      const clientObjIds = await this.resolveClientIds(clientId);
-      const menuItems = await WebsiteContentModel.find({
-        clientId: { $in: clientObjIds },
-        contentType: { $in: ['menu_item', 'pricing'] },
-        isDeleted: false,
-      }).limit(12).lean();
-
-      if (menuItems.length > 0) {
-        const formattedList = menuItems.map(m => `• ${m.title || m.content.slice(0, 60)}`).join('\n');
-        const content = language === 'hi'
-          ? `🍽️ Hamari menu ki mukhya jhalak:\n\n${formattedList}\n\nKya aap kisi specific item ke daam ya details janna chahte hain?`
-          : `🍽️ Here is a highlight of our menu items:\n\n${formattedList}\n\nWould you like more details or prices for any item?`;
-        return {
-          content,
-          messageType: 'text',
-          metadata: { matchedType: 'knowledge', confidence: 0.9 },
-        };
-      }
-    }
-
-    // ── LAYER 1: FAQ Priority (exact match, no Groq needed) ──────────────────
-    if (intent.intent === 'faq') {
-      const faqMatch = await KnowledgeEngine.search({ clientId, language, query });
-      if (faqMatch.found) {
-        return this.buildMatchResponse(faqMatch, language, clientId, query);
-      }
-    }
-
-    // ── LAYER 2: Knowledge Engine (FAQ + KB + Website Content keyword search) ─
-    let match = await KnowledgeEngine.search({ clientId, language, query });
-
-    // Layer 2b: Contextual re-match using last user message
-    if (!match.found && conversationHistory && conversationHistory.length > 0) {
-      const lastUserMsg = conversationHistory.filter(m => m.sender === 'user').pop();
-      if (lastUserMsg && lastUserMsg.content && lastUserMsg.content.trim() !== query.trim()) {
-        const contextualQuery = `${lastUserMsg.content.trim()} ${query.trim()}`;
-        const contextMatch = await KnowledgeEngine.search({ clientId, language, query: contextualQuery });
-        if (contextMatch.found) match = contextMatch;
-      }
-    }
-
-    // Layer 2c: Follow-up resolution (e.g., "how much?" after bot described a service)
-    if (!match.found && conversationHistory && conversationHistory.length >= 2) {
-      const lastBotMsg = [...conversationHistory].reverse().find(m => m.sender === 'bot');
-      if (lastBotMsg && this.isFollowUpQuery(query)) {
-        const combinedQuery = `${lastBotMsg.content} ${query}`;
-        const followUpMatch = await KnowledgeEngine.search({ clientId, language, query: combinedQuery });
-        if (followUpMatch.found) match = followUpMatch;
-      }
-    }
-
-    if (match.found && match.type !== 'quickAction') {
-      return this.buildMatchResponse(match, language, clientId, query);
-    }
-
-    // ── LAYER 3: RAG — Semantic vector search + Groq (primary AI path) ───────
+    // ── KNOWLEDGE UNDERSTANDING & RESPONSE GENERATION PIPELINE ──────────────
 
     const clientConfig = await ClientConfigModel.findOne({
       clientId: { $in: await this.resolveClientIds(clientId) }
@@ -264,25 +207,85 @@ export class ResponseEngine {
     const aiEnabled = clientConfig ? (clientConfig as any).enableAI !== false : true;
 
     if (aiEnabled) {
-      // 3a: Try RAG pipeline first
+      // 1. Try RAG semantic vector search first
       const ragResult = await this.generateResponseWithRAG({
         clientId, language, query, clientName, conversationHistory, intent: intent.intent,
       });
-      if (ragResult) return ragResult;
+      if (ragResult && ragResult.metadata.confidence > 0.3) {
+        return ragResult;
+      }
 
-      // 3b: Fall back to legacy Groq with full context if no embeddings exist
+      // 2. Keyword Search in Knowledge Engine for relevant context
+      let match = await KnowledgeEngine.search({ clientId, language, query });
+
+      // Contextual re-match using last user message for follow-ups
+      if (!match.found && conversationHistory && conversationHistory.length > 0) {
+        const lastUserMsg = conversationHistory.filter(m => m.sender === 'user').pop();
+        if (lastUserMsg && lastUserMsg.content && lastUserMsg.content.trim() !== query.trim()) {
+          const contextualQuery = `${lastUserMsg.content.trim()} ${query.trim()}`;
+          const contextMatch = await KnowledgeEngine.search({ clientId, language, query: contextualQuery });
+          if (contextMatch.found) match = contextMatch;
+        }
+      }
+
+      if (!match.found && conversationHistory && conversationHistory.length >= 2) {
+        const lastBotMsg = [...conversationHistory].reverse().find(m => m.sender === 'bot');
+        if (lastBotMsg && this.isFollowUpQuery(query)) {
+          const combinedQuery = `${lastBotMsg.content} ${query}`;
+          const followUpMatch = await KnowledgeEngine.search({ clientId, language, query: combinedQuery });
+          if (followUpMatch.found) match = followUpMatch;
+        }
+      }
+
+      // 3. If Knowledge Engine found matching context, route through LLM synthesis (do NOT dump verbatim match!)
+      if (match.found && match.type !== 'quickAction' && match.answer) {
+        const clientObjIds = await this.resolveClientIds(clientId);
+        const client = await ClientModel.findOne({ _id: { $in: clientObjIds } }).lean();
+
+        const synthesizedResult = await GroqService.generateCompletion({
+          clientName,
+          companyName: (client as any)?.companyName || clientName,
+          botName: (client as any)?.botName || 'Assistant',
+          language,
+          query: this.buildContextAwareQuery(query, conversationHistory),
+          intent: intent.intent,
+          ragContext: `Matched Context (${match.matchedTitle || match.type}):\n${match.answer}`,
+          conversationHistory,
+          isRAGMode: true,
+        });
+
+        if (synthesizedResult && !synthesizedResult.isUnknown) {
+          return {
+            content: synthesizedResult.content,
+            messageType: 'text',
+            metadata: {
+              matchedType: match.type,
+              matchedId: match.matchedId,
+              confidence: synthesizedResult.confidence,
+            },
+          };
+        }
+      }
+
+      // 4. Try Full Context Groq fallback if no specific match was found
       const legacyResult = await this.generateGroqWithFullContext({
         clientId, language, query, clientName, conversationHistory, intent: intent.intent,
       });
       if (legacyResult) return legacyResult;
+
+      // Handle quickAction match
+      if (match.found && match.type === 'quickAction') {
+        return this.buildMatchResponse(match, language, clientId, query);
+      }
+    } else {
+      // Non-AI fallback mode (when enableAI is explicitly false)
+      let match = await KnowledgeEngine.search({ clientId, language, query });
+      if (match.found) {
+        return this.buildMatchResponse(match, language, clientId, query);
+      }
     }
 
-    // Handle quickAction match (after AI attempt, so AI can answer if content available)
-    if (match.found && match.type === 'quickAction') {
-      return this.buildMatchResponse(match, language, clientId, query);
-    }
-
-    // ── LAYER 4: Inquiry Fallback ─────────────────────────────────────────────
+    // Default permission / inquiry fallback
     return this.buildPermissionResponse(language);
   }
 
@@ -505,7 +508,8 @@ export class ResponseEngine {
 
   private static buildMatchResponse(match: KnowledgeMatch, language: Language, clientId: string, query: string): BotResponse {
     if (match.type === 'faq' || match.type === 'knowledge') {
-      const content = language === 'hi' && match.answerHi ? match.answerHi : match.answer || '';
+      const rawContent = language === 'hi' && match.answerHi ? match.answerHi : match.answer || '';
+      const content = cleanResponseText(rawContent);
 
       return {
         content,

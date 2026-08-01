@@ -57,6 +57,30 @@ function cleanScrapedContent(raw: string): string {
 }
 
 /**
+ * Cleans the final AI response text before sending to the client/chat widget.
+ * Ensures users NEVER see raw markdown syntax (#, **, _), raw tags ([MENU_ITEM]), or code fences.
+ */
+export function cleanResponseText(text: string): string {
+  if (!text) return '';
+  return text
+    // Remove raw bracket tags like [MENU_ITEM], [PRICING], [STRUCTURED DATA], [SECTION], [CTA]
+    .replace(/\[[A-Z_ ]+\]/g, '')
+    // Remove markdown heading syntax (# Header, ## Header, ### Header)
+    .replace(/^#{1,6}\s+/gm, '')
+    // Replace markdown bold and italic formatting (**text**, *text*, __text__, _text_)
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    .replace(/_([^_]+)_/g, '$1')
+    // Remove code blocks and backticks
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/`([^`]+)`/g, '$1')
+    // Normalize excessive newlines
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+/**
  * Deduplicate content lines — removes repeated identical paragraphs that
  * commonly appear on pages (e.g. footer text copied multiple times).
  */
@@ -136,9 +160,11 @@ export class GroqService {
       }
 
       const data = await response.json();
-      const answer = data.choices?.[0]?.message?.content?.trim();
+      const rawAnswer = data.choices?.[0]?.message?.content?.trim();
 
-      if (!answer) return null;
+      if (!rawAnswer) return null;
+
+      const answer = cleanResponseText(rawAnswer);
 
       const lowerAnswer = answer.toLowerCase();
       const isUnknown =
@@ -174,14 +200,14 @@ export class GroqService {
   // ─── RAG System Prompt (Primary) ───────────────────────────────────────────
 
   /**
-   * Strict RAG-mode prompt. Used when semantic chunks have been retrieved.
-   * Groq ONLY uses the provided context — no general knowledge, no hallucination.
+   * Strict RAG-mode Knowledge Understanding prompt.
+   * Groq ONLY uses the provided context — understands context, extracts answers, never copies verbatim or exposes markdown.
    */
   private static buildRAGSystemPrompt(options: GroqContextOptions): string {
     const {
       clientName, companyName, botName, language, ragContext, websiteType,
       businessHours, contactEmail, contactPhone, contactAddress, websiteUrl,
-      faqs, conversationHistory,
+      faqs, conversationHistory, intent,
     } = options;
 
     const name = companyName || clientName;
@@ -201,57 +227,72 @@ export class GroqService {
       .join('\n\n');
 
     const languageRule = language === 'hi'
-      ? 'Reply ONLY in Hindi or natural Hinglish (Hindi-English mix). Never reply in English only.'
+      ? 'Reply ONLY in natural Hindi / Hinglish. Never reply in pure English.'
       : 'Reply ONLY in English. Do not switch to other languages.';
 
-    const industryGoalGuidance: Record<string, string> = {
-      restaurant: 'Goal: Help visitors explore the menu, check pricing/dishes, and guide them to reserve a table or request an inquiry.',
-      hotel: 'Goal: Assist visitors with room options, amenities, and guide them to book a stay or submit a reservation inquiry.',
-      hospital: 'Goal: Help visitors with medical specialties, doctors, timings, and guide them to book an appointment or submit an inquiry.',
-      clinic: 'Goal: Help visitors with consultation services, doctor hours, and guide them to book an appointment or submit an inquiry.',
-      school: 'Goal: Help parents/students with courses, admission fees, and guide them to submit an admission inquiry.',
-      corporate: 'Goal: Help visitors understand services, pricing plans, and guide them to request a demo or business inquiry.',
-      ecommerce: 'Goal: Help visitors with product specs, pricing, and guide them to make a purchase or product inquiry.',
-      real_estate: 'Goal: Help visitors with property listings, location, pricing, and guide them to schedule a site visit or inquiry.',
-      salon: 'Goal: Help visitors with grooming services, price list, and guide them to book an appointment or inquiry.',
-    };
+    const intentHint = intent && intent !== 'unknown'
+      ? `\nDetected User Intent: "${intent}". Target your response specifically to this intent.`
+      : '';
 
-    const typeKey = (websiteType || 'corporate').toLowerCase().replace(/[^a-z0-9_]/g, '_');
-    const goalGuidance = industryGoalGuidance[typeKey] || industryGoalGuidance['corporate'];
+    return `You are "${bot}", the official AI Assistant for "${name}". You behave like ChatGPT — intelligent, empathetic, natural, and highly context-aware.
 
-    return `You are "${bot}", the official AI Sales & Support Assistant for "${name}".
+=== PERMANENT SYSTEM PROMPT — KNOWLEDGE UNDERSTANDING & RESPONSE GENERATION ===
 
-=== INDUSTRY PERSONA & GOAL ===
-Industry Category: ${websiteType || 'Corporate Business'}
-${goalGuidance}
+1. KNOWLEDGE IS CONTEXT ONLY — NEVER COPY OR DUMP:
+   - The knowledge provided below is strictly reference context for your UNDERSTANDING.
+   - Do NOT copy, paste, or output raw articles, markdown files, or scraped pages verbatim.
+   - Read the context, extract only what is needed, understand it, and write a fresh, conversational answer in your own natural words.
 
-Your ONLY job is to answer questions about "${name}" using the company knowledge provided below.
+2. STRICTLY NO RAW MARKDOWN OR INTERNAL TAGS:
+   - Users must NEVER see raw markdown syntax (no # headers, no **bold** asterisks, no italic underscores, no code blocks).
+   - Users must NEVER see internal system tags, scraped prefixes, or metadata like [MENU_ITEM], [PRICING], [STRUCTURED DATA], or [SECTION].
+   - Return clean, human conversational text. Use simple bullet points (•) for clean list items.
 
-${contactInfo ? `=== CONTACT & HOURS ===\n${contactInfo}\n` : ''}
-${faqContext ? `=== FAQs ===\n${faqContext}\n` : ''}
-=== COMPANY KNOWLEDGE (retrieved for this question) ===
-${ragContext || 'No specific knowledge found for this query.'}
+3. QUESTION-BASED RESPONSE SCOPING & ADAPTIVE LENGTH:
+   - Always adjust response scope and depth directly based on user intent:
+     • Greeting -> Return friendly greeting only.
+     • Menu / Catalog / Services request -> Present high-level categories or main summary ONLY. Do NOT dump all individual items.
+     • Specific Category request -> Return items/info for that specific category ONLY.
+     • Specific Item request -> Return details for that specific item ONLY (e.g., if asking about Paneer Momos, talk only about Paneer Momos).
+     • Pricing request -> Return pricing information ONLY.
+     • Contact / Hours / Location -> Return precise contact/location info ONLY.
+     • Booking -> Direct user politely towards booking/inquiry workflow.
+     • FAQ -> Return concise, direct answer.
+     • Unknown Question -> Politely inform user that details aren't in knowledge base and offer team follow-up.
+   - Match response length to question complexity: short questions get short answers (1-3 sentences); medium/long questions get summarized, structured answers. NEVER dump a full article.
 
-=== STRICT RULES — FOLLOW EXACTLY ===
-1. ${languageRule}
-2. Answer ONLY from the company knowledge above. Do NOT use general knowledge.
-3. NEVER invent or guess: products, services, prices, menu items, policies, hours, contact details, or staff names.
-4. NEVER show navigation text, CTA button text, or HTML/code in your response.
-5. NEVER repeat the same sentence or paragraph twice.
-6. If the answer is NOT in the knowledge above, respond EXACTLY with:
-   - English: "I'm sorry, I couldn't find that information. Would you like our team to contact you?"
-   - Hindi: "Mujhe yeh jaankari nahi mili. Kya aap chahenge ki hamari team aapko contact kare?"
-7. Keep responses concise: 2–5 sentences for most questions. Use bullet points for lists.
-8. NEVER mention OpenAI, Groq, Llama, or any AI model or tool name.
-9. Do NOT assume the business type — infer it from the knowledge provided above.
-10. If answering a follow-up (e.g., "how much?") — resolve it from the conversation context above.`;
+4. CONTEXT FILTERING:
+   - Identify topic, intent, entities, and relevant sections from the context.
+   - Silently ignore unrelated sections or unrelated products/services in the retrieved knowledge.
+   - If multiple relevant context pieces exist, merge and synthesize them smoothly into one coherent answer.
+
+5. DYNAMIC MULTI-INDUSTRY & FOLLOW-UP CONTINUITY:
+   - Infer the business type dynamically from the context (Restaurant, Hotel, Clinic, Hospital, School, College, Salon, Real Estate, E-Commerce, Corporate, etc.). Never hardcode or assume business categories without evidence in context.
+   - Maintain context of the conversation history. Resolve follow-up queries (e.g. "how much is it?", "tell me about Paneer Momos") by using the prior conversation turns.
+
+6. ABSOLUTE TRUTHFULNESS:
+   - ${languageRule}
+   - Answer ONLY using the company information provided. Never invent prices, staff names, features, or policies.
+   - If information is missing from context, respond EXACTLY with:
+     English: "I'm sorry, I couldn't find that specific information in our knowledge base. Would you like our team to contact you directly?"
+     Hindi: "Mujhe yeh jaankari nahi mili. Kya aap chahenge ki hamari team aapko contact kare?"
+${intentHint}
+
+=== CONTACT & HOURS ===
+${contactInfo || 'Not specified'}
+
+=== FAQs ===
+${faqContext || 'None'}
+
+=== RETRIEVED KNOWLEDGE CONTEXT ===
+${ragContext || 'No specific knowledge retrieved for this query.'}`;
   }
 
   // ─── Legacy System Prompt (Fallback) ──────────────────────────────────────
 
   /**
    * Legacy prompt used when RAG chunks are not available (e.g., embeddings not yet generated).
-   * Sends cleaned website content directly. Preserved for backward compatibility.
+   * Sends cleaned website content directly to Groq for Knowledge Understanding synthesis.
    */
   private static buildSystemPrompt(options: GroqContextOptions): string {
     const {
@@ -265,11 +306,10 @@ ${ragContext || 'No specific knowledge found for this query.'}
       .join('\n\n');
 
     const kbContext = (knowledgeItems || [])
-      .filter(k => !k.tags?.includes?.('rag_chunk'))  // Skip RAG chunks in legacy mode
+      .filter(k => !k.tags?.includes?.('rag_chunk'))
       .map(k => `${k.title}: ${truncate(k.content, 400)}`)
       .join('\n\n');
 
-    // Clean and deduplicate website content
     const cleanedWebContent = (websiteContent || [])
       .slice(0, 15)
       .map(w => {
@@ -294,12 +334,25 @@ ${ragContext || 'No specific knowledge found for this query.'}
     ].filter(Boolean).join('\n');
 
     const intentGuidance = intent && intent !== 'unknown'
-      ? `\nThe user's intent appears to be: "${intent}". Focus your answer on this topic.`
+      ? `\nUser intent: "${intent}". Focus your synthesized answer on this intent.`
       : '';
 
-    return `You are "${botName || 'Assistant'}", the official AI chatbot for "${companyName || clientName}". You help visitors of this business's website with their questions.
+    return `You are "${botName || 'Assistant'}", the official AI chatbot for "${companyName || clientName}". You behave like ChatGPT.
 
-IMPORTANT: You do NOT know the type of this business in advance. Figure it out from the context provided below. This business may be a web agency, hotel, restaurant, school, hospital, e-commerce store, or anything else. Do NOT assume it's a restaurant or hotel just because chatbot templates exist for those.
+=== PERMANENT SYSTEM PROMPT — KNOWLEDGE UNDERSTANDING & RESPONSE GENERATION ===
+
+1. UNDERSTAND KNOWLEDGE, DO NOT COPY: The business information below is for reference context only. Read, understand, extract the answer, and reply in a natural, conversational voice. Never dump whole articles or raw scraped text verbatim.
+2. ABSOLUTELY NO MARKDOWN SYNTAX OR METADATA TAGS: Do not output # headers, **bold** stars, or raw tags like [MENU_ITEM], [PRICING], [STRUCTURED DATA]. Use plain text with simple bullet points (•) for lists.
+3. QUESTION-BASED RESPONSE SCOPING:
+   - Greeting -> Friendly greeting only.
+   - Menu / Services / Catalog -> Present main categories or high-level overview ONLY.
+   - Specific Category or Item -> Answer ONLY for that target category/item.
+   - Pricing / Contact / Hours -> Return concise pricing/contact details ONLY.
+   - Keep answers short for simple questions, summarized for medium/long questions. Never dump entire knowledge items.
+4. MULTI-INDUSTRY & MULTI-TURN CONTINUITY:
+   - Infer the business domain dynamically from the context.
+   - Support follow-up questions using conversation history.
+5. TRUTHFULNESS: Reply ONLY in ${language === 'hi' ? 'Hindi or Hinglish' : 'English'}. If information is missing, say: "I couldn't find that specific information in our knowledge base. Would you like our team to contact you?"
 
 === BUSINESS INFORMATION ===
 ${businessInfo || 'Not provided'}
@@ -310,19 +363,8 @@ ${faqContext || 'None'}
 === KNOWLEDGE BASE ===
 ${kbContext || 'None'}
 
-=== WEBSITE CONTENT (from website scan) ===
-${cleanedWebContent || 'None'}${intentGuidance}
-
-=== STRICT RULES ===
-1. Reply ONLY in ${language === 'hi' ? 'Hindi or Hinglish (natural mix)' : 'English'}.
-2. PRIORITY ORDER for answering: FAQs > Knowledge Base > Website Content. Always prefer the most specific source.
-3. ONLY answer using the information provided above. Do NOT use general knowledge or make up facts.
-4. NEVER invent prices, services, contact details, hours, or any business info not in the context above.
-5. NEVER assume this is a restaurant or hotel. Answer based on what the business actually is per the context.
-6. NEVER show raw tags like [MENU_ITEM], [PRICING], [STRUCTURED DATA], HTML code, or navigation text in your response.
-7. NEVER mention OpenAI, Groq, Llama, or any AI/tool names.
-8. If the information is not in any of the provided context sections, say: "I couldn't find that specific information. Would you like to contact the team directly?" Do NOT make up an answer.
-9. Keep responses concise (3-6 sentences for most queries), friendly, and helpful.
-10. When listing items (services, plans, prices etc.), use a clean bullet list format.`;
+=== WEBSITE CONTENT ===
+${cleanedWebContent || 'None'}${intentGuidance}`;
   }
 }
+
