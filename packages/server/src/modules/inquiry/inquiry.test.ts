@@ -237,5 +237,48 @@ describe('Inquiry Module', () => {
       expect(finalRes.message).toContain('Thank you! Our team will contact you within 24 hours.');
       expect(finalRes.data?.businessName).toBe('Tech Corp');
     });
+
+    it('should silently extract entities and skip already provided fields in progressive lead capture', async () => {
+      const { LeadExtractor } = require('./leadExtractor.js');
+
+      // Test passive entity extraction
+      const ext1 = LeadExtractor.extractEntities('I own Sahu Traders');
+      expect(ext1.businessName).toBe('Sahu Traders');
+
+      const ext2 = LeadExtractor.extractEntities('We manufacture disposable glasses');
+      expect(ext2.businessType).toBe('disposable glasses');
+
+      const ext3 = LeadExtractor.extractEntities('I need a business website with Home, About, Products, Contact and Team pages');
+      expect(ext3.websiteType).toBe('business website');
+
+      const chatId = 'chat-progressive-test';
+      await InquiryEngine.createState({
+        chatId,
+        sessionId: 'session-789',
+        clientId: testClientId.toString(),
+        visitorId: 'visitor-789',
+        language: 'en',
+        workflowType: 'lead_generation',
+      });
+
+      // Merge extracted business entities
+      await InquiryEngine.mergeExtractedEntities(chatId, {
+        businessName: 'Sahu Traders',
+        businessType: 'Manufacturing',
+        websiteType: 'Business Website',
+        requiredFeatures: 'Home, About, Products, Contact, Team',
+      });
+
+      const updatedState = await InquiryEngine.getActiveOrPausedState(chatId);
+      expect(updatedState?.data?.businessName).toBe('Sahu Traders');
+      expect(updatedState?.data?.requiredFeatures).toBe('Home, About, Products, Contact, Team');
+
+      // Verify smart skipping: next step is name (skipping businessName, businessType, websiteType, requiredFeatures!)
+      const nextStep = InquiryEngine.getNextUnfulfilledStep(updatedState);
+      expect(nextStep?.field).toBe('name');
+
+      const question = await InquiryEngine.getCurrentQuestion(chatId);
+      expect(question).toContain('may I have your name');
+    });
   });
 });

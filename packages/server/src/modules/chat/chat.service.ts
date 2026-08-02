@@ -4,6 +4,7 @@ import { ResponseEngine, BotResponse } from './responseEngine.js';
 import { LanguageEngine, Language } from './languageEngine.js';
 import { IntentDetector } from './intentDetector.js';
 import { InquiryEngine, INQUIRY_STEPS } from '../inquiry/inquiryEngine.js';
+import { LeadExtractor } from '../inquiry/leadExtractor.js';
 import { InquiryService } from '../inquiry/inquiry.service.js';
 import { UnansweredService } from '../unanswered/unanswered.service.js';
 import { NotificationService } from '../notification/notification.service.js';
@@ -147,28 +148,37 @@ export class ChatService {
     });
 
     const startTime = Date.now();
+    const lang = (data.language || chat.language) as Language;
+
+    // ─── 1. Silent Continuous Lead Entity Extraction ─────────────────────────
+    const extractedEntities = LeadExtractor.extractEntities(data.content);
+    if (Object.keys(extractedEntities).length > 0) {
+      let stateForExtraction = await InquiryEngine.getActiveOrPausedState(chat._id.toString());
+      if (!stateForExtraction) {
+        const clientIndustry = await this.getClientIndustry(data.clientId || targetClientId);
+        stateForExtraction = await InquiryEngine.createState({
+          chatId: chat._id.toString(),
+          sessionId: data.sessionId,
+          clientId: targetClientId,
+          visitorId: chat.visitorId,
+          language: lang,
+          currentStep: 'businessName',
+          originalQuestion: data.content,
+          industry: clientIndustry,
+          workflowType: 'lead_generation',
+        });
+      }
+      await InquiryEngine.mergeExtractedEntities(chat._id.toString(), extractedEntities as Record<string, string>);
+    }
 
     const activeInquiry = await InquiryEngine.getActiveOrPausedState(chat._id.toString());
     const isInquiryMode = !!activeInquiry;
-    const lang = (data.language || chat.language) as Language;
 
     let botResponse: BotResponse;
 
     if (activeInquiry) {
-      // 1. Check if user sent a Resume request
-      if (IntentDetector.isResumeRequest(data.content)) {
-        const resumeResult = await InquiryEngine.resumeState(chat._id.toString());
-        botResponse = {
-          content: resumeResult.message,
-          messageType: 'inquiry',
-          metadata: {
-            matchedType: 'inquiry_trigger',
-            confidence: 1,
-          },
-        };
-      }
-      // 2. Check if user sent a new business question / interruption
-      else if (InquiryEngine.isInterruptionQuery(data.content, lang, activeInquiry.currentStep)) {
+      // Check if user is asking a business question / chatting naturally
+      if (InquiryEngine.isInterruptionQuery(data.content, lang, activeInquiry.currentStep)) {
         await InquiryEngine.pauseState(chat._id.toString());
 
         const aiResponse = await ResponseEngine.generateResponse({
@@ -179,16 +189,22 @@ export class ChatService {
           conversationHistory: await this.getRecentHistory(chat._id.toString(), 5),
         });
 
-        const pauseNote = lang === 'hi'
-          ? '\n\n*(Aapka workflow pause ho gaya hai. Jab bhi aage badhna ho, "continue" ya "resume" likhein.)*'
-          : '\n\n*(Your workflow is paused. Type "continue" or "resume" whenever you wish to proceed.)*';
+        // Check if we should smoothly append the next unfulfilled contact prompt
+        const nextUnfulfilled = InquiryEngine.getNextUnfulfilledStep(activeInquiry);
+        let conversationalAppend = '';
+        if (nextUnfulfilled && ['name', 'phone', 'email'].includes(nextUnfulfilled.field)) {
+          const transitionQ = await InquiryEngine.getCurrentQuestion(chat._id.toString());
+          if (transitionQ) {
+            conversationalAppend = `\n\n${transitionQ}`;
+          }
+        }
 
         botResponse = {
           ...aiResponse,
-          content: aiResponse.content + pauseNote,
+          content: aiResponse.content + conversationalAppend,
         };
       }
-      // 3. Normal form input processing
+      // Normal direct answer for the expected contact field
       else {
         const inquiryResult = await InquiryEngine.processInput(chat._id.toString(), data.content);
 

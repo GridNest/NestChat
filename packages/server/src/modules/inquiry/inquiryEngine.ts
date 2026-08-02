@@ -284,6 +284,51 @@ export class InquiryEngine {
     return InquiryStateModel.findOne({ sessionId, status: { $in: ['active', 'paused'] } });
   }
 
+  static async mergeExtractedEntities(chatId: string, extracted: Record<string, string>): Promise<InquiryStateDocument | null> {
+    const state = await InquiryStateModel.findOne({ chatId, status: { $in: ['active', 'paused'] } });
+    if (!state || !extracted || Object.keys(extracted).length === 0) return state;
+
+    if (!state.data) state.data = {};
+
+    let hasChanges = false;
+    for (const [key, value] of Object.entries(extracted)) {
+      if (value && typeof value === 'string' && value.trim().length > 0) {
+        if (!(state.data as any)[key]) {
+          (state.data as any)[key] = value.trim();
+          if (!state.completedFields.includes(key)) {
+            state.completedFields.push(key);
+          }
+          hasChanges = true;
+        }
+      }
+    }
+
+    if (hasChanges) {
+      const steps = this.getStepsForWorkflow((state.data as any)?.workflowType);
+      const nextUnfulfilled = steps.find(s => !(state.data as any)[s.field] && !state.skippedFields.includes(s.field));
+      if (nextUnfulfilled) {
+        state.currentStep = nextUnfulfilled.field;
+      }
+      state.markModified('data');
+      state.markModified('completedFields');
+      await state.save();
+    }
+
+    return state;
+  }
+
+  static getNextUnfulfilledStep(state: InquiryStateDocument): InquiryStep | DynamicInquiryStep | null {
+    const steps = this.getStepsForWorkflow((state.data as any)?.workflowType);
+    for (const step of steps) {
+      const val = (state.data as any)?.[step.field];
+      const isSkipped = state.skippedFields?.includes(step.field);
+      if (!val && !isSkipped) {
+        return step;
+      }
+    }
+    return null;
+  }
+
   static isConsentResponse(input: string): boolean {
     const normalized = input.toLowerCase().trim();
     return CONSENT_KEYWORDS.some(keyword => normalized === keyword || normalized.startsWith(keyword));
@@ -448,11 +493,9 @@ export class InquiryEngine {
     state.markModified('completedFields');
     state.markModified('skippedFields');
 
-    const currentIndex = steps.findIndex(s => s.field === state.currentStep);
-    const nextIndex = currentIndex + 1;
+    const nextStep = this.getNextUnfulfilledStep(state);
 
-    if (nextIndex < steps.length) {
-      const nextStep = steps[nextIndex];
+    if (nextStep) {
       state.currentStep = nextStep.field;
       await state.save();
 
@@ -511,12 +554,13 @@ export class InquiryEngine {
     const state = await InquiryStateModel.findOne({ chatId, status: { $in: ['active', 'paused'] } });
     if (!state) return null;
 
-    const steps = this.getStepsForWorkflow((state.data as any)?.workflowType);
-    const firstStep = steps[0];
-    if ('prompt' in firstStep) {
-      return state.language === 'hi' ? firstStep.promptHi : firstStep.prompt;
+    const nextStep = this.getNextUnfulfilledStep(state);
+    if (!nextStep) return null;
+
+    if ('prompt' in nextStep) {
+      return state.language === 'hi' ? nextStep.promptHi : nextStep.prompt;
     }
-    return LanguageEngine.getMessage(state.language, firstStep.messageKey as any);
+    return LanguageEngine.getMessage(state.language, (nextStep as InquiryStep).messageKey as any);
   }
 
   static async getCurrentQuestion(chatId: string): Promise<string | null> {
@@ -529,15 +573,38 @@ export class InquiryEngine {
         : 'Would you like me to connect you with our team? (Yes/No)';
     }
 
-    const steps = this.getStepsForWorkflow((state.data as any)?.workflowType);
-    const currentStep = steps.find(s => s.field === state.currentStep);
-    if (!currentStep) return null;
+    const nextStep = this.getNextUnfulfilledStep(state);
+    if (!nextStep) return null;
 
-    if ('prompt' in currentStep) {
-      return state.language === 'hi' ? currentStep.promptHi : currentStep.prompt;
+    state.currentStep = nextStep.field;
+    const lang = state.language;
+
+    if (nextStep.field === 'name') {
+      const biz = (state.data as any)?.businessName || (state.data as any)?.websiteType;
+      if (biz) {
+        return lang === 'hi'
+          ? 'Dhanyawaad! Mujhe aapke requirements samajh aa gaye hain. Quotation prepare karne se pehle, kya main aapka naam jaan sakta hoon?'
+          : 'Thanks! I have a good understanding of your requirements. Before I prepare a quotation, may I have your name?';
+      }
     }
 
-    return getIndustryStepPrompt(currentStep.field, state.industry, state.language);
+    if (nextStep.field === 'phone') {
+      return lang === 'hi'
+        ? 'Humari team aapko contact kar sake, iske liye aapka Mobile Number kya hai?'
+        : 'What is your Mobile Number so our team can get in touch with you?';
+    }
+
+    if (nextStep.field === 'email') {
+      return lang === 'hi'
+        ? 'Aapka Email address kya hai?'
+        : 'What is your Email address?';
+    }
+
+    if ('prompt' in nextStep) {
+      return lang === 'hi' ? nextStep.promptHi : nextStep.prompt;
+    }
+
+    return getIndustryStepPrompt(nextStep.field, state.industry, state.language);
   }
 
   static getProgress(chatId: string): Promise<{
