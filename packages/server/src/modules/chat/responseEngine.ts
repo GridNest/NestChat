@@ -24,10 +24,12 @@ export interface BotResponse {
     confidence: number;
     inquiryCreated?: boolean;
     fallbackTriggered?: boolean;
+    workflowType?: string;
   };
   quickActions?: typeof DEFAULT_QUICK_ACTIONS;
   suggestedQuestions?: string[];
   triggerInquiry?: boolean;
+  workflowType?: string;
 }
 
 export interface ResponseEngineOptions {
@@ -124,6 +126,20 @@ export class ResponseEngine {
 
     // ── DEDICATED INTENT WORKFLOWS ────────────────────────────────────────────
 
+    // Requirement 1 & 3: High-Confidence Sales Intent Workflow (Website, Quote, Pricing, Consultation)
+    if (intent.intent === 'sales_intent' && intent.confidence > 0.35) {
+      const salesMsg = language === 'hi'
+        ? 'Main aapke project / website consultation mein madad kar sakta hoon. Kripya kuch details batayein taaki hamari team aapko sahi quote aur solution de sake.'
+        : 'I would be happy to help with your project consultation and website quote! Please share a few details so our team can get back to you with an exact estimate.';
+      return {
+        content: salesMsg,
+        messageType: 'inquiry',
+        metadata: { matchedType: 'quickAction', matchedId: 'sales_intent', confidence: intent.confidence, workflowType: 'lead_generation' },
+        triggerInquiry: true,
+        workflowType: 'lead_generation',
+      };
+    }
+
     // Requirement 1 & 3: Booking Intent Workflow (bypasses RAG to avoid hero section returns)
     if (intent.intent === 'booking') {
       const bookingMsg = language === 'hi'
@@ -132,8 +148,9 @@ export class ResponseEngine {
       return {
         content: bookingMsg,
         messageType: 'inquiry',
-        metadata: { matchedType: 'quickAction', matchedId: 'booking', confidence: 1 },
+        metadata: { matchedType: 'quickAction', matchedId: 'booking', confidence: 1, workflowType: 'booking' },
         triggerInquiry: true,
+        workflowType: 'booking',
       };
     }
 

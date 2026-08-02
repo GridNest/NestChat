@@ -1,11 +1,24 @@
 import { InquiryStateModel, InquiryStateDocument } from './inquiryState.model.js';
 import { LanguageEngine, Language } from '../chat/languageEngine.js';
 import { isValidEmail, isValidPhone } from '@nestchat/shared';
+import { IntentDetector, Intent } from '../chat/intentDetector.js';
 
 export interface InquiryStep {
   field: string;
   messageKey: string;
   messageKeyHi: string;
+  required: boolean;
+  validate?: (value: string) => boolean;
+  validationMessage?: string;
+  validationMessageHi?: string;
+}
+
+export interface DynamicInquiryStep {
+  field: string;
+  label: string;
+  labelHi: string;
+  prompt: string;
+  promptHi: string;
   required: boolean;
   validate?: (value: string) => boolean;
   validationMessage?: string;
@@ -51,9 +64,111 @@ export const INQUIRY_STEPS: InquiryStep[] = [
   },
 ];
 
+export const LEAD_CAPTURE_STEPS: DynamicInquiryStep[] = [
+  {
+    field: 'businessName',
+    label: 'Business Name',
+    labelHi: 'Business Name',
+    prompt: 'What is your Business Name?',
+    promptHi: 'Aapka Business Name kya hai?',
+    required: true,
+    validate: (val) => val.trim().length >= 2,
+    validationMessage: 'Please enter your business name (at least 2 characters).',
+    validationMessageHi: 'Kripya apna business name batayein (kam se kam 2 characters).',
+  },
+  {
+    field: 'businessType',
+    label: 'Business Type',
+    labelHi: 'Business Type',
+    prompt: 'What is your Business Type or Industry? (e.g. Restaurant, Hotel, Healthcare, Tech, Agency, Retail)',
+    promptHi: 'Aapka Business Type ya Industry kya hai? (jaise Restaurant, Hotel, Tech, Agency)',
+    required: true,
+    validate: (val) => val.trim().length >= 2,
+    validationMessage: 'Please specify your business type or industry.',
+    validationMessageHi: 'Kripya apna business type ya industry batayein.',
+  },
+  {
+    field: 'websiteType',
+    label: 'Website Type',
+    labelHi: 'Website Type',
+    prompt: 'What type of Website or Service do you need? (e.g. E-Commerce, Corporate Website, Web App, Landing Page, Consultation)',
+    promptHi: 'Aapko kis tarah ki website ya service chahiye? (jaise E-Commerce, Corporate, Landing Page, Consultation)',
+    required: true,
+    validate: (val) => val.trim().length >= 2,
+    validationMessage: 'Please specify the website or service type.',
+    validationMessageHi: 'Kripya website ya service type batayein.',
+  },
+  {
+    field: 'requiredFeatures',
+    label: 'Required Features',
+    labelHi: 'Required Features',
+    prompt: 'What key features do you require? (e.g. Payment Gateway, Booking System, User Login, Mobile Design)',
+    promptHi: 'Aapko kaunse zaroori features chahiye? (jaise Payment Gateway, Booking System, Login)',
+    required: true,
+    validate: (val) => val.trim().length >= 2,
+    validationMessage: 'Please mention a few required features.',
+    validationMessageHi: 'Kripya zaroori features batayein.',
+  },
+  {
+    field: 'budget',
+    label: 'Budget',
+    labelHi: 'Budget',
+    prompt: 'What is your estimated Budget? (Optional - type "skip" to bypass)',
+    promptHi: 'Aapka anumanit Budget kya hai? (Optional - skip karne ke liye "skip" likhein)',
+    required: false,
+  },
+  {
+    field: 'timeline',
+    label: 'Timeline',
+    labelHi: 'Timeline',
+    prompt: 'What is your expected Timeline? (Optional - e.g. 2 weeks, 1 month - type "skip" to bypass)',
+    promptHi: 'Aapka expected Timeline kya hai? (Optional - jaise 2 hafte, 1 mahina - "skip" likhein)',
+    required: false,
+  },
+  {
+    field: 'name',
+    label: 'Name',
+    labelHi: 'Naam',
+    prompt: 'What is your Full Name?',
+    promptHi: 'Aapka poora naam kya hai?',
+    required: true,
+    validate: (val) => val.trim().length >= 2,
+    validationMessage: 'Please enter a valid name (at least 2 characters).',
+    validationMessageHi: 'Kripya sahi naam batayein (kam se kam 2 characters).',
+  },
+  {
+    field: 'phone',
+    label: 'Mobile Number',
+    labelHi: 'Mobile Number',
+    prompt: 'What is your Mobile Number?',
+    promptHi: 'Aapka Mobile Number kya hai?',
+    required: true,
+    validate: isValidPhone,
+    validationMessage: 'Please enter a valid phone number.',
+    validationMessageHi: 'Kripya sahi phone number daalein.',
+  },
+  {
+    field: 'email',
+    label: 'Email',
+    labelHi: 'Email',
+    prompt: 'What is your Email address?',
+    promptHi: 'Aapka Email address kya hai?',
+    required: true,
+    validate: isValidEmail,
+    validationMessage: 'Please enter a valid email address.',
+    validationMessageHi: 'Kripya sahi email address daalein.',
+  },
+];
+
 export const CANCEL_KEYWORDS = ['cancel', 'restart', 'start over', 'exit', 'quit', 'band karo', 'rok do', 'nahi', 'no thanks', "no, don't", "don't", 'no'];
 
 export function getIndustryStepPrompt(field: string, industry?: string, lang: 'en' | 'hi' = 'en'): string {
+  // Check Lead Capture steps first
+  const leadStep = LEAD_CAPTURE_STEPS.find(s => s.field === field);
+  if (leadStep) {
+    return lang === 'hi' ? leadStep.promptHi : leadStep.prompt;
+  }
+
   if (field !== 'message') {
     const step = INQUIRY_STEPS.find(s => s.field === field);
     if (!step) return '';
@@ -107,6 +222,13 @@ export function getIndustryStepPrompt(field: string, industry?: string, lang: 'e
 const CONSENT_KEYWORDS = ['yes', 'haan', 'hmm', 'ok', 'sure', 'okay', 'haa', 'haanji', 'theek hai', 'haye', 'plz', 'please'];
 
 export class InquiryEngine {
+  static getStepsForWorkflow(workflowType?: string): Array<InquiryStep | DynamicInquiryStep> {
+    if (workflowType === 'lead_generation' || workflowType === 'website_consultation') {
+      return LEAD_CAPTURE_STEPS;
+    }
+    return INQUIRY_STEPS;
+  }
+
   static async createState(data: {
     chatId: string;
     sessionId: string;
@@ -117,15 +239,21 @@ export class InquiryEngine {
     currentStep?: string;
     originalQuestion?: string;
     industry?: string;
+    workflowType?: string;
   }): Promise<InquiryStateDocument> {
     const existing = await InquiryStateModel.findOne({
       chatId: data.chatId,
-      status: 'active',
+      status: { $in: ['active', 'paused'] },
     });
 
     if (existing) {
+      existing.status = 'active';
+      await existing.save();
       return existing;
     }
+
+    const initialStep = data.currentStep || (data.workflowType === 'lead_generation' ? 'businessName' : 'name');
+    const initialData = { ...(data.data || {}), workflowType: data.workflowType || 'general_inquiry' };
 
     return InquiryStateModel.create({
       chatId: data.chatId,
@@ -133,10 +261,10 @@ export class InquiryEngine {
       clientId: data.clientId,
       visitorId: data.visitorId,
       language: data.language,
-      currentStep: data.currentStep || 'name',
+      currentStep: initialStep,
       completedFields: [],
       skippedFields: [],
-      data: data.data || {},
+      data: initialData,
       status: 'active',
       originalQuestion: data.originalQuestion,
       industry: data.industry,
@@ -148,13 +276,77 @@ export class InquiryEngine {
     return InquiryStateModel.findOne({ chatId, status: 'active' });
   }
 
+  static async getActiveOrPausedState(chatId: string): Promise<InquiryStateDocument | null> {
+    return InquiryStateModel.findOne({ chatId, status: { $in: ['active', 'paused'] } });
+  }
+
   static async getStateBySession(sessionId: string): Promise<InquiryStateDocument | null> {
-    return InquiryStateModel.findOne({ sessionId, status: 'active' });
+    return InquiryStateModel.findOne({ sessionId, status: { $in: ['active', 'paused'] } });
   }
 
   static isConsentResponse(input: string): boolean {
     const normalized = input.toLowerCase().trim();
     return CONSENT_KEYWORDS.some(keyword => normalized === keyword || normalized.startsWith(keyword));
+  }
+
+  static isInterruptionQuery(input: string, language: string, currentStep?: string): boolean {
+    const normalized = input.toLowerCase().trim();
+
+    if (CANCEL_KEYWORDS.some(k => normalized.includes(k))) return false;
+    if (IntentDetector.isResumeRequest(input)) return false;
+
+    // Check if input satisfies field validation directly
+    if (currentStep === 'phone' && isValidPhone(input)) return false;
+    if (currentStep === 'email' && isValidEmail(input)) return false;
+
+    const intentResult = IntentDetector.detect(input, language);
+    const businessIntents: Intent[] = [
+      'menu', 'pricing', 'contact', 'faq', 'complaint', 'location',
+      'products', 'services', 'hours', 'events', 'career', 'support',
+      'human_agent', 'gallery', 'order', 'delivery', 'offers', 'about', 'greeting'
+    ];
+
+    if (businessIntents.includes(intentResult.intent) && intentResult.confidence >= 0.4) {
+      return true;
+    }
+
+    const questionPatterns = [
+      /\?$/,
+      /^(what|where|when|how|why|who|can i|do you|show me|tell me|is there|list|display|give me|do u)\b/i,
+      /\b(batao|kya|kahan|kab|kaise|dikhao|bataie)\b/i,
+    ];
+
+    if (questionPatterns.some(p => p.test(normalized))) {
+      return true;
+    }
+
+    return false;
+  }
+
+  static async pauseState(chatId: string): Promise<InquiryStateDocument | null> {
+    const state = await InquiryStateModel.findOne({ chatId, status: 'active' });
+    if (state) {
+      state.status = 'paused';
+      state.pausedAt = new Date();
+      await state.save();
+    }
+    return state;
+  }
+
+  static async resumeState(chatId: string): Promise<{ state: InquiryStateDocument | null; message: string }> {
+    const state = await InquiryStateModel.findOne({ chatId, status: { $in: ['active', 'paused'] } });
+    if (!state) {
+      return { state: null, message: '' };
+    }
+
+    state.status = 'active';
+    await state.save();
+
+    const question = await this.getCurrentQuestion(chatId);
+    return {
+      state,
+      message: question || 'Please provide the next detail.',
+    };
   }
 
   static async processInput(
@@ -169,13 +361,15 @@ export class InquiryEngine {
     isPendingConsent?: boolean;
     data?: Record<string, string>;
   }> {
-    const state = await InquiryStateModel.findOne({ chatId, status: 'active' });
+    const state = await InquiryStateModel.findOne({ chatId, status: { $in: ['active', 'paused'] } });
     if (!state) {
       return {
         success: false,
         message: 'No active inquiry found',
       };
     }
+
+    state.status = 'active';
 
     const normalizedInput = input.toLowerCase().trim();
     if (CANCEL_KEYWORDS.some(keyword => normalizedInput.includes(keyword))) {
@@ -185,14 +379,17 @@ export class InquiryEngine {
     // Check if we're waiting for consent first
     if (state.currentStep === '__consent__') {
       if (this.isConsentResponse(input)) {
-        state.currentStep = 'name';
+        const isLeadGen = (state.data as any)?.workflowType === 'lead_generation';
+        state.currentStep = isLeadGen ? 'businessName' : 'name';
         await state.save();
-        const firstStep = INQUIRY_STEPS[0];
-        const message = LanguageEngine.getMessage(state.language, firstStep.messageKey as any);
+
+        const steps = this.getStepsForWorkflow((state.data as any)?.workflowType);
+        const firstStep = steps[0];
+        const message = (firstStep as DynamicInquiryStep).prompt || LanguageEngine.getMessage(state.language, (firstStep as InquiryStep).messageKey as any);
         return {
           success: true,
           message,
-          nextStep: 'name',
+          nextStep: state.currentStep,
           isComplete: false,
         };
       } else {
@@ -210,7 +407,9 @@ export class InquiryEngine {
       }
     }
 
-    const currentStepConfig = INQUIRY_STEPS.find(s => s.field === state.currentStep);
+    const steps = this.getStepsForWorkflow((state.data as any)?.workflowType);
+    const currentStepConfig = steps.find(s => s.field === state.currentStep);
+
     if (!currentStepConfig) {
       return {
         success: false,
@@ -218,29 +417,46 @@ export class InquiryEngine {
       };
     }
 
-    if (currentStepConfig.validate && !currentStepConfig.validate(input)) {
-      const lang = state.language;
-      return {
-        success: false,
-        message: lang === 'hi'
-          ? currentStepConfig.validationMessageHi || LanguageEngine.getInvalidPhone(lang)
-          : currentStepConfig.validationMessage || LanguageEngine.getInvalidEmail(lang),
-      };
+    const isOptional = !currentStepConfig.required;
+    const isSkipInput = normalizedInput === 'skip' || normalizedInput === 'next' || normalizedInput === 'n/a';
+
+    if (!isOptional || !isSkipInput) {
+      if (currentStepConfig.validate && !currentStepConfig.validate(input)) {
+        const lang = state.language;
+        const msg = (currentStepConfig as DynamicInquiryStep).validationMessage ||
+          (lang === 'hi'
+            ? currentStepConfig.validationMessageHi || LanguageEngine.getInvalidPhone(lang)
+            : currentStepConfig.validationMessage || LanguageEngine.getInvalidEmail(lang));
+        return {
+          success: false,
+          message: msg,
+        };
+      }
     }
 
-    (state.data as any)[currentStepConfig.field] = input.trim();
-    state.completedFields.push(currentStepConfig.field);
+    if (isOptional && isSkipInput) {
+      (state.data as any)[currentStepConfig.field] = 'N/A';
+      state.skippedFields.push(currentStepConfig.field);
+    } else {
+      (state.data as any)[currentStepConfig.field] = input.trim();
+      state.completedFields.push(currentStepConfig.field);
+    }
 
-    const currentIndex = INQUIRY_STEPS.findIndex(s => s.field === state.currentStep);
+    const currentIndex = steps.findIndex(s => s.field === state.currentStep);
     const nextIndex = currentIndex + 1;
 
-    if (nextIndex < INQUIRY_STEPS.length) {
-      const nextStep = INQUIRY_STEPS[nextIndex];
+    if (nextIndex < steps.length) {
+      const nextStep = steps[nextIndex];
       state.currentStep = nextStep.field;
       await state.save();
 
       const lang = state.language;
-      const message = getIndustryStepPrompt(nextStep.field, state.industry, lang);
+      let message = '';
+      if ('prompt' in nextStep) {
+        message = lang === 'hi' ? nextStep.promptHi : nextStep.prompt;
+      } else {
+        message = getIndustryStepPrompt(nextStep.field, state.industry, lang);
+      }
 
       return {
         success: true,
@@ -254,9 +470,13 @@ export class InquiryEngine {
     state.completedAt = new Date();
     await state.save();
 
+    const completionMsg = state.language === 'hi'
+      ? 'Aapka dhanyawaad! Hamari team aapko 24 ghante ke andar contact karegi.'
+      : 'Thank you! Our team will contact you within 24 hours.';
+
     return {
       success: true,
-      message: LanguageEngine.getInquiryComplete(state.language),
+      message: completionMsg,
       isComplete: true,
       data: state.data as Record<string, string>,
     };
@@ -281,15 +501,19 @@ export class InquiryEngine {
   }
 
   static async getFirstQuestion(chatId: string): Promise<string | null> {
-    const state = await InquiryStateModel.findOne({ chatId, status: 'active' });
+    const state = await InquiryStateModel.findOne({ chatId, status: { $in: ['active', 'paused'] } });
     if (!state) return null;
 
-    const firstStep = INQUIRY_STEPS[0];
+    const steps = this.getStepsForWorkflow((state.data as any)?.workflowType);
+    const firstStep = steps[0];
+    if ('prompt' in firstStep) {
+      return state.language === 'hi' ? firstStep.promptHi : firstStep.prompt;
+    }
     return LanguageEngine.getMessage(state.language, firstStep.messageKey as any);
   }
 
   static async getCurrentQuestion(chatId: string): Promise<string | null> {
-    const state = await InquiryStateModel.findOne({ chatId, status: 'active' });
+    const state = await InquiryStateModel.findOne({ chatId, status: { $in: ['active', 'paused'] } });
     if (!state) return null;
 
     if (state.currentStep === '__consent__') {
@@ -298,8 +522,13 @@ export class InquiryEngine {
         : 'Would you like me to connect you with our team? (Yes/No)';
     }
 
-    const currentStep = INQUIRY_STEPS.find(s => s.field === state.currentStep);
+    const steps = this.getStepsForWorkflow((state.data as any)?.workflowType);
+    const currentStep = steps.find(s => s.field === state.currentStep);
     if (!currentStep) return null;
+
+    if ('prompt' in currentStep) {
+      return state.language === 'hi' ? currentStep.promptHi : currentStep.prompt;
+    }
 
     return getIndustryStepPrompt(currentStep.field, state.industry, state.language);
   }
@@ -309,10 +538,11 @@ export class InquiryEngine {
     total: number;
     percentage: number;
   } | null> {
-    return InquiryStateModel.findOne({ chatId, status: 'active' }).then((state: any) => {
+    return InquiryStateModel.findOne({ chatId, status: { $in: ['active', 'paused'] } }).then((state: any) => {
       if (!state) return null;
+      const steps = InquiryEngine.getStepsForWorkflow((state.data as any)?.workflowType);
       const current = state.completedFields.length;
-      const total = INQUIRY_STEPS.filter(s => s.required).length;
+      const total = steps.filter(s => s.required).length;
       return {
         current,
         total,

@@ -18,13 +18,22 @@ export interface InquiryStateDocument extends Document {
     service?: string;
     details?: string;
     company?: string;
+    businessName?: string;
+    businessType?: string;
+    websiteType?: string;
+    requiredFeatures?: string;
+    budget?: string;
+    timeline?: string;
+    workflowType?: string;
+    [key: string]: any;
   };
-  status: 'active' | 'completed' | 'cancelled' | 'failed';
+  status: 'active' | 'paused' | 'completed' | 'cancelled' | 'failed';
   originalQuestion?: string;
   industry?: string;
   startedAt: Date;
   completedAt?: Date;
   cancelledAt?: Date;
+  pausedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -66,18 +75,12 @@ const inquiryStateSchema = new Schema<InquiryStateDocument>(
       default: [],
     },
     data: {
-      name: String,
-      email: String,
-      phone: String,
-      country: String,
-      state: String,
-      service: String,
-      details: String,
-      company: String,
+      type: Schema.Types.Mixed,
+      default: {},
     },
     status: {
       type: String,
-      enum: ['active', 'completed', 'cancelled', 'failed'],
+      enum: ['active', 'paused', 'completed', 'cancelled', 'failed'],
       default: 'active',
     },
     originalQuestion: {
@@ -96,6 +99,9 @@ const inquiryStateSchema = new Schema<InquiryStateDocument>(
       type: Date,
     },
     cancelledAt: {
+      type: Date,
+    },
+    pausedAt: {
       type: Date,
     },
   },

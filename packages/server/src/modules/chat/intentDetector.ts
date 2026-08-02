@@ -5,6 +5,7 @@ export type Intent =
   | 'menu'
   | 'booking'
   | 'pricing'
+  | 'sales_intent'
   | 'contact'
   | 'faq'
   | 'complaint'
@@ -33,6 +34,10 @@ const INTENT_PATTERNS: Record<Intent, RegExp[]> = {
   greeting: [
     /^(hi|hello|hey|namaste|namaskar|good morning|good evening|good afternoon|howdy|yo|sup)\b/i,
     /^(hola|bonjour|konnichiwa|ni hao|annyeong|ola)\b/i,
+  ],
+  sales_intent: [
+    /\b(need website|website development|website design|build (a )?website|create (a )?website|web dev|web design|website quote|cost of website|custom website|redesign website|make a website)\b/i,
+    /\b(pricing|cost|package|quote|estimate|consultation|proposal|get quote|request quote|price estimate|cost estimate|consulting)\b/i,
   ],
   menu: [
     /\b(menu|catalog|catalogue|product list|item list|what (do you (have|offer|sell)|is on the menu)|show (me )?(your )?(menu|products|services|items|catalog))\b/i,
@@ -97,6 +102,25 @@ const INTENT_PATTERNS: Record<Intent, RegExp[]> = {
   unknown: [],
 };
 
+const RESUME_KEYWORDS = [
+  'continue',
+  'resume',
+  'book table',
+  'continue booking',
+  'proceed',
+  'yes',
+  'haan',
+  'sure',
+  'okay',
+  'ok',
+  'theek hai',
+  'let\'s continue',
+  'back to booking',
+  'back to inquiry',
+  'go on',
+  'continue form',
+];
+
 export class IntentDetector {
   static detect(query: string, language: string): IntentResult {
     const normalized = normalizeQuestion(query);
@@ -152,12 +176,18 @@ export class IntentDetector {
     };
   }
 
+  static isResumeRequest(query: string): boolean {
+    const lower = query.toLowerCase().trim();
+    return RESUME_KEYWORDS.some(k => lower === k || lower.startsWith(k));
+  }
+
   static getIntentLabel(intent: Intent, language: string): string {
     const labels: Record<string, { en: string; hi: string }> = {
       greeting: { en: 'Greeting', hi: 'Abhivadan' },
       menu: { en: 'Menu', hi: 'Menu' },
       booking: { en: 'Booking', hi: 'Booking' },
       pricing: { en: 'Pricing', hi: 'Keemat' },
+      sales_intent: { en: 'Sales Inquiry', hi: 'Bikri Inquiry' },
       contact: { en: 'Contact', hi: 'Sampark' },
       faq: { en: 'FAQ', hi: 'Sawal' },
       complaint: { en: 'Complaint', hi: 'Shikayat' },

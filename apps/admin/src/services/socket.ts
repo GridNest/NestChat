@@ -1,6 +1,11 @@
 import { io, Socket } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000';
+function getCleanSocketUrl(): string {
+  const envUrl = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  return envUrl.replace(/\/api\/?$/, '');
+}
+
+const SOCKET_URL = getCleanSocketUrl();
 
 let socket: Socket | null = null;
 

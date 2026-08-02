@@ -147,77 +147,18 @@ export class ChatService {
 
     const startTime = Date.now();
 
-    const activeInquiry = await InquiryEngine.getState(chat._id.toString());
+    const activeInquiry = await InquiryEngine.getActiveOrPausedState(chat._id.toString());
     const isInquiryMode = !!activeInquiry;
+    const lang = (data.language || chat.language) as Language;
 
     let botResponse: BotResponse;
 
-    if (isInquiryMode) {
-      const inquiryResult = await InquiryEngine.processInput(chat._id.toString(), data.content);
-
-      if (inquiryResult.isCancelled) {
+    if (activeInquiry) {
+      // 1. Check if user sent a Resume request
+      if (IntentDetector.isResumeRequest(data.content)) {
+        const resumeResult = await InquiryEngine.resumeState(chat._id.toString());
         botResponse = {
-          content: inquiryResult.message,
-          messageType: 'text',
-          metadata: {
-            matchedType: 'unknown',
-            confidence: 1,
-          },
-        };
-      } else if (inquiryResult.isComplete && inquiryResult.data) {
-        // Retrieve the original question that triggered this inquiry
-        const inquiryState = await InquiryEngine.getState(chat._id.toString());
-        const originalQuestion = (inquiryState as any)?.originalQuestion || '';
-
-        const inquiry = await InquiryService.create({
-          clientId: targetClientId,
-          chatId: chat._id.toString(),
-          sessionId: data.sessionId,
-          visitorId: chat.visitorId,
-          name: inquiryResult.data.name || '',
-          email: inquiryResult.data.email || '',
-          phone: inquiryResult.data.phone || '',
-          service: 'chat_inquiry',
-          details: inquiryResult.data.message || inquiryResult.data.details || '',
-          language: chat.language,
-          originalQuestion,
-        });
-
-        try {
-          const ClientModel = mongoose.model('Client');
-          const clientDoc = await ClientModel.findById(targetClientId).lean();
-          if (clientDoc) {
-            const adminUserId = (clientDoc as any).createdBy?.toString();
-            if (adminUserId) {
-              await createAndEmitNotification(adminUserId, {
-                type: 'inquiry',
-                title: 'New Inquiry Received',
-                message: `New inquiry from ${inquiryResult.data.name || 'Unknown'}`,
-                data: { inquiryId: inquiry.id, clientId: targetClientId },
-              });
-            }
-          }
-        } catch (notifErr) {
-          // Notification failure is non-critical
-        }
-
-        botResponse = {
-          content: inquiryResult.message,
-          messageType: 'text',
-          metadata: {
-            matchedType: 'inquiry_trigger',
-            confidence: 1,
-            inquiryCreated: true,
-          },
-        };
-
-        // Fire-and-forget: mark inquiry completed in analytics
-        // (EventBus will handle this after botMessage is saved)
-        (botResponse as any)._inquiryCreated = true;
-        (botResponse as any)._originalQuestion = originalQuestion;
-      } else {
-        botResponse = {
-          content: inquiryResult.message,
+          content: resumeResult.message,
           messageType: 'inquiry',
           metadata: {
             matchedType: 'inquiry_trigger',
@@ -225,10 +166,145 @@ export class ChatService {
           },
         };
       }
+      // 2. Check if user sent a new business question / interruption
+      else if (InquiryEngine.isInterruptionQuery(data.content, lang, activeInquiry.currentStep)) {
+        await InquiryEngine.pauseState(chat._id.toString());
+
+        const aiResponse = await ResponseEngine.generateResponse({
+          clientId: targetClientId,
+          language: lang,
+          query: data.content,
+          clientName: await this.getClientName(data.clientId || targetClientId),
+          conversationHistory: await this.getRecentHistory(chat._id.toString(), 5),
+        });
+
+        const pauseNote = lang === 'hi'
+          ? '\n\n*(Aapka workflow pause ho gaya hai. Jab bhi aage badhna ho, "continue" ya "resume" likhein.)*'
+          : '\n\n*(Your workflow is paused. Type "continue" or "resume" whenever you wish to proceed.)*';
+
+        botResponse = {
+          ...aiResponse,
+          content: aiResponse.content + pauseNote,
+        };
+      }
+      // 3. Normal form input processing
+      else {
+        const inquiryResult = await InquiryEngine.processInput(chat._id.toString(), data.content);
+
+        if (inquiryResult.isCancelled) {
+          botResponse = {
+            content: inquiryResult.message,
+            messageType: 'text',
+            metadata: {
+              matchedType: 'unknown',
+              confidence: 1,
+            },
+          };
+        } else if (inquiryResult.isComplete && inquiryResult.data) {
+          const originalQuestion = activeInquiry.originalQuestion || '';
+          const dataObj = inquiryResult.data;
+
+          const detailsParts: string[] = [];
+          if (dataObj.businessName) detailsParts.push(`Business Name: ${dataObj.businessName}`);
+          if (dataObj.businessType) detailsParts.push(`Business Type: ${dataObj.businessType}`);
+          if (dataObj.websiteType) detailsParts.push(`Website Type: ${dataObj.websiteType}`);
+          if (dataObj.requiredFeatures) detailsParts.push(`Required Features: ${dataObj.requiredFeatures}`);
+          if (dataObj.budget) detailsParts.push(`Budget: ${dataObj.budget}`);
+          if (dataObj.timeline) detailsParts.push(`Timeline: ${dataObj.timeline}`);
+          if (dataObj.message || dataObj.details) detailsParts.push(`Details: ${dataObj.message || dataObj.details}`);
+
+          const details = detailsParts.length > 0 ? detailsParts.join(' | ') : 'Inquiry completed';
+
+          const inquiry = await InquiryService.create({
+            clientId: targetClientId,
+            chatId: chat._id.toString(),
+            sessionId: data.sessionId,
+            visitorId: chat.visitorId,
+            name: dataObj.name || dataObj.businessName || 'Valued Visitor',
+            email: dataObj.email || 'not-provided@example.com',
+            phone: dataObj.phone || '0000000000',
+            company: dataObj.businessName || dataObj.company || '',
+            service: dataObj.websiteType || dataObj.businessType || (activeInquiry.data as any)?.workflowType || 'chat_inquiry',
+            details,
+            language: chat.language,
+            originalQuestion,
+          });
+
+          try {
+            const ClientModel = mongoose.model('Client');
+            const clientDoc = await ClientModel.findById(targetClientId).lean();
+            if (clientDoc) {
+              const adminUserId = (clientDoc as any).createdBy?.toString();
+              if (adminUserId) {
+                await createAndEmitNotification(adminUserId, {
+                  type: 'inquiry',
+                  title: 'New Lead / Inquiry Received',
+                  message: `New lead from ${dataObj.name || dataObj.businessName || 'Unknown'}`,
+                  data: { inquiryId: inquiry.id, clientId: targetClientId },
+                });
+              }
+            }
+          } catch (notifErr) {
+            // Notification failure is non-critical
+          }
+
+          // Build contact information addition
+          let contactInfoMsg = '';
+          try {
+            const ClientModel = mongoose.model('Client');
+            const ClientConfigModel = mongoose.model('ClientConfig');
+            const [clientDoc, clientConfigDoc] = await Promise.all([
+              ClientModel.findById(targetClientId).lean(),
+              ClientConfigModel.findOne({ clientId: targetClientId }).lean(),
+            ]);
+
+            const phone = (clientConfigDoc as any)?.contactPhone || (clientDoc as any)?.phone;
+            const email = (clientConfigDoc as any)?.contactEmail || (clientDoc as any)?.email;
+            const address = (clientConfigDoc as any)?.contactAddress;
+
+            const parts: string[] = [];
+            if (phone) parts.push(`📞 Phone: ${phone}`);
+            if (email) parts.push(`📧 Email: ${email}`);
+            if (address) parts.push(`📍 Address: ${address}`);
+
+            if (parts.length > 0) {
+              contactInfoMsg = (lang === 'hi'
+                ? '\n\nAap humse directly in contact details par bhi sampark kar sakte hain:\n'
+                : '\n\nAlternatively, you can also reach our team directly at:\n') + parts.join('\n');
+            }
+          } catch {
+            // ignore
+          }
+
+          const finalContent = inquiryResult.message + contactInfoMsg;
+
+          botResponse = {
+            content: finalContent,
+            messageType: 'text',
+            metadata: {
+              matchedType: 'inquiry_trigger',
+              confidence: 1,
+              inquiryCreated: true,
+            },
+          };
+
+          (botResponse as any)._inquiryCreated = true;
+          (botResponse as any)._originalQuestion = originalQuestion;
+        } else {
+          botResponse = {
+            content: inquiryResult.message,
+            messageType: 'inquiry',
+            metadata: {
+              matchedType: 'inquiry_trigger',
+              confidence: 1,
+            },
+          };
+        }
+      }
     } else {
       botResponse = await ResponseEngine.generateResponse({
         clientId: targetClientId,
-        language: (data.language || chat.language) as any,
+        language: lang,
         query: data.content,
         clientName: await this.getClientName(data.clientId || targetClientId),
         conversationHistory: await this.getRecentHistory(chat._id.toString(), 5),
@@ -236,21 +312,28 @@ export class ChatService {
 
       if (botResponse.triggerInquiry && !isInquiryMode) {
         const clientIndustry = await this.getClientIndustry(data.clientId || targetClientId);
-        await InquiryEngine.createState({
+        const workflowType = botResponse.workflowType || (botResponse.metadata.matchedId === 'sales_intent' ? 'lead_generation' : 'general_inquiry');
+
+        const newState = await InquiryEngine.createState({
           chatId: chat._id.toString(),
           sessionId: data.sessionId,
           clientId: targetClientId,
           visitorId: chat.visitorId,
-          language: (data.language || chat.language) as any,
-          currentStep: '__consent__',
-          // Store the trigger question so it can be saved on inquiry completion
+          language: lang,
+          currentStep: workflowType === 'lead_generation' ? 'businessName' : 'name',
           originalQuestion: data.content,
           industry: clientIndustry,
+          workflowType,
         });
-      }
 
-      // EventBus replaces direct UnansweredService.track() call
-      // (EventBus handles: analytics + unanswered + message metadata)
+        const firstQuestion = await InquiryEngine.getCurrentQuestion(chat._id.toString());
+        if (firstQuestion) {
+          botResponse = {
+            ...botResponse,
+            content: `${botResponse.content}\n\n${firstQuestion}`,
+          };
+        }
+      }
     }
 
     const responseTimeMs = Date.now() - startTime;

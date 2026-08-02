@@ -161,4 +161,81 @@ describe('Inquiry Module', () => {
       expect(inquiries[0].createdAt >= inquiries[1].createdAt).toBe(true);
     });
   });
+
+  describe('Inquiry Engine & Interruptible Workflow', () => {
+    const { InquiryEngine } = require('./inquiryEngine.js');
+    const { InquiryStateModel } = require('./inquiryState.model.js');
+
+    beforeEach(async () => {
+      await InquiryStateModel.deleteMany({});
+    });
+
+    it('should detect business questions as interruptions during an active workflow', async () => {
+      const isInterruption = InquiryEngine.isInterruptionQuery('Show menu', 'en', 'phone');
+      expect(isInterruption).toBe(true);
+
+      const isInterruption2 = InquiryEngine.isInterruptionQuery('What are your business hours?', 'en', 'email');
+      expect(isInterruption2).toBe(true);
+
+      const isInterruption3 = InquiryEngine.isInterruptionQuery('+1 555-123-4567', 'en', 'phone');
+      expect(isInterruption3).toBe(false);
+    });
+
+    it('should pause and resume state seamlessly without losing form progress', async () => {
+      const chatId = 'chat-interrupt-test';
+      const state = await InquiryEngine.createState({
+        chatId,
+        sessionId: 'session-123',
+        clientId: testClientId.toString(),
+        visitorId: 'visitor-123',
+        language: 'en',
+        workflowType: 'lead_generation',
+      });
+
+      expect(state.status).toBe('active');
+      expect(state.currentStep).toBe('businessName');
+
+      // Process step 1
+      const res1 = await InquiryEngine.processInput(chatId, 'Acme Corp');
+      expect(res1.success).toBe(true);
+      expect(res1.nextStep).toBe('businessType');
+
+      // Pause workflow
+      await InquiryEngine.pauseState(chatId);
+      const pausedState = await InquiryEngine.getActiveOrPausedState(chatId);
+      expect(pausedState?.status).toBe('paused');
+      expect(pausedState?.currentStep).toBe('businessType');
+
+      // Resume workflow
+      const resumeRes = await InquiryEngine.resumeState(chatId);
+      expect(resumeRes.state?.status).toBe('active');
+      expect(resumeRes.state?.currentStep).toBe('businessType');
+    });
+
+    it('should complete Lead Capture workflow and produce 24h completion message', async () => {
+      const chatId = 'chat-lead-complete-test';
+      await InquiryEngine.createState({
+        chatId,
+        sessionId: 'session-456',
+        clientId: testClientId.toString(),
+        visitorId: 'visitor-456',
+        language: 'en',
+        workflowType: 'lead_generation',
+      });
+
+      await InquiryEngine.processInput(chatId, 'Tech Corp'); // businessName
+      await InquiryEngine.processInput(chatId, 'SaaS'); // businessType
+      await InquiryEngine.processInput(chatId, 'E-commerce Website'); // websiteType
+      await InquiryEngine.processInput(chatId, 'Payment Gateway, User Portal'); // requiredFeatures
+      await InquiryEngine.processInput(chatId, 'skip'); // budget
+      await InquiryEngine.processInput(chatId, '1 month'); // timeline
+      await InquiryEngine.processInput(chatId, 'Alice Smith'); // name
+      await InquiryEngine.processInput(chatId, '+1 555-987-6543'); // phone
+      const finalRes = await InquiryEngine.processInput(chatId, 'alice@example.com'); // email
+
+      expect(finalRes.isComplete).toBe(true);
+      expect(finalRes.message).toContain('Thank you! Our team will contact you within 24 hours.');
+      expect(finalRes.data?.businessName).toBe('Tech Corp');
+    });
+  });
 });
