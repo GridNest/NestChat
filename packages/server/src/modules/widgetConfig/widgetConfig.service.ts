@@ -41,6 +41,7 @@ export interface WidgetConfig {
     humanHandoverMessage?: string;
     allowedLanguages: string[];
     whatsapp?: string;
+    avatarUrl?: string;
     collectVisitorName: boolean;
     collectEmail: boolean;
     collectPhone: boolean;
@@ -124,7 +125,7 @@ export class WidgetConfigService {
         borderRadius: theme.borderRadius,
         fontFamily: theme.fontFamily,
         fontSize: theme.fontSize,
-        botAvatar: theme.botAvatar || (config as any)?.avatarUrl || '',
+        botAvatar: theme.botAvatar || (config as any)?.avatarUrl || client.logo || '',
         companyLogo: theme.companyLogo,
         darkMode: theme.darkMode,
       } : {
@@ -137,7 +138,7 @@ export class WidgetConfigService {
         borderRadius: '12px',
         fontFamily: 'Inter, sans-serif',
         fontSize: '14px',
-        botAvatar: (config as any)?.avatarUrl || '',
+        botAvatar: (config as any)?.avatarUrl || client.logo || '',
         darkMode: activeConfig.theme,
       },
       config: {
@@ -154,6 +155,7 @@ export class WidgetConfigService {
         humanHandoverMessage: activeConfig.humanHandoverMessage,
         allowedLanguages: activeConfig.allowedLanguages,
         whatsapp: activeConfig.whatsapp,
+        avatarUrl: (config as any)?.avatarUrl || theme?.botAvatar || client.logo || '',
         collectVisitorName: activeConfig.collectVisitorName,
         collectEmail: activeConfig.collectEmail,
         collectPhone: activeConfig.collectPhone,

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Message } from '../types';
 import { useWidgetStore } from '../store/chatStore';
+import { toDirectImageUrl } from './ChatHeader';
 
 interface ChatMessageProps {
   message: Message;
@@ -8,18 +9,26 @@ interface ChatMessageProps {
 
 export function ChatMessage({ message }: ChatMessageProps) {
   const { clientConfig } = useWidgetStore();
+  const [imgError, setImgError] = React.useState(false);
   const isBot = message.sender === 'bot';
 
-  const avatarSrc = (clientConfig?.config as any)?.avatarUrl || clientConfig?.client?.logo;
+  const rawAvatarSrc =
+    clientConfig?.theme?.botAvatar ||
+    (clientConfig?.config as any)?.avatarUrl ||
+    clientConfig?.client?.logo ||
+    '';
+  const avatarSrc = toDirectImageUrl(rawAvatarSrc);
 
   return (
     <div className={`flex ${isBot ? 'justify-start' : 'justify-end'} items-end gap-2 w-full`}>
       {isBot && (
-        avatarSrc ? (
+        avatarSrc && !imgError ? (
           <img
             src={avatarSrc}
             alt="Bot"
+            referrerPolicy="no-referrer"
             className="w-7 h-7 rounded-full object-cover flex-shrink-0 mb-1 border border-gray-200 shadow-xs"
+            onError={() => setImgError(true)}
           />
         ) : (
           <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold flex-shrink-0 mb-1 border border-blue-200">

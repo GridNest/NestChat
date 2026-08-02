@@ -8,7 +8,7 @@ const LANG_BY_CODE = Object.fromEntries(Object.entries(LANGUAGES).map(([k, v]) =
  * Converts various image URL formats to a directly embeddable URL.
  * Handles Google Drive share links → direct download links.
  */
-function toDirectImageUrl(url?: string): string {
+export function toDirectImageUrl(url?: string): string {
   if (!url) return '';
   // Google Drive: https://drive.google.com/file/d/FILE_ID/view?...
   const driveMatch = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
@@ -25,6 +25,7 @@ function toDirectImageUrl(url?: string): string {
 
 export function ChatHeader() {
   const { clientConfig, closeWidget, language, setLanguage } = useWidgetStore();
+  const [imgError, setImgError] = React.useState(false);
 
   if (!clientConfig) return null;
 
@@ -33,7 +34,7 @@ export function ChatHeader() {
 
   // Avatar priority: theme.botAvatar > config.avatarUrl > client.logo
   const rawAvatarUrl =
-    clientConfig.theme.botAvatar ||
+    clientConfig.theme?.botAvatar ||
     (clientConfig.config as any)?.avatarUrl ||
     clientConfig.client?.logo ||
     '';
@@ -45,14 +46,13 @@ export function ChatHeader() {
       style={{ backgroundColor: primaryColor }}
     >
       <div className="flex items-center gap-3">
-        {avatarUrl ? (
+        {avatarUrl && !imgError ? (
           <img
             src={avatarUrl}
             alt={clientConfig.client?.botName || 'Chatbot'}
+            referrerPolicy="no-referrer"
             className="w-10 h-10 rounded-full object-cover border-2 border-white/20 shadow-sm"
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).style.display = 'none';
-            }}
+            onError={() => setImgError(true)}
           />
         ) : (
           <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center font-bold text-white shadow-sm border border-white/20">
