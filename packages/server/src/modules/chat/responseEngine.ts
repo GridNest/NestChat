@@ -41,19 +41,6 @@ export interface ResponseEngineOptions {
   isInquiryMode?: boolean;
 }
 
-// ─── Menu Category Keywords ───────────────────────────────────────────────────
-
-const MENU_CATEGORY_KEYWORDS: Record<string, string[]> = {
-  breakfast: ['breakfast', 'morning', 'brunch'],
-  lunch: ['lunch', 'afternoon'],
-  dinner: ['dinner', 'evening', 'night'],
-  desserts: ['dessert', 'sweet', 'ice cream', 'cake', 'pastry', 'mousse'],
-  drinks: ['drink', 'beverage', 'juice', 'soda', 'cocktail', 'mocktail', 'coffee', 'tea', 'wine', 'beer'],
-  appetizers: ['appetizer', 'starter', 'snack', 'finger food', 'appetiser'],
-  main_course: ['main course', 'main', 'entree', 'entrée'],
-  specials: ['special', 'chef special', 'today special', 'recommended'],
-};
-
 // ─── Response Engine ──────────────────────────────────────────────────────────
 
 export class ResponseEngine {
@@ -412,36 +399,10 @@ export class ResponseEngine {
       const client = await ClientModel.findOne({ _id: { $in: clientObjIds } }).lean();
       const clientConfig = await ClientConfigModel.findOne({ clientId: { $in: clientObjIds } }).lean();
 
-      // Filter website content by intent
-      const webFilter: any = { ...queryFilter };
-      if (intent && intent !== 'unknown' && intent !== 'greeting') {
-        const intentCategoryMap: Record<string, string[]> = {
-          menu: ['menu', 'menu_item', 'heading'],
-          pricing: ['pricing'],
-          contact: ['contact'],
-          hours: ['hours'],
-          location: ['contact'],
-          services: ['service', 'paragraph'],
-          about: ['heading', 'paragraph'],
-          gallery: ['gallery'],
-          booking: ['booking', 'paragraph'],
-          events: ['paragraph'],
-          offers: ['pricing', 'paragraph'],
-          products: ['paragraph'],
-          order: ['menu_item', 'pricing'],
-          delivery: ['paragraph'],
-        };
-        const categories = intentCategoryMap[intent];
-        if (categories) {
-          webFilter.contentType = { $in: categories };
-        }
-      }
-
       const [faqs, knowledgeItems, webContent] = await Promise.all([
         FAQModel.find(queryFilter).limit(10).lean(),
-        // Exclude RAG chunks from legacy mode to avoid duplication
-        KnowledgeModel.find({ ...queryFilter, tags: { $ne: 'rag_chunk' } }).limit(10).lean(),
-        WebsiteContentModel.find(webFilter).sort({ priority: -1 }).limit(20).lean(),
+        KnowledgeModel.find(queryFilter).limit(10).lean(),
+        WebsiteContentModel.find(queryFilter).sort({ priority: -1 }).limit(20).lean(),
       ]);
 
       const websiteUrl = (client as any)?.website || (clientConfig as any)?.websiteUrl;
@@ -591,80 +552,6 @@ export class ResponseEngine {
   }
 
   // ─── Utility Helpers ──────────────────────────────────────────────────────────
-
-  private static isMenuRelatedQuery(query: string): boolean {
-    const lower = query.toLowerCase();
-    const menuWords = ['menu', 'food', 'dish', 'eat', 'order', 'breakfast', 'lunch', 'dinner',
-      'dessert', 'drink', 'beverage', 'snack', 'meal', 'cuisine', 'special', 'today special',
-      'recommend', 'popular', 'biriyani', 'biryani', 'curry', 'roti', 'naan', 'pizza', 'burger',
-      'pasta', 'salad', 'soup', 'rice', 'bread', 'chicken', 'mutton', 'fish', 'paneer', 'dal'];
-    return menuWords.some(w => lower.includes(w)) || this.isMenuTypeQuery(query);
-  }
-
-  private static isMenuTypeQuery(query: string): boolean {
-    const lower = query.toLowerCase();
-    for (const [category, keywords] of Object.entries(MENU_CATEGORY_KEYWORDS)) {
-      if (keywords.some(k => lower.includes(k))) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  private static detectMenuSubCategory(query: string, context: string): Array<{ id: string; label: string }> | null {
-    const lower = query.toLowerCase();
-
-    if (this.isMenuTypeQuery(query)) {
-      return null;
-    }
-
-    const categories = Object.entries(MENU_CATEGORY_KEYWORDS)
-      .filter(([_, keywords]) => {
-        return keywords.some(k => context.toLowerCase().includes(k)) ||
-               context.toLowerCase().includes(this.getCategoryLabel(keywords[0]).toLowerCase());
-      })
-      .map(([id]) => ({
-        id,
-        label: this.getCategoryLabel(id),
-      }));
-
-    const generalMenuWords = ['menu', 'food', 'what do you have', 'items', 'dishes', 'options', 'list'];
-    if (categories.length === 0 && generalMenuWords.some(w => lower.includes(w))) {
-      return [
-        { id: 'all', label: 'View All Items' },
-        ...Object.entries(MENU_CATEGORY_KEYWORDS).map(([id]) => ({
-          id,
-          label: this.getCategoryLabel(id),
-        })),
-      ];
-    }
-
-    return categories.length > 0 ? categories : null;
-  }
-
-  private static getCategoryLabel(id: string): string {
-    const labels: Record<string, string> = {
-      breakfast: 'Breakfast',
-      lunch: 'Lunch',
-      dinner: 'Dinner',
-      desserts: 'Desserts',
-      drinks: 'Drinks & Beverages',
-      appetizers: 'Appetizers',
-      main_course: 'Main Course',
-      specials: "Today's Specials",
-      all: 'View All Items',
-    };
-    return labels[id] || id;
-  }
-
-  private static formatMenuCategoryResponse(categories: Array<{ id: string; label: string }>, language: Language): string {
-    if (language === 'hi') {
-      return 'Aap kis category ki menu dekhna chahenge?\n\n' +
-        categories.map((c, i) => `${i + 1}. ${c.label}`).join('\n');
-    }
-    return 'Which menu category would you like to see?\n\n' +
-      categories.map((c, i) => `${i + 1}. ${c.label}`).join('\n');
-  }
 
   static getWelcomeResponse(language: Language, clientName: string): string {
     return LanguageEngine.getGreetingMessage(language, clientName);
