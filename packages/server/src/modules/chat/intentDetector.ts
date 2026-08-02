@@ -106,6 +106,12 @@ const RESUME_KEYWORDS = [
   'continue',
   'resume',
   'book table',
+  'booking',
+  'table booking',
+  'room booking',
+  'table reservation',
+  'reservation',
+  'appointment',
   'continue booking',
   'proceed',
   'yes',
@@ -119,6 +125,12 @@ const RESUME_KEYWORDS = [
   'back to inquiry',
   'go on',
   'continue form',
+  'website',
+  'website development',
+  'website design',
+  'quote',
+  'estimate',
+  'consultation',
 ];
 
 export class IntentDetector {

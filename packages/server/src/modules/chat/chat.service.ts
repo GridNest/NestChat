@@ -205,16 +205,19 @@ export class ChatService {
           const originalQuestion = activeInquiry.originalQuestion || '';
           const dataObj = inquiryResult.data;
 
-          const detailsParts: string[] = [];
-          if (dataObj.businessName) detailsParts.push(`Business Name: ${dataObj.businessName}`);
-          if (dataObj.businessType) detailsParts.push(`Business Type: ${dataObj.businessType}`);
-          if (dataObj.websiteType) detailsParts.push(`Website Type: ${dataObj.websiteType}`);
-          if (dataObj.requiredFeatures) detailsParts.push(`Required Features: ${dataObj.requiredFeatures}`);
-          if (dataObj.budget) detailsParts.push(`Budget: ${dataObj.budget}`);
-          if (dataObj.timeline) detailsParts.push(`Timeline: ${dataObj.timeline}`);
-          if (dataObj.message || dataObj.details) detailsParts.push(`Details: ${dataObj.message || dataObj.details}`);
-
-          const details = detailsParts.length > 0 ? detailsParts.join(' | ') : 'Inquiry completed';
+          let details = '';
+          if (dataObj.message || dataObj.details) {
+            details = dataObj.message || dataObj.details;
+          } else {
+            const detailsParts: string[] = [];
+            if (dataObj.businessName) detailsParts.push(`Business Name: ${dataObj.businessName}`);
+            if (dataObj.businessType) detailsParts.push(`Business Type: ${dataObj.businessType}`);
+            if (dataObj.websiteType) detailsParts.push(`Website Type: ${dataObj.websiteType}`);
+            if (dataObj.requiredFeatures) detailsParts.push(`Required Features: ${dataObj.requiredFeatures}`);
+            if (dataObj.budget) detailsParts.push(`Budget: ${dataObj.budget}`);
+            if (dataObj.timeline) detailsParts.push(`Timeline: ${dataObj.timeline}`);
+            details = detailsParts.length > 0 ? detailsParts.join(' | ') : 'Inquiry completed';
+          }
 
           const inquiry = await InquiryService.create({
             clientId: targetClientId,
@@ -225,7 +228,7 @@ export class ChatService {
             email: dataObj.email || 'not-provided@example.com',
             phone: dataObj.phone || '0000000000',
             company: dataObj.businessName || dataObj.company || '',
-            service: dataObj.websiteType || dataObj.businessType || (activeInquiry.data as any)?.workflowType || 'chat_inquiry',
+            service: dataObj.websiteType || (activeInquiry.industry ? `${activeInquiry.industry} booking` : 'chat_inquiry'),
             details,
             language: chat.language,
             originalQuestion,

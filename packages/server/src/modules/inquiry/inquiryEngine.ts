@@ -435,12 +435,18 @@ export class InquiryEngine {
     }
 
     if (isOptional && isSkipInput) {
+      if (!state.data) state.data = {};
       (state.data as any)[currentStepConfig.field] = 'N/A';
       state.skippedFields.push(currentStepConfig.field);
     } else {
+      if (!state.data) state.data = {};
       (state.data as any)[currentStepConfig.field] = input.trim();
       state.completedFields.push(currentStepConfig.field);
     }
+
+    state.markModified('data');
+    state.markModified('completedFields');
+    state.markModified('skippedFields');
 
     const currentIndex = steps.findIndex(s => s.field === state.currentStep);
     const nextIndex = currentIndex + 1;
@@ -468,6 +474,7 @@ export class InquiryEngine {
 
     state.status = 'completed';
     state.completedAt = new Date();
+    state.markModified('data');
     await state.save();
 
     const completionMsg = state.language === 'hi'
