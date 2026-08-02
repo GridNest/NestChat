@@ -2,6 +2,7 @@ import { ChatModel, ChatDocument } from './chat.model.js';
 import { ChatMessageModel, ChatMessageDocument } from './chatMessage.model.js';
 import { ResponseEngine, BotResponse } from './responseEngine.js';
 import { LanguageEngine, Language } from './languageEngine.js';
+import { IntentDetector } from './intentDetector.js';
 import { InquiryEngine, INQUIRY_STEPS } from '../inquiry/inquiryEngine.js';
 import { InquiryService } from '../inquiry/inquiry.service.js';
 import { UnansweredService } from '../unanswered/unanswered.service.js';
