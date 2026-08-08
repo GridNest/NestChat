@@ -99,6 +99,7 @@ export class FormSubmissionService {
       'visitor.occasion': data.occasion || data['visitor.occasion'],
       'visitor.budget': data.budget || data['visitor.budget'],
       'visitor.address': data.address || data['visitor.address'],
+      'visitor.service': data.service || data.serviceType || data['visitor.service'],
     };
 
     let hasMessageField = false;

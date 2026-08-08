@@ -190,7 +190,7 @@ export class ChatService {
         });
 
         // Check if we should smoothly append the next unfulfilled contact prompt
-        const nextUnfulfilled = InquiryEngine.getNextUnfulfilledStep(activeInquiry);
+        const nextUnfulfilled = await InquiryEngine.getNextUnfulfilledStep(activeInquiry);
         let conversationalAppend = '';
         if (nextUnfulfilled && ['name', 'phone', 'email'].includes(nextUnfulfilled.field)) {
           const transitionQ = await InquiryEngine.getCurrentQuestion(chat._id.toString());

@@ -32,6 +32,7 @@ const clientFormFieldSchema = new Schema<ClientFormField>(
         'visitor.occasion',
         'visitor.budget',
         'visitor.address',
+        'visitor.service',
         'visitor.custom',
       ],
       default: 'visitor.custom',

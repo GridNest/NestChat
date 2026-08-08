@@ -25,6 +25,7 @@ export interface BotResponse {
     inquiryCreated?: boolean;
     fallbackTriggered?: boolean;
     workflowType?: string;
+    options?: any;
   };
   quickActions?: typeof DEFAULT_QUICK_ACTIONS;
   suggestedQuestions?: string[];

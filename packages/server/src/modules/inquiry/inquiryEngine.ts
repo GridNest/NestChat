@@ -489,6 +489,7 @@ export class InquiryEngine {
     isCancelled?: boolean;
     isPendingConsent?: boolean;
     data?: Record<string, string>;
+    options?: any;
   }> {
     const state = await InquiryStateModel.findOne({ chatId, status: { $in: ['active', 'paused'] } });
     if (!state) {

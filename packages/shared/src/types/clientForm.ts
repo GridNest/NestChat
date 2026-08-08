@@ -24,6 +24,7 @@ export type FormMappingTarget =
   | 'visitor.occasion'
   | 'visitor.budget'
   | 'visitor.address'
+  | 'visitor.service'
   | 'visitor.custom';
 
 export type FormType = 
@@ -57,8 +58,8 @@ export interface ClientFormField {
 
 export interface ClientForm {
   id?: string;
-  _id?: string;
-  clientId: string;
+  _id?: any;
+  clientId: string | any;
   formId: string;
   formName: string;
   pageUrl: string;
