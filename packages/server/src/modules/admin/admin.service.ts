@@ -81,6 +81,16 @@ export class AdminDashboardService {
     };
   }
 
+  private static async resolveClientId(clientId?: string): Promise<any> {
+    if (!clientId || clientId === 'all') return undefined;
+    const mongoose = await import('mongoose');
+    if (mongoose.default.Types.ObjectId.isValid(clientId)) {
+      return new mongoose.default.Types.ObjectId(clientId);
+    }
+    const client = await ClientModel.findOne({ clientId: clientId.trim().toLowerCase() }).lean();
+    return client ? client._id : clientId;
+  }
+
   static async listAllKnowledge(query: { page?: number; limit?: number; search?: string; category?: string; status?: string; clientId?: string }) {
     const { page = 1, limit = 10, search, category, status, clientId } = query;
     const skip = (page - 1) * limit;
@@ -93,7 +103,10 @@ export class AdminDashboardService {
     }
     if (category) filter.category = category;
     if (status) filter.isActive = status === 'published';
-    if (clientId) filter.clientId = clientId;
+    if (clientId) {
+      const resolved = await this.resolveClientId(clientId);
+      if (resolved) filter.clientId = resolved;
+    }
     const [items, total] = await Promise.all([
       KnowledgeModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('clientId', 'name companyName').lean(),
       KnowledgeModel.countDocuments(filter),
@@ -113,7 +126,10 @@ export class AdminDashboardService {
       ];
     }
     if (category) filter.category = category;
-    if (clientId) filter.clientId = clientId;
+    if (clientId) {
+      const resolved = await this.resolveClientId(clientId);
+      if (resolved) filter.clientId = resolved;
+    }
     const [items, total] = await Promise.all([
       FAQModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('clientId', 'name companyName').lean(),
       FAQModel.countDocuments(filter),
@@ -127,7 +143,10 @@ export class AdminDashboardService {
     const skip = (page - 1) * limit;
     const filter: any = {};
     if (status) filter.status = status;
-    if (clientId) filter.clientId = clientId;
+    if (clientId) {
+      const resolved = await this.resolveClientId(clientId);
+      if (resolved) filter.clientId = resolved;
+    }
     const [items, total] = await Promise.all([
       ChatModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('clientId', 'name companyName').lean(),
       ChatModel.countDocuments(filter),
@@ -141,7 +160,10 @@ export class AdminDashboardService {
     const skip = (page - 1) * limit;
     const filter: any = {};
     if (status) filter.status = status;
-    if (clientId) filter.clientId = clientId;
+    if (clientId) {
+      const resolved = await this.resolveClientId(clientId);
+      if (resolved) filter.clientId = resolved;
+    }
 
     if (dateFilter && dateFilter !== 'all') {
       const now = new Date();

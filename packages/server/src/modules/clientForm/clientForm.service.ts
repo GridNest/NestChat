@@ -56,6 +56,10 @@ export class ClientFormService {
           await existing.save();
         } else {
           // Create new detected form record
+          const isContactForm = form.formType !== 'newsletter' && form.fields.length >= 2;
+          const hasExistingPrimary = await ClientFormModel.exists({ clientId: clientObjectId, isPrimary: true });
+          const isPrimary = (!hasExistingPrimary && isContactForm) || (savedCount === 0 && !hasExistingPrimary);
+
           await ClientFormModel.create({
             clientId: clientObjectId,
             formId: form.formId,
@@ -66,7 +70,7 @@ export class ClientFormService {
             fields: form.fields,
             formType: form.formType || 'inquiry',
             isActive: true,
-            isPrimary: savedCount === 0,
+            isPrimary,
             lastScanned: new Date(),
             submissionType: form.submissionType || 'html_form',
             submissionEndpoint: form.submissionEndpoint || form.action,

@@ -27,10 +27,13 @@ export class FormSubmissionService {
         };
       }
 
-      // Find target form: preferredFormId > primary active form > first active form
+      // Find target form: preferredFormId > active primary non-newsletter > active inquiry form > active primary > any active
       let targetForm = forms.find(f => f.formId === preferredFormId && f.isActive);
       if (!targetForm) {
-        targetForm = forms.find(f => f.isActive && f.isPrimary) || forms.find(f => f.isActive);
+        targetForm = forms.find(f => f.isActive && f.isPrimary && f.formType !== 'newsletter') ||
+                   forms.find(f => f.isActive && f.formType !== 'newsletter' && f.fields.length >= 2) ||
+                   forms.find(f => f.isActive && f.isPrimary) ||
+                   forms.find(f => f.isActive);
       }
 
       if (!targetForm) {
