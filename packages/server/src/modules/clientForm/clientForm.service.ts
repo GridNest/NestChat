@@ -143,7 +143,58 @@ export class ClientFormService {
   }
 
   /**
-   * Trigger an on-demand HTML form scan for a client's website URL.
+   * Helper to discover sub-pages (e.g., /contact.html, /contact, /booking) for form scanning.
+   */
+  private static async discoverFormPages(baseUrl: string): Promise<string[]> {
+    const pages = new Set<string>();
+    const cleanBase = baseUrl.replace(/\/$/, '');
+    pages.add(cleanBase);
+
+    // Common contact/inquiry subpaths to prioritize
+    const commonPaths = [
+      '/contact', '/contact.html', '/contact.php', '/contact-us',
+      '/inquiry', '/get-quote', '/booking', '/reservation'
+    ];
+    for (const p of commonPaths) {
+      try {
+        pages.add(`${cleanBase}${p}`);
+      } catch { /* skip */ }
+    }
+
+    try {
+      const response = await fetch(cleanBase, {
+        signal: AbortSignal.timeout(8000),
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; NestChatBot/1.0)' },
+      });
+
+      if (response.ok) {
+        const html = await response.text();
+        const baseHost = new URL(cleanBase).hostname;
+        const linkRegex = /<a[^>]*href=["']([^"']+)["'][^>]*>/gi;
+        let match: RegExpExecArray | null;
+
+        while ((match = linkRegex.exec(html)) !== null) {
+          let href = match[1].split('#')[0].split('?')[0];
+          if (!href || href === '/' || href.startsWith('#') || href.startsWith('javascript:')) continue;
+
+          try {
+            const fullUrl = new URL(href, cleanBase);
+            if (fullUrl.hostname === baseHost && !fullUrl.pathname.match(/\.(pdf|zip|png|jpg|jpeg|gif|svg|css|js|xml|json|ico|webp)$/i)) {
+              const cleanUrl = fullUrl.origin + fullUrl.pathname.replace(/\/$/, '');
+              if (pages.size < 15) {
+                pages.add(cleanUrl);
+              }
+            }
+          } catch { /* skip invalid URL */ }
+        }
+      }
+    } catch { /* skip homepage discovery fetch error */ }
+
+    return Array.from(pages);
+  }
+
+  /**
+   * Trigger an on-demand HTML form scan for a client's website URL and its sub-pages.
    */
   static async scanWebsiteForms(clientId: string): Promise<{ success: boolean; formsFound: number; forms: ClientFormDocument[] }> {
     const clientObjectId = await this.resolveClientId(clientId);
@@ -156,26 +207,34 @@ export class ClientFormService {
     const targetUrl = client.website.startsWith('http') ? client.website : `https://${client.website}`;
 
     try {
-      const response = await fetch(targetUrl, {
-        signal: AbortSignal.timeout(12000),
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; NestChatBot/1.0)' },
-      });
+      const pagesToScan = await this.discoverFormPages(targetUrl);
+      const allDetectedForms: ClientForm[] = [];
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch website content: HTTP ${response.status}`);
+      for (const pageUrl of pagesToScan) {
+        try {
+          const response = await fetch(pageUrl, {
+            signal: AbortSignal.timeout(8000),
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; NestChatBot/1.0)' },
+          });
+
+          if (response.ok) {
+            const html = await response.text();
+            const detected = FormDetector.extractFormsFromHtml(html, pageUrl, clientObjectId.toString());
+            if (detected.length > 0) {
+              allDetectedForms.push(...detected);
+            }
+          }
+        } catch { /* skip individual page scan error */ }
       }
 
-      const html = await response.text();
-      const detected = FormDetector.extractFormsFromHtml(html, targetUrl, clientObjectId.toString());
-
-      if (detected.length > 0) {
-        await this.saveDetectedForms(clientObjectId.toString(), detected);
+      if (allDetectedForms.length > 0) {
+        await this.saveDetectedForms(clientObjectId.toString(), allDetectedForms);
       }
 
       const forms = await this.getClientForms(clientId);
       return {
         success: true,
-        formsFound: detected.length,
+        formsFound: allDetectedForms.length,
         forms,
       };
     } catch (err) {
