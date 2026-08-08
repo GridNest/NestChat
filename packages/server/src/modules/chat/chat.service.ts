@@ -317,9 +317,15 @@ export class ChatService {
             metadata: {
               matchedType: 'inquiry_trigger',
               confidence: 1,
+              options: (inquiryResult as any).options,
             },
           };
+          if ((inquiryResult as any).options) {
+            (botResponse as any).options = (inquiryResult as any).options;
+            (botResponse as any).quickActions = (inquiryResult as any).options;
+          }
         }
+
       }
     } else {
       botResponse = await ResponseEngine.generateResponse({

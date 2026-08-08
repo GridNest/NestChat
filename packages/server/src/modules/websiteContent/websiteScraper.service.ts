@@ -2,8 +2,11 @@ import { WebsiteContentModel } from './websiteContent.model.js';
 import { ClientModel } from '../client/client.model.js';
 import { KnowledgeModel } from '../knowledge/knowledge.model.js';
 import { RagService } from '../chat/ragService.js';
+import { FormDetector } from '../clientForm/formDetector.js';
+import { ClientFormService } from '../clientForm/clientForm.service.js';
 import { logger } from '../../utils/logger.js';
 import mongoose from 'mongoose';
+
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -97,6 +100,38 @@ export class WebsiteScraperService {
           logger.warn(`[WebsiteScraper] Failed to scrape ${pageUrl}:`, err);
         }
       }
+
+      // ─── Non-blocking Form Detection Scan ─────────────────────────────────
+      try {
+        logs.push(`Scanning for HTML forms across discovered pages...`);
+        const allDetectedForms: any[] = [];
+        for (const pUrl of pagesToScrape.slice(0, 8)) {
+          try {
+            const resp = await fetch(pUrl, {
+              signal: AbortSignal.timeout(8000),
+              headers: { 'User-Agent': 'Mozilla/5.0 (compatible; NestChatBot/1.0)' },
+            });
+            if (resp.ok) {
+              const htmlText = await resp.text();
+              const forms = FormDetector.extractFormsFromHtml(htmlText, pUrl, resolvedId.toString());
+              if (forms.length > 0) {
+                allDetectedForms.push(...forms);
+              }
+            }
+          } catch { /* skip individual page form fetch */ }
+        }
+
+        if (allDetectedForms.length > 0) {
+          const formCount = await ClientFormService.saveDetectedForms(resolvedId.toString(), allDetectedForms);
+          logs.push(`Detected & stored ${formCount} website forms`);
+        } else {
+          logs.push(`No HTML website forms detected on scanned pages`);
+        }
+      } catch (formErr) {
+        logs.push(`Form detection scan note: ${(formErr as Error).message}`);
+        logger.warn(`[WebsiteScraper] Non-blocking form detection note:`, formErr);
+      }
+
 
       if (allItems.length > 0) {
         const docs = allItems.map(item => ({

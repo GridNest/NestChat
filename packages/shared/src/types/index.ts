@@ -8,3 +8,4 @@ export * from './inquiry.js';
 export * from './unanswered.js';
 export * from './api.js';
 export * from './translation.js';
+export * from './clientForm.js';

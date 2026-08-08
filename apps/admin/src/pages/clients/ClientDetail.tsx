@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { adminApi } from '../../services/api';
+import { ClientWebsiteForms } from './ClientWebsiteForms';
 
 interface SyncResult {
   success: boolean;
@@ -55,9 +56,10 @@ export function ClientDetail() {
   const [config, setConfig] = useState<ClientConfig | null>(null);
   const [modules, setModules] = useState<ClientModule[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'config' | 'modules'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'config' | 'modules' | 'forms'>('overview');
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
+
 
   const [syncStats, setSyncStats] = useState({
     status: 'idle',
@@ -104,7 +106,7 @@ export function ClientDetail() {
       });
     } catch (error) {
       console.error('Failed to fetch client details:', error);
-    } finally {
+    } fontally {
       setLoading(false);
     }
   };
@@ -216,8 +218,15 @@ export function ClientDetail() {
           >
             Modules
           </button>
+          <button
+            onClick={() => setActiveTab('forms')}
+            className={`pb-3 text-xs sm:text-sm font-semibold border-b-2 transition-colors min-h-[44px] flex items-center ${activeTab === 'forms' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+          >
+            Website Forms
+          </button>
         </nav>
       </div>
+
 
       {activeTab === 'overview' && (
         <div className="space-y-6">
@@ -433,6 +442,11 @@ export function ClientDetail() {
           </div>
         </div>
       )}
+
+      {activeTab === 'forms' && (
+        <ClientWebsiteForms clientId={id!} />
+      )}
     </div>
+
   );
 }

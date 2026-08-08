@@ -593,6 +593,32 @@ class AdminApi {
     const response = await this.client.get(`/website-content/${clientId}/categories`);
     return response.data;
   }
+
+  // Client Website Forms
+  async getClientForms(clientId: string) {
+    const response = await this.client.get(`/client-forms/${clientId}`);
+    return response.data;
+  }
+
+  async scanClientForms(clientId: string) {
+    const response = await this.client.post(`/client-forms/${clientId}/scan`);
+    return response.data;
+  }
+
+  async updateClientForm(clientId: string, formId: string, data: Record<string, any>) {
+    const response = await this.client.put(`/client-forms/${clientId}/${formId}`, data);
+    return response.data;
+  }
+
+  async deleteClientForm(clientId: string, formId: string) {
+    const response = await this.client.delete(`/client-forms/${clientId}/${formId}`);
+    return response.data;
+  }
+
+  async testClientFormSubmission(clientId: string, formId: string, sampleData: Record<string, any>) {
+    const response = await this.client.post(`/client-forms/${clientId}/${formId}/test`, sampleData);
+    return response.data;
+  }
 }
 
 export const adminApi = new AdminApi();

@@ -1,7 +1,13 @@
 import { InquiryStateModel, InquiryStateDocument } from './inquiryState.model.js';
+import { ClientFormModel } from '../clientForm/clientForm.model.js';
+import { FormSubmissionService } from '../clientForm/submission/formSubmissionService.js';
+import { InquiryService } from './inquiry.service.js';
 import { LanguageEngine, Language } from '../chat/languageEngine.js';
 import { isValidEmail, isValidPhone } from '@nestchat/shared';
 import { IntentDetector, Intent } from '../chat/intentDetector.js';
+import { logger } from '../../utils/logger.js';
+
+
 
 export interface InquiryStep {
   field: string;
@@ -20,6 +26,7 @@ export interface DynamicInquiryStep {
   prompt: string;
   promptHi: string;
   required: boolean;
+  options?: string[];
   validate?: (value: string) => boolean;
   validationMessage?: string;
   validationMessageHi?: string;
@@ -229,6 +236,81 @@ export class InquiryEngine {
     return INQUIRY_STEPS;
   }
 
+  static async getStepsForClient(clientId: string, workflowType?: string): Promise<Array<InquiryStep | DynamicInquiryStep>> {
+    try {
+      const clientForms = await ClientFormModel.find({ clientId, isActive: true }).lean();
+      if (clientForms && clientForms.length > 0) {
+        const primaryForm = clientForms.find(f => f.isPrimary) || clientForms[0];
+        if (primaryForm && primaryForm.fields && primaryForm.fields.length > 0) {
+          const actionableFields = primaryForm.fields.filter(f => 
+            f.type !== 'hidden' && 
+            !['honeypot', 'templatesource', 'captcha', 'csrf', 'nonce', '_wpnonce'].includes(f.fieldName.toLowerCase()) &&
+            !['honeypot', 'templatesource', 'captcha'].includes(f.label.toLowerCase())
+          );
+          const dynamicSteps: DynamicInquiryStep[] = actionableFields.map(f => {
+            const promptPair = this.getPromptForField(f.mappedTo, f.label, f.fieldName, f.options);
+            return {
+              field: f.fieldName,
+              label: f.label,
+              labelHi: f.label,
+              prompt: promptPair.en,
+              promptHi: promptPair.hi,
+              required: f.required,
+              options: (f.options && f.options.length > 0) ? f.options : promptPair.options,
+              validate: f.mappedTo === 'visitor.email' ? isValidEmail : (f.mappedTo === 'visitor.phone' ? isValidPhone : undefined),
+              validationMessage: f.mappedTo === 'visitor.email' ? 'Please provide a valid email address.' : (f.mappedTo === 'visitor.phone' ? 'Please provide a valid phone number.' : undefined),
+              validationMessageHi: f.mappedTo === 'visitor.email' ? 'Kripya sahi email address daalein.' : (f.mappedTo === 'visitor.phone' ? 'Kripya sahi phone number daalein.' : undefined),
+            };
+          });
+          return dynamicSteps;
+        }
+
+      }
+    } catch {
+      /* fallback to default workflow */
+    }
+    return this.getStepsForWorkflow(workflowType);
+  }
+
+  private static getPromptForField(mappedTo: string, label: string, fieldName: string = '', formFieldOptions?: string[]): { en: string; hi: string; options?: string[] } {
+    const isService = mappedTo === 'visitor.service' || fieldName.toLowerCase().includes('service') || label.toLowerCase().includes('service');
+    if (isService) {
+      const opts = (formFieldOptions && formFieldOptions.length > 0) 
+        ? formFieldOptions 
+        : ['Hotel', 'Restaurant', 'Corporate', 'SEO', 'Maintenance', 'Template', 'Other'];
+      return {
+        en: 'Which Service are you interested in? (Please select an option below)',
+        hi: 'Aap kis Service me interested hain? (Niche se option choose karein)',
+        options: opts,
+      };
+    }
+
+    switch (mappedTo) {
+      case 'visitor.name':
+        return { en: 'Sure! May I know your Full Name?', hi: 'Aapka Poora Naam kya hai?' };
+      case 'visitor.email':
+        return { en: 'What is the best Email address to reach you?', hi: 'Aapka Email address kya hai?' };
+      case 'visitor.phone':
+        return { en: 'What is your Phone or Mobile number?', hi: 'Aapka Mobile number kya hai?' };
+      case 'visitor.message':
+        return { en: 'What requirement or message would you like to share?', hi: 'Aapki kya requirement ya message hai?' };
+      case 'visitor.company':
+        return { en: 'What is your Business or Company name?', hi: 'Aapke Business ya Company ka naam kya hai?' };
+      case 'visitor.date':
+        return { en: 'What date would you prefer?', hi: 'Aap kaunsi date prefer karenge?' };
+      case 'visitor.guests':
+        return { en: 'How many guests or people will be joining?', hi: 'Kitne log join karenge?' };
+      case 'visitor.occasion':
+        return { en: 'What is the occasion or event type?', hi: 'Kaisa occasion ya event hai?' };
+      case 'visitor.budget':
+        return { en: 'What is your estimated Budget? (type "skip" to bypass)', hi: 'Aapka estimated Budget kya hai? (skip ke liye "skip" likhein)' };
+      default:
+        return { en: `Please provide your ${label}`, hi: `Kripya apna ${label} batayein` };
+    }
+  }
+
+
+
   static async createState(data: {
     chatId: string;
     sessionId: string;
@@ -252,7 +334,8 @@ export class InquiryEngine {
       return existing;
     }
 
-    const initialStep = data.currentStep || (data.workflowType === 'lead_generation' ? 'businessName' : 'name');
+    const steps = await this.getStepsForClient(data.clientId, data.workflowType);
+    const initialStep = data.currentStep || (steps.length > 0 ? steps[0].field : (data.workflowType === 'lead_generation' ? 'businessName' : 'name'));
     const initialData = { ...(data.data || {}), workflowType: data.workflowType || 'general_inquiry' };
 
     return InquiryStateModel.create({
@@ -270,6 +353,7 @@ export class InquiryEngine {
       industry: data.industry,
       startedAt: new Date(),
     });
+
   }
 
   static async getState(chatId: string): Promise<InquiryStateDocument | null> {
@@ -304,7 +388,7 @@ export class InquiryEngine {
     }
 
     if (hasChanges) {
-      const steps = this.getStepsForWorkflow((state.data as any)?.workflowType);
+      const steps = await this.getStepsForClient(state.clientId.toString(), (state.data as any)?.workflowType);
       const nextUnfulfilled = steps.find(s => !(state.data as any)[s.field] && !state.skippedFields.includes(s.field));
       if (nextUnfulfilled) {
         state.currentStep = nextUnfulfilled.field;
@@ -317,8 +401,8 @@ export class InquiryEngine {
     return state;
   }
 
-  static getNextUnfulfilledStep(state: InquiryStateDocument): InquiryStep | DynamicInquiryStep | null {
-    const steps = this.getStepsForWorkflow((state.data as any)?.workflowType);
+  static async getNextUnfulfilledStep(state: InquiryStateDocument): Promise<InquiryStep | DynamicInquiryStep | null> {
+    const steps = await this.getStepsForClient(state.clientId.toString(), (state.data as any)?.workflowType);
     for (const step of steps) {
       const val = (state.data as any)?.[step.field];
       const isSkipped = state.skippedFields?.includes(step.field);
@@ -428,7 +512,7 @@ export class InquiryEngine {
         state.currentStep = isLeadGen ? 'businessName' : 'name';
         await state.save();
 
-        const steps = this.getStepsForWorkflow((state.data as any)?.workflowType);
+        const steps = await this.getStepsForClient(state.clientId.toString(), (state.data as any)?.workflowType);
         const firstStep = steps[0];
         const message = (firstStep as DynamicInquiryStep).prompt || LanguageEngine.getMessage(state.language, (firstStep as InquiryStep).messageKey as any);
         return {
@@ -452,8 +536,16 @@ export class InquiryEngine {
       }
     }
 
-    const steps = this.getStepsForWorkflow((state.data as any)?.workflowType);
-    const currentStepConfig = steps.find(s => s.field === state.currentStep);
+    const steps = await this.getStepsForClient(state.clientId.toString(), (state.data as any)?.workflowType);
+    let currentStepConfig = steps.find(s => s.field === state.currentStep);
+
+    if (!currentStepConfig) {
+      const nextUnfulfilled = await this.getNextUnfulfilledStep(state);
+      if (nextUnfulfilled) {
+        state.currentStep = nextUnfulfilled.field;
+        currentStepConfig = nextUnfulfilled;
+      }
+    }
 
     if (!currentStepConfig) {
       return {
@@ -461,6 +553,7 @@ export class InquiryEngine {
         message: 'Invalid inquiry step',
       };
     }
+
 
     const isOptional = !currentStepConfig.required;
     const isSkipInput = normalizedInput === 'skip' || normalizedInput === 'next' || normalizedInput === 'n/a';
@@ -493,7 +586,7 @@ export class InquiryEngine {
     state.markModified('completedFields');
     state.markModified('skippedFields');
 
-    const nextStep = this.getNextUnfulfilledStep(state);
+    const nextStep = await this.getNextUnfulfilledStep(state);
 
     if (nextStep) {
       state.currentStep = nextStep.field;
@@ -511,8 +604,10 @@ export class InquiryEngine {
         success: true,
         message,
         nextStep: nextStep.field,
+        options: (nextStep as any).options,
         isComplete: false,
       };
+
     }
 
     state.status = 'completed';
@@ -524,6 +619,7 @@ export class InquiryEngine {
       ? 'Aapka dhanyawaad! Hamari team aapko 24 ghante ke andar contact karegi.'
       : 'Thank you! Our team will contact you within 24 hours.';
 
+
     return {
       success: true,
       message: completionMsg,
@@ -531,6 +627,7 @@ export class InquiryEngine {
       data: state.data as Record<string, string>,
     };
   }
+
 
   static async cancelInquiry(
     state: InquiryStateDocument
@@ -554,7 +651,8 @@ export class InquiryEngine {
     const state = await InquiryStateModel.findOne({ chatId, status: { $in: ['active', 'paused'] } });
     if (!state) return null;
 
-    const nextStep = this.getNextUnfulfilledStep(state);
+    const nextStep = await this.getNextUnfulfilledStep(state);
+
     if (!nextStep) return null;
 
     if ('prompt' in nextStep) {
@@ -573,7 +671,8 @@ export class InquiryEngine {
         : 'Would you like me to connect you with our team? (Yes/No)';
     }
 
-    const nextStep = this.getNextUnfulfilledStep(state);
+    const nextStep = await this.getNextUnfulfilledStep(state);
+
     if (!nextStep) return null;
 
     state.currentStep = nextStep.field;

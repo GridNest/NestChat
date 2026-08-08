@@ -4,8 +4,10 @@ import { InquiryModel, InquiryDocument } from './inquiry.model.js';
 import { InquiryStateModel, InquiryStateDocument } from './inquiryState.model.js';
 import { ClientModel } from '../client/client.model.js';
 import { ExternalApiService } from './externalApiService.js';
+import { FormSubmissionService } from '../clientForm/submission/formSubmissionService.js';
 import { ApiError } from '../../utils/apiError.js';
 import { omitUndefined } from '../../utils/helpers.js';
+
 
 export interface InquiryListItem {
   id: string;
@@ -63,13 +65,25 @@ export class InquiryService {
       externalApiStatus: 'pending',
     });
 
-    const forwardResult = await ExternalApiService.forwardInquiry(inquiry, data.clientId);
+    let forwarded = false;
+    try {
+      const formSubmission = await FormSubmissionService.submitLeadToClientForm(data.clientId, data);
+      if (formSubmission.success || formSubmission.submissionStatus === 'submitted') {
+        inquiry.externalApiStatus = 'forwarded';
+        inquiry.externalApiResponse = `Website form submission successful via ${formSubmission.submissionMethod}`;
+        forwarded = true;
+      }
+    } catch { /* safe fallback */ }
 
-    inquiry.externalApiStatus = forwardResult.status as any;
-    inquiry.externalApiResponse = forwardResult.response;
-    if (forwardResult.status === 'forwarded') {
-      inquiry.forwardedAt = new Date();
+    if (!forwarded) {
+      const forwardResult = await ExternalApiService.forwardInquiry(inquiry, data.clientId);
+      inquiry.externalApiStatus = forwardResult.status as any;
+      inquiry.externalApiResponse = forwardResult.response;
+      if (forwardResult.status === 'forwarded') {
+        inquiry.forwardedAt = new Date();
+      }
     }
+
     await inquiry.save();
 
     return this.formatInquiry(inquiry);
