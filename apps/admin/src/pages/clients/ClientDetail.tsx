@@ -106,7 +106,7 @@ export function ClientDetail() {
       });
     } catch (error) {
       console.error('Failed to fetch client details:', error);
-    } fontally {
+    } finally {
       setLoading(false);
     }
   };
