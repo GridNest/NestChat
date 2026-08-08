@@ -61,8 +61,11 @@ app.use(morgan('combined', {
   },
 }));
 
-app.get('/health', (req, res) => {
+app.get(['/', '/health'], (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString(), service: 'nestchat-api' });
+});
+app.head(['/', '/health'], (req, res) => {
+  res.status(200).end();
 });
 
 app.use('/api', healthRoutes);
