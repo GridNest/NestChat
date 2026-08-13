@@ -71,7 +71,8 @@ export function ChatMessage({ message }: ChatMessageProps) {
             hour: '2-digit',
             minute: '2-digit',
           })}
-        </p>
+          </p>
+        </div>
       </div>
     </div>
   );
