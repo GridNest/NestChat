@@ -1,5 +1,7 @@
+import mongoose from 'mongoose';
 import { InquiryStateModel, InquiryStateDocument } from './inquiryState.model.js';
 import { ClientFormModel } from '../clientForm/clientForm.model.js';
+import { ClientModel } from '../client/client.model.js';
 import { FormSubmissionService } from '../clientForm/submission/formSubmissionService.js';
 import { InquiryService } from './inquiry.service.js';
 import { LanguageEngine, Language } from '../chat/languageEngine.js';
@@ -238,7 +240,26 @@ export class InquiryEngine {
 
   static async getStepsForClient(clientId: string, workflowType?: string): Promise<Array<InquiryStep | DynamicInquiryStep>> {
     try {
-      const clientForms = await ClientFormModel.find({ clientId, isActive: true }).lean();
+      let targetClientId = clientId;
+      if (clientId && !mongoose.Types.ObjectId.isValid(clientId)) {
+        const client = await ClientModel.findOne({
+          $or: [
+            { slug: clientId.trim().toLowerCase() },
+            { clientId: clientId.trim().toLowerCase() },
+            { name: new RegExp(`^${clientId.trim()}$`, 'i') },
+          ]
+        }).lean();
+        if (client) targetClientId = client._id.toString();
+      }
+
+      const clientForms = await ClientFormModel.find({
+        $or: [
+          { clientId: targetClientId },
+          ...(mongoose.Types.ObjectId.isValid(clientId) ? [{ clientId: new mongoose.Types.ObjectId(clientId) }] : []),
+        ],
+        isActive: true,
+      }).lean();
+
       if (clientForms && clientForms.length > 0) {
         const primaryForm = clientForms.find(f => f.isPrimary) || clientForms[0];
         if (primaryForm && primaryForm.fields && primaryForm.fields.length > 0) {
@@ -262,9 +283,55 @@ export class InquiryEngine {
               validationMessageHi: f.mappedTo === 'visitor.email' ? 'Kripya sahi email address daalein.' : (f.mappedTo === 'visitor.phone' ? 'Kripya sahi phone number daalein.' : undefined),
             };
           });
+
+          // Ensure Name, Phone, and Email contact steps are ALWAYS present in dynamicSteps
+          const stepKeys = dynamicSteps.map(s => s.field.toLowerCase().replace(/[-_]/g, ''));
+          const hasName = stepKeys.some(k => ['name', 'yourname', 'fullname', 'clientname', 'visitorname'].includes(k));
+          const hasPhone = stepKeys.some(k => ['phone', 'yourphone', 'mobile', 'phonenumber', 'tel'].includes(k));
+          const hasEmail = stepKeys.some(k => ['email', 'youremail', 'emailaddress'].includes(k));
+
+          if (!hasName) {
+            dynamicSteps.push({
+              field: 'name',
+              label: 'Full Name',
+              labelHi: 'Poora Naam',
+              prompt: 'May I know your Full Name?',
+              promptHi: 'Aapka poora naam kya hai?',
+              required: true,
+              validate: (val) => val.trim().length >= 2,
+              validationMessage: 'Please enter your full name (at least 2 characters).',
+              validationMessageHi: 'Kripya apna poora naam batayein.',
+            });
+          }
+          if (!hasPhone) {
+            dynamicSteps.push({
+              field: 'phone',
+              label: 'Mobile Number',
+              labelHi: 'Mobile Number',
+              prompt: 'What is your Mobile Number?',
+              promptHi: 'Aapka Mobile Number kya hai?',
+              required: true,
+              validate: isValidPhone,
+              validationMessage: 'Please enter a valid phone number.',
+              validationMessageHi: 'Kripya sahi phone number daalein.',
+            });
+          }
+          if (!hasEmail) {
+            dynamicSteps.push({
+              field: 'email',
+              label: 'Email',
+              labelHi: 'Email',
+              prompt: 'What is your Email address?',
+              promptHi: 'Aapka Email address kya hai?',
+              required: true,
+              validate: isValidEmail,
+              validationMessage: 'Please enter a valid email address.',
+              validationMessageHi: 'Kripya sahi email address daalein.',
+            });
+          }
+
           return dynamicSteps;
         }
-
       }
     } catch {
       /* fallback to default workflow */
@@ -410,9 +477,24 @@ export class InquiryEngine {
 
   static async getNextUnfulfilledStep(state: InquiryStateDocument): Promise<InquiryStep | DynamicInquiryStep | null> {
     const steps = await this.getStepsForClient(state.clientId.toString(), (state.data as any)?.workflowType);
+    const dataObj = (state.data as any) || {};
+
     for (const step of steps) {
-      const val = (state.data as any)?.[step.field];
-      const isSkipped = state.skippedFields?.includes(step.field);
+      const fieldKey = step.field;
+      const normKey = fieldKey.toLowerCase().replace(/[-_]/g, '');
+
+      let val = dataObj[fieldKey];
+      if (!val && ['name', 'yourname', 'fullname', 'clientname', 'visitorname'].includes(normKey)) {
+        val = dataObj.name || dataObj['your-name'] || dataObj['your_name'] || dataObj.fullName || dataObj.visitorName;
+      }
+      if (!val && ['phone', 'yourphone', 'mobile', 'phonenumber', 'tel'].includes(normKey)) {
+        val = dataObj.phone || dataObj['your-phone'] || dataObj['your_phone'] || dataObj.mobile || dataObj.visitorPhone;
+      }
+      if (!val && ['email', 'youremail', 'emailaddress'].includes(normKey)) {
+        val = dataObj.email || dataObj['your-email'] || dataObj['your_email'] || dataObj.visitorEmail;
+      }
+
+      const isSkipped = state.skippedFields?.includes(fieldKey);
       if (!val && !isSkipped) {
         return step;
       }
@@ -622,6 +704,34 @@ export class InquiryEngine {
     state.completedAt = new Date();
     state.markModified('data');
     await state.save();
+
+    // Auto-create NestChat Inquiry record AND submit to client website form!
+    try {
+      const inquiryData = (state.data as Record<string, any>) || {};
+      const clientName = inquiryData.name || inquiryData['your-name'] || inquiryData['your_name'] || inquiryData.visitorName || inquiryData.fullName || 'Website Visitor';
+      const clientEmail = inquiryData.email || inquiryData['your-email'] || inquiryData['your_email'] || inquiryData.visitorEmail || '';
+      const clientPhone = inquiryData.phone || inquiryData['your-phone'] || inquiryData['your_phone'] || inquiryData.mobile || inquiryData.visitorPhone || '';
+      const clientService = inquiryData.service || inquiryData['your-service'] || inquiryData['your_service'] || inquiryData.websiteType || inquiryData.businessType || '';
+      const clientDetails = inquiryData.message || inquiryData['your-message'] || inquiryData['your_message'] || inquiryData.requiredFeatures || inquiryData.details || state.originalQuestion || '';
+      const clientCompany = inquiryData.businessName || inquiryData.company || '';
+
+      await InquiryService.create({
+        clientId: state.clientId.toString(),
+        chatId: state.chatId,
+        sessionId: state.sessionId,
+        visitorId: state.visitorId,
+        name: clientName,
+        email: clientEmail,
+        phone: clientPhone,
+        service: clientService,
+        details: clientDetails,
+        company: clientCompany,
+        language: state.language,
+        originalQuestion: state.originalQuestion,
+      });
+    } catch (err) {
+      logger.error(`[InquiryEngine] Error auto-creating inquiry on completion:`, err);
+    }
 
     const completionMsg = state.language === 'hi'
       ? 'Aapka dhanyawaad! Hamari team aapko 24 ghante ke andar contact karegi.'
