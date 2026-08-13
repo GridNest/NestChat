@@ -147,6 +147,22 @@ export class ChatService {
       messageType: 'text',
     });
 
+    // Check if chat is assigned to a live human agent (Bot Handover)
+    if (chat.assignedTo) {
+      await ChatModel.findByIdAndUpdate(chat._id, { $inc: { messageCount: 1 } });
+      const formattedUserMsg = this.formatMessage(userMessage);
+      try {
+        emitToClient(chat.clientId.toString(), 'chat:userMessage', {
+          chatId: chat._id.toString(),
+          message: formattedUserMsg,
+        });
+      } catch (_) {}
+      return {
+        userMessage: formattedUserMsg,
+        botMessage: null as any,
+      };
+    }
+
     const startTime = Date.now();
     const lang = (data.language || chat.language) as Language;
 
@@ -424,8 +440,8 @@ export class ChatService {
     };
   }
 
-  static async getHistory(sessionId: string): Promise<ChatMessageItem[]> {
-    const chat = await ChatModel.findOne({ sessionId });
+  static async getHistory(sessionId: string): Promise<any> {
+    const chat = await ChatModel.findOne({ sessionId }).populate('assignedTo');
     if (!chat) {
       throw ApiError.notFound('Chat session not found');
     }
@@ -434,7 +450,21 @@ export class ChatService {
       .sort({ timestamp: 1 })
       .lean();
 
-    return messages.map(msg => this.formatMessage(msg as unknown as ChatMessageDocument));
+    const formattedMessages = messages.map(msg => this.formatMessage(msg as unknown as ChatMessageDocument));
+    const assignedUser = chat.assignedTo ? (chat.assignedTo as any) : null;
+
+    const assignedAgent = assignedUser ? {
+      id: assignedUser._id?.toString(),
+      name: assignedUser.name || 'Support Agent',
+      avatar: assignedUser.avatar || '',
+      status: 'online',
+    } : null;
+
+    const result: any = formattedMessages;
+    result.assignedAgent = assignedAgent;
+    result.messages = formattedMessages;
+    result.chatId = chat._id.toString();
+    return result;
   }
 
   static async getRecentHistory(chatId: string, limit: number): Promise<Array<{ sender: string; content: string }>> {
@@ -453,20 +483,27 @@ export class ChatService {
     const chat = await ChatModel.findById(chatId);
     if (!chat) throw ApiError.notFound('Chat not found');
 
+    const User = mongoose.model('User');
+    const userDoc: any = await User.findById(userId).lean();
+    const agentName = userDoc?.name || 'Support Agent';
+
     const message = await ChatMessageModel.create({
       chatId: chat._id,
       sender: 'agent',
       content,
       messageType: 'agent',
-      metadata: { matchedType: undefined, matchedId: userId },
+      metadata: { matchedType: undefined, matchedId: userId, agentName },
     });
 
     await ChatModel.findByIdAndUpdate(chat._id, { $inc: { messageCount: 1 } });
     const result = this.formatMessage(message);
-    emitToClient(chat.clientId.toString(), 'chat:agentMessage', {
-      chatId: chat._id.toString(),
-      message: result,
-    });
+    try {
+      emitToClient(chat.clientId.toString(), 'chat:agentMessage', {
+        chatId: chat._id.toString(),
+        message: result,
+        agentName,
+      });
+    } catch (_) {}
     return result;
   }
 

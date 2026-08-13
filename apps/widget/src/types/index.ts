@@ -1,3 +1,10 @@
+export interface AssignedAgent {
+  id?: string;
+  name: string;
+  avatar?: string;
+  status: 'online' | 'offline' | 'away';
+}
+
 export interface WidgetState {
   isOpen: boolean;
   language: string;
@@ -9,6 +16,7 @@ export interface WidgetState {
   chatId: string | null;
   inquiryStep: string;
   inquiryData: Record<string, string>;
+  assignedAgent?: AssignedAgent | null;
 }
 
 export interface ServerWidgetConfig {

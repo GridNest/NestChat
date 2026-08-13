@@ -19,6 +19,7 @@ interface WidgetStore extends WidgetState {
   setInquiryData: (data: Record<string, string>) => void;
   initializeChat: (clientId: string) => Promise<void>;
   sendMessage: (content: string) => Promise<void>;
+  syncChatHistory: () => Promise<void>;
   handleQuickAction: (action: string) => void;
 }
 
@@ -33,12 +34,22 @@ export const useWidgetStore = create<WidgetStore>((set, get) => ({
   chatId: null,
   inquiryStep: '',
   inquiryData: {},
+  assignedAgent: null,
 
   setConfig: (config) => set({ clientConfig: config, language: config.language }),
 
-  toggleWidget: () => set((state) => ({ isOpen: !state.isOpen })),
+  toggleWidget: () => {
+    const nextOpen = !get().isOpen;
+    set({ isOpen: nextOpen });
+    if (nextOpen) {
+      get().syncChatHistory();
+    }
+  },
 
-  openWidget: () => set({ isOpen: true }),
+  openWidget: () => {
+    set({ isOpen: true });
+    get().syncChatHistory();
+  },
 
   closeWidget: () => set({ isOpen: false }),
 
@@ -75,9 +86,35 @@ export const useWidgetStore = create<WidgetStore>((set, get) => ({
         chatId: response.chatId,
         messages: [response.welcomeMessage],
       });
+      get().syncChatHistory();
     } catch (error) {
       console.error('Failed to initialize chat:', error);
     }
+  },
+
+  syncChatHistory: async () => {
+    const { sessionId, clientConfig } = get();
+    if (!sessionId || !clientConfig) return;
+    try {
+      const api = createApiClient(clientConfig.client.clientId);
+      const historyData: any = await api.getHistory(sessionId);
+      if (historyData) {
+        const remoteMessages: any[] = Array.isArray(historyData) ? historyData : (historyData.messages || []);
+        const assignedAgent = historyData.assignedAgent || null;
+        if (remoteMessages && remoteMessages.length > 0) {
+          const parsedMessages: Message[] = remoteMessages.map((m: any) => ({
+            id: m.id || generateId(),
+            sender: m.sender,
+            content: m.content,
+            timestamp: new Date(m.timestamp),
+            agentName: m.metadata?.agentName || (m.sender === 'agent' ? assignedAgent?.name : undefined),
+          }));
+          set({ messages: parsedMessages, assignedAgent });
+        } else if (assignedAgent) {
+          set({ assignedAgent });
+        }
+      }
+    } catch (_) {}
   },
 
   sendMessage: async (content: string) => {
@@ -100,10 +137,15 @@ export const useWidgetStore = create<WidgetStore>((set, get) => ({
       const api = createApiClient(clientConfig.client.clientId);
       const response = await api.sendMessage(chatId, sessionId, content, language);
 
-      set((state) => ({
-        messages: [...state.messages, response.botMessage],
-        isTyping: false,
-      }));
+      if (response && response.botMessage) {
+        set((state) => ({
+          messages: [...state.messages, response.botMessage],
+          isTyping: false,
+        }));
+      } else {
+        set({ isTyping: false });
+      }
+      get().syncChatHistory();
     } catch (error) {
       console.error('Failed to send message:', error);
       set({ isTyping: false });

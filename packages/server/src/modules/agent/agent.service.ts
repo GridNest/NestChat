@@ -99,9 +99,22 @@ export class AgentService {
     }
 
     try {
+      const User = mongoose.model('User');
+      const userDoc: any = await User.findById(userId).lean();
+      const agentName = userDoc?.name || 'Support Agent';
+
+      const { ChatMessageModel } = await import('../chat/chat.model.js');
+      await ChatMessageModel.create({
+        chatId: chat._id,
+        sender: 'bot',
+        content: `${agentName} has joined the chat.`,
+        messageType: 'system',
+        metadata: { matchedType: 'agent_joined', confidence: 1 },
+      });
+
       emitToUser(userId, 'chat:assigned', { chatId });
       if (agent.clientId) {
-        emitToClient(agent.clientId.toString(), 'agent:assigned', { chatId, userId });
+        emitToClient(agent.clientId.toString(), 'agent:assigned', { chatId, userId, agentName });
       }
     } catch (_) {}
   }

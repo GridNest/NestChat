@@ -56,6 +56,10 @@ class WidgetApi {
     });
   }
 
+  async getHistory(sessionId: string): Promise<any> {
+    return this.fetch<any>(`/chat/${sessionId}`);
+  }
+
   async submitInquiry(data: Record<string, string>): Promise<{ inquiryId: string; message: string }> {
     return this.fetch<{ inquiryId: string; message: string }>('/inquiry', {
       method: 'POST',
