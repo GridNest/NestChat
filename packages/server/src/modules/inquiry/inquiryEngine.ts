@@ -166,14 +166,6 @@ export const LEAD_CAPTURE_STEPS: DynamicInquiryStep[] = [
     required: false,
   },
 ];
-    prompt: 'What is your Email address?',
-    promptHi: 'Aapka Email address kya hai?',
-    required: true,
-    validate: isValidEmail,
-    validationMessage: 'Please enter a valid email address.',
-    validationMessageHi: 'Kripya sahi email address daalein.',
-  },
-];
 
 export const CANCEL_KEYWORDS = ['cancel', 'restart', 'start over', 'exit', 'quit', 'band karo', 'rok do', 'nahi', 'no thanks', "no, don't", "don't", 'no'];
 
