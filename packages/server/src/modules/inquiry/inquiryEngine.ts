@@ -106,33 +106,6 @@ export const LEAD_CAPTURE_STEPS: DynamicInquiryStep[] = [
     validationMessageHi: 'Kripya website ya service type batayein.',
   },
   {
-    field: 'requiredFeatures',
-    label: 'Required Features',
-    labelHi: 'Required Features',
-    prompt: 'What key features do you require? (e.g. Payment Gateway, Booking System, User Login, Mobile Design)',
-    promptHi: 'Aapko kaunse zaroori features chahiye? (jaise Payment Gateway, Booking System, Login)',
-    required: true,
-    validate: (val) => val.trim().length >= 2,
-    validationMessage: 'Please mention a few required features.',
-    validationMessageHi: 'Kripya zaroori features batayein.',
-  },
-  {
-    field: 'budget',
-    label: 'Budget',
-    labelHi: 'Budget',
-    prompt: 'What is your estimated Budget? (Optional - type "skip" to bypass)',
-    promptHi: 'Aapka anumanit Budget kya hai? (Optional - skip karne ke liye "skip" likhein)',
-    required: false,
-  },
-  {
-    field: 'timeline',
-    label: 'Timeline',
-    labelHi: 'Timeline',
-    prompt: 'What is your expected Timeline? (Optional - e.g. 2 weeks, 1 month - type "skip" to bypass)',
-    promptHi: 'Aapka expected Timeline kya hai? (Optional - jaise 2 hafte, 1 mahina - "skip" likhein)',
-    required: false,
-  },
-  {
     field: 'name',
     label: 'Name',
     labelHi: 'Naam',
@@ -158,6 +131,41 @@ export const LEAD_CAPTURE_STEPS: DynamicInquiryStep[] = [
     field: 'email',
     label: 'Email',
     labelHi: 'Email',
+    prompt: 'What is your Email address?',
+    promptHi: 'Aapka Email address kya hai?',
+    required: true,
+    validate: isValidEmail,
+    validationMessage: 'Please enter a valid email address.',
+    validationMessageHi: 'Kripya sahi email address daalein.',
+  },
+  {
+    field: 'requiredFeatures',
+    label: 'Required Features',
+    labelHi: 'Required Features',
+    prompt: 'What key features do you require? (e.g. Payment Gateway, Booking System, User Login, Mobile Design)',
+    promptHi: 'Aapko kaunse zaroori features chahiye? (jaise Payment Gateway, Booking System, Login)',
+    required: false,
+    validate: (val) => val.trim().length >= 2,
+    validationMessage: 'Please mention a few required features.',
+    validationMessageHi: 'Kripya zaroori features batayein.',
+  },
+  {
+    field: 'budget',
+    label: 'Budget',
+    labelHi: 'Budget',
+    prompt: 'What is your estimated Budget? (Optional - type "skip" to bypass)',
+    promptHi: 'Aapka anumanit Budget kya hai? (Optional - skip karne ke liye "skip" likhein)',
+    required: false,
+  },
+  {
+    field: 'timeline',
+    label: 'Timeline',
+    labelHi: 'Timeline',
+    prompt: 'What is your expected Timeline? (Optional - e.g. 2 weeks, 1 month - type "skip" to bypass)',
+    promptHi: 'Aapka expected Timeline kya hai? (Optional - jaise 2 hafte, 1 mahina - "skip" likhein)',
+    required: false,
+  },
+];
     prompt: 'What is your Email address?',
     promptHi: 'Aapka Email address kya hai?',
     required: true,
@@ -273,7 +281,10 @@ export class InquiryEngine {
   }
 
   private static getPromptForField(mappedTo: string, label: string, fieldName: string = '', formFieldOptions?: string[]): { en: string; hi: string; options?: string[] } {
-    const isService = mappedTo === 'visitor.service' || fieldName.toLowerCase().includes('service') || label.toLowerCase().includes('service');
+    const normField = fieldName.toLowerCase().replace(/[-_]/g, '');
+    const normLabel = label.toLowerCase();
+
+    const isService = mappedTo === 'visitor.service' || normField.includes('service') || normLabel.includes('service');
     if (isService) {
       const opts = (formFieldOptions && formFieldOptions.length > 0) 
         ? formFieldOptions 
@@ -285,13 +296,17 @@ export class InquiryEngine {
       };
     }
 
+    if (mappedTo === 'visitor.name' || ['yourname', 'fullname', 'name', 'clientname', 'contactname'].includes(normField) || normLabel.includes('name')) {
+      return { en: 'Sure! May I know your Full Name?', hi: 'Aapka Poora Naam kya hai?' };
+    }
+    if (mappedTo === 'visitor.email' || ['youremail', 'email', 'emailaddress', 'useremail'].includes(normField) || normLabel.includes('email')) {
+      return { en: 'What is the best Email address to reach you?', hi: 'Aapka Email address kya hai?' };
+    }
+    if (mappedTo === 'visitor.phone' || ['yourphone', 'phone', 'mobile', 'phonenumber', 'contactnumber', 'tel'].includes(normField) || normLabel.includes('phone') || normLabel.includes('mobile')) {
+      return { en: 'What is your Phone or Mobile number?', hi: 'Aapka Mobile number kya hai?' };
+    }
+
     switch (mappedTo) {
-      case 'visitor.name':
-        return { en: 'Sure! May I know your Full Name?', hi: 'Aapka Poora Naam kya hai?' };
-      case 'visitor.email':
-        return { en: 'What is the best Email address to reach you?', hi: 'Aapka Email address kya hai?' };
-      case 'visitor.phone':
-        return { en: 'What is your Phone or Mobile number?', hi: 'Aapka Mobile number kya hai?' };
       case 'visitor.message':
         return { en: 'What requirement or message would you like to share?', hi: 'Aapki kya requirement ya message hai?' };
       case 'visitor.company':
@@ -679,22 +694,25 @@ export class InquiryEngine {
     state.currentStep = nextStep.field;
     const lang = state.language;
 
-    if (nextStep.field === 'name') {
+    const stepKey = nextStep.field.toLowerCase().replace(/[-_]/g, '');
+
+    if (['name', 'yourname', 'fullname', 'clientname'].includes(stepKey)) {
       const biz = (state.data as any)?.businessName || (state.data as any)?.websiteType;
       if (biz) {
         return lang === 'hi'
-          ? 'Dhanyawaad! Mujhe aapke requirements samajh aa gaye hain. Quotation prepare karne se pehle, kya main aapka naam jaan sakta hoon?'
-          : 'Thanks! I have a good understanding of your requirements. Before I prepare a quotation, may I have your name?';
+          ? 'Dhanyawaad! Quotation prepare karne aur aage discuss karne ke liye, kya main aapka Poora Naam (Full Name) jaan sakta hoon?'
+          : 'Thank you! So we can prepare a quotation and discuss further, may I know your Full Name?';
       }
+      return lang === 'hi' ? 'Aapka Poora Naam kya hai?' : 'What is your Full Name?';
     }
 
-    if (nextStep.field === 'phone') {
+    if (['phone', 'yourphone', 'mobile', 'phonenumber', 'tel'].includes(stepKey)) {
       return lang === 'hi'
         ? 'Humari team aapko contact kar sake, iske liye aapka Mobile Number kya hai?'
         : 'What is your Mobile Number so our team can get in touch with you?';
     }
 
-    if (nextStep.field === 'email') {
+    if (['email', 'youremail', 'emailaddress'].includes(stepKey)) {
       return lang === 'hi'
         ? 'Aapka Email address kya hai?'
         : 'What is your Email address?';

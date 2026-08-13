@@ -125,7 +125,7 @@ export class WidgetConfigService {
         borderRadius: theme.borderRadius,
         fontFamily: theme.fontFamily,
         fontSize: theme.fontSize,
-        botAvatar: theme.botAvatar || (config as any)?.avatarUrl || client.logo || '',
+        botAvatar: (config as any)?.avatarUrl || theme.botAvatar || client.logo || '',
         companyLogo: theme.companyLogo,
         darkMode: theme.darkMode,
       } : {

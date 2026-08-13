@@ -81,14 +81,25 @@ export class AdminDashboardService {
     };
   }
 
-  private static async resolveClientId(clientId?: string): Promise<any> {
+  private static async resolveClientIdFilter(clientId?: string): Promise<any> {
     if (!clientId || clientId === 'all') return undefined;
     const mongoose = await import('mongoose');
+    const ids: any[] = [];
     if (mongoose.default.Types.ObjectId.isValid(clientId)) {
-      return new mongoose.default.Types.ObjectId(clientId);
+      const objId = new mongoose.default.Types.ObjectId(clientId);
+      ids.push(objId);
+      const client = await ClientModel.findById(objId).lean();
+      if (client && (client as any).clientId) {
+        ids.push((client as any).clientId);
+      }
+    } else {
+      ids.push(clientId);
+      const client = await ClientModel.findOne({ clientId: clientId.trim().toLowerCase() }).lean();
+      if (client) {
+        ids.push(client._id);
+      }
     }
-    const client = await ClientModel.findOne({ clientId: clientId.trim().toLowerCase() }).lean();
-    return client ? client._id : clientId;
+    return ids.length === 1 ? ids[0] : { $in: ids };
   }
 
   static async listAllKnowledge(query: { page?: number; limit?: number; search?: string; category?: string; status?: string; clientId?: string }) {
@@ -104,7 +115,7 @@ export class AdminDashboardService {
     if (category) filter.category = category;
     if (status) filter.isActive = status === 'published';
     if (clientId) {
-      const resolved = await this.resolveClientId(clientId);
+      const resolved = await this.resolveClientIdFilter(clientId);
       if (resolved) filter.clientId = resolved;
     }
     const [items, total] = await Promise.all([
@@ -127,7 +138,7 @@ export class AdminDashboardService {
     }
     if (category) filter.category = category;
     if (clientId) {
-      const resolved = await this.resolveClientId(clientId);
+      const resolved = await this.resolveClientIdFilter(clientId);
       if (resolved) filter.clientId = resolved;
     }
     const [items, total] = await Promise.all([
@@ -144,7 +155,7 @@ export class AdminDashboardService {
     const filter: any = {};
     if (status) filter.status = status;
     if (clientId) {
-      const resolved = await this.resolveClientId(clientId);
+      const resolved = await this.resolveClientIdFilter(clientId);
       if (resolved) filter.clientId = resolved;
     }
     const [items, total] = await Promise.all([
@@ -161,7 +172,7 @@ export class AdminDashboardService {
     const filter: any = {};
     if (status) filter.status = status;
     if (clientId) {
-      const resolved = await this.resolveClientId(clientId);
+      const resolved = await this.resolveClientIdFilter(clientId);
       if (resolved) filter.clientId = resolved;
     }
 
@@ -202,7 +213,10 @@ export class AdminDashboardService {
     const { page = 1, limit = 10, clientId } = query;
     const skip = (page - 1) * limit;
     const filter: any = {};
-    if (clientId) filter.clientId = clientId;
+    if (clientId) {
+      const resolved = await this.resolveClientIdFilter(clientId);
+      if (resolved) filter.clientId = resolved;
+    }
     const { UnansweredModel } = await import('../unanswered/unanswered.model.js');
     const [items, total] = await Promise.all([
       UnansweredModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).populate('clientId', 'name companyName').lean(),

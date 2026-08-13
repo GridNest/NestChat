@@ -37,8 +37,15 @@ export class LeadExtractor {
     if (nameMatch && nameMatch[1]) {
       const candidate = nameMatch[1].trim();
       const lowerCandidate = candidate.toLowerCase();
-      const forbidden = ['looking', 'wanting', 'interested', 'asking', 'here', 'a', 'the', 'owner', 'founder'];
-      if (!forbidden.includes(lowerCandidate)) {
+      const forbidden = [
+        'looking', 'wanting', 'interested', 'asking', 'here', 'a', 'an', 'the',
+        'owner', 'founder', 'from', 'needing', 'trying', 'searching', 'planning',
+        'writing', 'calling', 'user', 'visitor', 'customer', 'client', 'business',
+        'just', 'not', 'also', 'very', 'quite', 'so', 'manager', 'developer', 'designer'
+      ];
+      const words = lowerCandidate.split(/\s+/);
+      const containsForbidden = words.some(w => forbidden.includes(w));
+      if (!containsForbidden && candidate.length >= 2) {
         result.name = candidate;
       }
     }

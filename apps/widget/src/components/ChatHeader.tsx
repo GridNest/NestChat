@@ -13,12 +13,12 @@ export function toDirectImageUrl(url?: string): string {
   // Google Drive: https://drive.google.com/file/d/FILE_ID/view?...
   const driveMatch = url.match(/drive\.google\.com\/file\/d\/([^/]+)/);
   if (driveMatch) {
-    return `https://drive.google.com/uc?export=view&id=${driveMatch[1]}`;
+    return `https://lh3.googleusercontent.com/d/${driveMatch[1]}`;
   }
   // Google Drive: https://drive.google.com/open?id=FILE_ID
   const driveOpenMatch = url.match(/drive\.google\.com\/open\?id=([^&]+)/);
   if (driveOpenMatch) {
-    return `https://drive.google.com/uc?export=view&id=${driveOpenMatch[1]}`;
+    return `https://lh3.googleusercontent.com/d/${driveOpenMatch[1]}`;
   }
   return url;
 }
@@ -32,13 +32,17 @@ export function ChatHeader() {
   const allowedLanguages = clientConfig.config.allowedLanguages || [];
   const primaryColor = clientConfig.theme.primaryColor || '#3B82F6';
 
-  // Avatar priority: theme.botAvatar > config.avatarUrl > client.logo
+  // Avatar priority: config.avatarUrl > theme.botAvatar > client.logo
   const rawAvatarUrl =
-    clientConfig.theme?.botAvatar ||
     (clientConfig.config as any)?.avatarUrl ||
+    clientConfig.theme?.botAvatar ||
     clientConfig.client?.logo ||
     '';
   const avatarUrl = toDirectImageUrl(rawAvatarUrl);
+
+  React.useEffect(() => {
+    setImgError(false);
+  }, [avatarUrl]);
 
   return (
     <div

@@ -91,10 +91,10 @@ export class FormSubmissionService {
 
     // Canonical key lookup map
     const sourceMap: Record<string, any> = {
-      'visitor.name': data.fullName || data.name || data.visitorName || data['visitor.name'],
-      'visitor.email': data.email || data.visitorEmail || data['visitor.email'],
-      'visitor.phone': data.phone || data.mobile || data.visitorPhone || data['visitor.phone'],
-      'visitor.message': data.message || data.details || data.requirement || data['visitor.message'],
+      'visitor.name': data.fullName || data.name || data.visitorName || data['visitor.name'] || data['your-name'] || data['your_name'] || data['client_name'] || data.Name || data.full_name,
+      'visitor.email': data.email || data.visitorEmail || data['visitor.email'] || data['your-email'] || data['your_email'] || data.Email,
+      'visitor.phone': data.phone || data.mobile || data.visitorPhone || data['visitor.phone'] || data['your-phone'] || data['your_phone'] || data.Phone || data.tel,
+      'visitor.message': data.message || data.details || data.requirement || data['visitor.message'] || data['your-message'] || data['your_message'],
       'visitor.company': data.company || data.businessName || data['visitor.company'],
       'visitor.subject': data.subject || data.originalQuestion || data['visitor.subject'],
       'visitor.date': data.date || data.bookingDate || data['visitor.date'],
@@ -120,6 +120,16 @@ export class FormSubmissionService {
         payload[field.fieldName] = data[field.customKey];
       } else if (data[field.fieldName] !== undefined) {
         payload[field.fieldName] = data[field.fieldName];
+      } else {
+        // Fallback by normalized field name matching if mappedTo is missing/unmapped
+        const normKey = field.fieldName.toLowerCase().replace(/[-_]/g, '');
+        if (['yourname', 'fullname', 'name', 'clientname', 'contactname'].includes(normKey) && sourceMap['visitor.name']) {
+          payload[field.fieldName] = sourceMap['visitor.name'];
+        } else if (['youremail', 'email', 'emailaddress', 'useremail'].includes(normKey) && sourceMap['visitor.email']) {
+          payload[field.fieldName] = sourceMap['visitor.email'];
+        } else if (['yourphone', 'phone', 'mobile', 'phonenumber', 'contactnumber', 'tel'].includes(normKey) && sourceMap['visitor.phone']) {
+          payload[field.fieldName] = sourceMap['visitor.phone'];
+        }
       }
     }
 

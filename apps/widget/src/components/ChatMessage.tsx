@@ -13,11 +13,15 @@ export function ChatMessage({ message }: ChatMessageProps) {
   const isBot = message.sender === 'bot';
 
   const rawAvatarSrc =
-    clientConfig?.theme?.botAvatar ||
     (clientConfig?.config as any)?.avatarUrl ||
+    clientConfig?.theme?.botAvatar ||
     clientConfig?.client?.logo ||
     '';
   const avatarSrc = toDirectImageUrl(rawAvatarSrc);
+
+  React.useEffect(() => {
+    setImgError(false);
+  }, [avatarSrc]);
 
   return (
     <div className={`flex ${isBot ? 'justify-start' : 'justify-end'} items-end gap-2 w-full`}>
