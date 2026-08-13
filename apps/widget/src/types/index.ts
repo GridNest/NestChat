@@ -69,10 +69,11 @@ export interface QuickAction {
 
 export interface Message {
   id: string;
-  sender: 'user' | 'bot';
+  sender: 'user' | 'bot' | 'agent';
   content: string;
   timestamp: Date;
   quickActions?: QuickAction[];
+  agentName?: string;
 }
 
 export interface ChatResponse {

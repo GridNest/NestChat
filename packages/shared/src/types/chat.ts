@@ -31,13 +31,14 @@ export interface ChatResponse {
 export interface ChatMessage {
   _id: string;
   chatId: string;
-  sender: 'user' | 'bot';
+  sender: 'user' | 'bot' | 'agent';
   content: string;
-  messageType: 'text' | 'quickAction' | 'inquiry';
+  messageType: 'text' | 'quickAction' | 'inquiry' | 'agent' | 'system';
   metadata?: {
-    matchedType?: 'faq' | 'knowledge' | 'quickAction' | 'unknown';
+    matchedType?: 'faq' | 'knowledge' | 'quickAction' | 'unknown' | 'agent_joined';
     matchedId?: string;
     confidence?: number;
+    agentName?: string;
   };
   timestamp: Date;
   createdAt: Date;
@@ -45,9 +46,9 @@ export interface ChatMessage {
 
 export interface ChatMessageResponse {
   id: string;
-  sender: 'user' | 'bot';
+  sender: 'user' | 'bot' | 'agent';
   content: string;
-  messageType: 'text' | 'quickAction' | 'inquiry';
+  messageType: 'text' | 'quickAction' | 'inquiry' | 'agent' | 'system';
   timestamp: Date;
 }
 
