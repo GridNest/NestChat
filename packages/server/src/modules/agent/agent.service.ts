@@ -103,7 +103,7 @@ export class AgentService {
       const userDoc: any = await User.findById(userId).lean();
       const agentName = userDoc?.name || 'Support Agent';
 
-      const { ChatMessageModel } = await import('../chat/chat.model.js');
+      const { ChatMessageModel } = await import('../chat/chatMessage.model.js');
       await ChatMessageModel.create({
         chatId: chat._id,
         sender: 'bot',
