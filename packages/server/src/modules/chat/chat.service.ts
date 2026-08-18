@@ -463,11 +463,13 @@ export class ChatService {
       status: 'online',
     } : null;
 
-    const result: any = formattedMessages;
-    result.assignedAgent = assignedAgent;
-    result.messages = formattedMessages;
-    result.chatId = chat._id.toString();
-    return result;
+    return {
+      chatId: chat._id.toString(),
+      sessionId: chat.sessionId,
+      status: chat.status,
+      assignedAgent,
+      messages: formattedMessages,
+    };
   }
 
   static async getRecentHistory(chatId: string, limit: number): Promise<Array<{ sender: string; content: string }>> {
