@@ -46,6 +46,22 @@ export class InquiryService {
   static async create(data: CreateInquiryRequest & { chatId?: string; visitorId?: string; language?: string; originalQuestion?: string }): Promise<InquiryListItem> {
     const resolvedClientId = await this.resolveClientId(data.clientId);
 
+    // Prevent duplicate inquiries for the same session/chat within 10 seconds
+    if (data.sessionId || data.chatId) {
+      const tenSecondsAgo = new Date(Date.now() - 10000);
+      const existing = await InquiryModel.findOne({
+        $or: [
+          ...(data.sessionId ? [{ sessionId: data.sessionId }] : []),
+          ...(data.chatId ? [{ chatId: data.chatId }] : []),
+        ],
+        createdAt: { $gte: tenSecondsAgo },
+      }).sort({ createdAt: -1 });
+
+      if (existing) {
+        return this.formatInquiry(existing);
+      }
+    }
+
     const inquiry = await InquiryModel.create({
       clientId: resolvedClientId,
       chatId: data.chatId,

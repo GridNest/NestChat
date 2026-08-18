@@ -251,12 +251,15 @@ export class ChatService {
             details = detailsParts.length > 0 ? detailsParts.join(' | ') : 'Inquiry completed';
           }
 
-          const inquiry = await InquiryService.create({
+          // Extract name properly (do NOT fallback to businessName/requirement text)
+          const visitorName = dataObj.fullName || dataObj.name || dataObj['visitor.name'] || dataObj.Name || dataObj.full_name || 'Website Visitor';
+
+          const inquiry = (inquiryResult as any).inquiry || await InquiryService.create({
             clientId: targetClientId,
             chatId: chat._id.toString(),
             sessionId: data.sessionId,
             visitorId: chat.visitorId,
-            name: dataObj.fullName || dataObj.name || dataObj['visitor.name'] || dataObj.Name || dataObj.full_name || dataObj.businessName || 'Website Visitor',
+            name: visitorName,
             email: dataObj.email || dataObj['visitor.email'] || dataObj.Email || 'not-provided@example.com',
             phone: dataObj.phone || dataObj.mobile || dataObj.tel || dataObj['visitor.phone'] || dataObj.Phone || '0000000000',
             company: dataObj.company || dataObj.businessName || dataObj['visitor.company'] || '',

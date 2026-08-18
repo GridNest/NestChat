@@ -579,6 +579,7 @@ export class InquiryEngine {
     isPendingConsent?: boolean;
     data?: Record<string, string>;
     options?: any;
+    inquiry?: any;
   }> {
     const state = await InquiryStateModel.findOne({ chatId, status: { $in: ['active', 'paused'] } });
     if (!state) {
@@ -715,7 +716,8 @@ export class InquiryEngine {
       const clientDetails = inquiryData.message || inquiryData['your-message'] || inquiryData['your_message'] || inquiryData.requiredFeatures || inquiryData.details || state.originalQuestion || '';
       const clientCompany = inquiryData.businessName || inquiryData.company || '';
 
-      await InquiryService.create({
+      let createdInquiry = null;
+      createdInquiry = await InquiryService.create({
         clientId: state.clientId.toString(),
         chatId: state.chatId,
         sessionId: state.sessionId,
@@ -729,6 +731,18 @@ export class InquiryEngine {
         language: state.language,
         originalQuestion: state.originalQuestion,
       });
+
+      const completionMsg = state.language === 'hi'
+        ? 'Aapka dhanyawaad! Hamari team aapko 24 ghante ke andar contact karegi.'
+        : 'Thank you! Our team will contact you within 24 hours.';
+
+      return {
+        success: true,
+        message: completionMsg,
+        isComplete: true,
+        data: state.data as Record<string, string>,
+        inquiry: createdInquiry,
+      };
     } catch (err) {
       logger.error(`[InquiryEngine] Error auto-creating inquiry on completion:`, err);
     }
@@ -736,7 +750,6 @@ export class InquiryEngine {
     const completionMsg = state.language === 'hi'
       ? 'Aapka dhanyawaad! Hamari team aapko 24 ghante ke andar contact karegi.'
       : 'Thank you! Our team will contact you within 24 hours.';
-
 
     return {
       success: true,
