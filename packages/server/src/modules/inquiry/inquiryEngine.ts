@@ -291,7 +291,7 @@ export class InquiryEngine {
           const hasEmail = stepKeys.some(k => ['email', 'youremail', 'emailaddress'].includes(k));
 
           if (!hasName) {
-            dynamicSteps.push({
+            dynamicSteps.unshift({
               field: 'name',
               label: 'Full Name',
               labelHi: 'Poora Naam',
@@ -409,7 +409,9 @@ export class InquiryEngine {
     }
 
     const steps = await this.getStepsForClient(data.clientId, data.workflowType);
-    const initialStep = data.currentStep || (steps.length > 0 ? steps[0].field : (data.workflowType === 'lead_generation' ? 'businessName' : 'name'));
+    const initialStep = (data.currentStep && steps.some(s => s.field === data.currentStep))
+      ? data.currentStep
+      : (steps.length > 0 ? steps[0].field : 'name');
     const initialData = { ...(data.data || {}), workflowType: data.workflowType || 'general_inquiry' };
 
     return InquiryStateModel.create({
