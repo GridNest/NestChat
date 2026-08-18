@@ -145,7 +145,7 @@ export class GroqService {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
+          model: env.GROQ_MODEL || 'openai/gpt-oss-120b',
           messages,
           temperature: 0.15,  // Lower temperature for factual, consistent answers
           max_tokens: 600,
