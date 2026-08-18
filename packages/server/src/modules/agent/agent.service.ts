@@ -161,7 +161,7 @@ export class AgentService {
     return {
       id: agent._id.toString(),
       userId: agent.userId.toString(),
-      clientId: agent.clientId.toString(),
+      clientId: agent.clientId ? agent.clientId.toString() : '',
       status: agent.status,
       maxChats: agent.maxChats,
       assignedCount: agent.assignedChats?.length || 0,
@@ -173,7 +173,7 @@ export class AgentService {
     return {
       id: agent._id.toString(),
       userId: agent.userId?._id?.toString() || agent.userId?.toString(),
-      clientId: agent.clientId.toString(),
+      clientId: agent.clientId ? agent.clientId.toString() : '',
       status: agent.status,
       maxChats: agent.maxChats,
       assignedCount: agent.assignedChats?.length || 0,

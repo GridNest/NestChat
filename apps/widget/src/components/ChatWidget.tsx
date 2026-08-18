@@ -16,6 +16,14 @@ export function ChatWidget({ clientId }: ChatWidgetProps) {
 
   React.useEffect(() => {
     useWidgetStore.getState().initializeChat(clientId);
+
+    const interval = setInterval(() => {
+      if (useWidgetStore.getState().isOpen) {
+        useWidgetStore.getState().syncChatHistory();
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
   }, [clientId]);
 
   if (!isOpen) return null;

@@ -31,19 +31,26 @@ export function ChatDetail() {
   const { addToast } = useToast();
 
   useEffect(() => {
-    if (id) fetchChat();
+    if (!id) return;
+    fetchChat();
     fetchAgentStatus();
+
+    const interval = setInterval(() => {
+      fetchChat(true);
+    }, 3000);
+
+    return () => clearInterval(interval);
   }, [id]);
 
-  const fetchChat = async () => {
+  const fetchChat = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const response = await adminApi.getChatById(id!);
       setChat(response.data);
     } catch {
-      addToast('error', 'Failed to fetch chat');
+      if (!silent) addToast('error', 'Failed to fetch chat');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 

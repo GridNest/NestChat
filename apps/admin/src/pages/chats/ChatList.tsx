@@ -28,11 +28,15 @@ export function ChatList() {
 
   useEffect(() => {
     fetchChats();
+    const interval = setInterval(() => {
+      fetchChats(true);
+    }, 5000);
+    return () => clearInterval(interval);
   }, [page, statusFilter]);
 
-  const fetchChats = async () => {
+  const fetchChats = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const response = await adminApi.getChats({
         page: page.toString(),
         limit: limit.toString(),
@@ -43,7 +47,7 @@ export function ChatList() {
     } catch (error) {
       console.error('Failed to fetch chats:', error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
