@@ -4,7 +4,7 @@ services:
     region: oregon
     plan: free
     runtime: node
-    buildCommand: NODE_ENV=development pnpm install && pnpm run build
+    buildCommand: NODE_ENV=development pnpm install && pnpm --filter @nestchat/shared build && pnpm --filter @nestchat/server build
     startCommand: cd packages/server && node dist/index.js
     healthCheckPath: /api/health
     envVars:
