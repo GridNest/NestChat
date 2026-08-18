@@ -315,7 +315,29 @@ export class ChatService {
             // ignore
           }
 
-          const finalContent = inquiryResult.message + contactInfoMsg;
+          // Generate full detailed explanation for the visitor's original question
+          let detailedExplanation = '';
+          if (originalQuestion && originalQuestion.trim().length >= 2) {
+            try {
+              const aiExplanation = await ResponseEngine.generateResponse({
+                clientId: targetClientId,
+                language: lang,
+                query: originalQuestion,
+                clientName: await this.getClientName(targetClientId),
+                conversationHistory: await this.getRecentHistory(chat._id.toString(), 5),
+                isInquiryMode: true,
+              });
+              if (aiExplanation && aiExplanation.content && aiExplanation.content.length > 5) {
+                detailedExplanation = `\n\n📌 **${lang === 'hi' ? 'Aapke Sawal Ki Jankari' : 'Details regarding your request'}:**\n${aiExplanation.content}`;
+              }
+            } catch (_) {}
+          }
+
+          const greetingPrefix = lang === 'hi'
+            ? `Aapka dhanyawaad ${visitorName}! Hamari team ne aapke details save kar liye hain.`
+            : `Thank you ${visitorName}! Our team has recorded your details.`;
+
+          const finalContent = `${greetingPrefix}${detailedExplanation}${contactInfoMsg}`;
 
           botResponse = {
             content: finalContent,

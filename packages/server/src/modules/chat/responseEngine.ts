@@ -112,33 +112,17 @@ export class ResponseEngine {
       };
     }
 
-    // ── DEDICATED INTENT WORKFLOWS ────────────────────────────────────────────
-
-    // Requirement 1 & 3: High-Confidence Sales Intent Workflow (Website, Quote, Pricing, Consultation)
-    if (intent.intent === 'sales_intent' && intent.confidence > 0.35) {
-      const salesMsg = language === 'hi'
-        ? 'Main aapke project / website consultation mein madad kar sakta hoon. Kripya kuch details batayein taaki hamari team aapko sahi quote aur solution de sake.'
-        : 'I would be happy to help with your project consultation and website quote! Please share a few details so our team can get back to you with an exact estimate.';
+    // ── UNIVERSAL HIGH-INTEREST LEAD CAPTURE WORKFLOWS (ANY SECTOR) ─────────
+    if (['sales_intent', 'booking', 'services', 'products', 'menu', 'pricing', 'offers'].includes(intent.intent) && intent.confidence > 0.3) {
+      const promptMsg = language === 'hi'
+        ? 'Main aapki isme poori madad kar sakta hoon! Kripya apna Poora Naam batayein taaki hamari team aapko poori jankari de sake.'
+        : 'I would be happy to assist you with that! May I know your Full Name so our team can provide you with complete details?';
       return {
-        content: salesMsg,
+        content: promptMsg,
         messageType: 'inquiry',
-        metadata: { matchedType: 'quickAction', matchedId: 'sales_intent', confidence: intent.confidence, workflowType: 'lead_generation' },
+        metadata: { matchedType: 'quickAction', matchedId: intent.intent, confidence: intent.confidence, workflowType: 'general_inquiry' },
         triggerInquiry: true,
-        workflowType: 'lead_generation',
-      };
-    }
-
-    // Requirement 1 & 3: Booking Intent Workflow (bypasses RAG to avoid hero section returns)
-    if (intent.intent === 'booking') {
-      const bookingMsg = language === 'hi'
-        ? 'Main aapki booking / reservation mein madad kar sakta hoon. Kya aap chahenge ki hamari team aapki booking detail confirm kare?'
-        : 'I would be happy to help you with your booking / reservation request. Would you like our team to assist you with the booking details?';
-      return {
-        content: bookingMsg,
-        messageType: 'inquiry',
-        metadata: { matchedType: 'quickAction', matchedId: 'booking', confidence: 1, workflowType: 'booking' },
-        triggerInquiry: true,
-        workflowType: 'booking',
+        workflowType: 'general_inquiry',
       };
     }
 
