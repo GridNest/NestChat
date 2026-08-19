@@ -199,7 +199,7 @@ export class ClientService {
 
   static isClientExpired(client: any): boolean {
     if (!client) return false;
-    if (client.status === 'suspended' || client.status === 'inactive' || client.isActive === false) {
+    if (client.status === 'suspended') {
       return true;
     }
     if (client.endDate) {

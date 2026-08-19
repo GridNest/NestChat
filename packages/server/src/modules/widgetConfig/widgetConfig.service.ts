@@ -66,12 +66,19 @@ export interface WidgetConfig {
 
 export class WidgetConfigService {
   static async loadConfig(clientId: string): Promise<WidgetConfig> {
+    const cleanId = clientId.trim().toLowerCase();
     const client = await ClientModel.findOne({ 
-      clientId: clientId.trim().toLowerCase(), 
-      isActive: true 
+      $or: [
+        { clientId: cleanId },
+        ...(cleanId.match(/^[0-9a-fA-F]{24}$/) ? [{ _id: cleanId }] : [])
+      ]
     });
     if (!client) {
-      throw new ApiError(404, 'Client not found or inactive');
+      throw new ApiError(404, 'Client not found');
+    }
+
+    if (ClientService.isClientExpired(client)) {
+      throw new ApiError(403, 'Chatbot subscription expired. Please contact support to renew your plan.');
     }
 
     const [config, theme, modules, translations] = await Promise.all([
