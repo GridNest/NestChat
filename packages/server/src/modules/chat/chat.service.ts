@@ -66,18 +66,47 @@ export class ChatService {
   }> {
     const ClientModel = mongoose.model('Client');
     let clientDoc: any = null;
-    if (mongoose.Types.ObjectId.isValid(data.clientId)) {
+    if (data.clientId && mongoose.Types.ObjectId.isValid(data.clientId)) {
       clientDoc = await ClientModel.findById(data.clientId).lean();
     }
-    if (!clientDoc) {
-      clientDoc = await ClientModel.findOne({ clientId: data.clientId.trim().toLowerCase() }).lean();
+    if (!clientDoc && data.clientId) {
+      const cleanId = data.clientId.trim().toLowerCase();
+      clientDoc = await ClientModel.findOne({
+        $or: [
+          { clientId: cleanId },
+          { name: { $regex: `^${data.clientId.trim()}$`, $options: 'i' } }
+        ]
+      }).lean();
     }
 
     if (clientDoc && ClientService.isClientExpired(clientDoc)) {
       throw ApiError.forbidden('Chatbot service subscription expired for this client.');
     }
 
-    const resolvedClientId = clientDoc ? clientDoc._id : data.clientId;
+    let resolvedClientId: any = clientDoc ? clientDoc._id : null;
+    if (!resolvedClientId) {
+      if (data.clientId && mongoose.Types.ObjectId.isValid(data.clientId)) {
+        resolvedClientId = new mongoose.Types.ObjectId(data.clientId);
+      } else {
+        const fallbackClient: any = await ClientModel.findOne({ status: 'active' }).lean();
+        if (fallbackClient) {
+          resolvedClientId = fallbackClient._id;
+        } else {
+          const adminUser: any = await mongoose.model('User').findOne({ role: 'admin' }).lean();
+          const created = await ClientModel.create({
+            clientId: (data.clientId && data.clientId.trim()) ? data.clientId.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-') : 'default-client',
+            name: data.clientId || 'Default Client',
+            email: 'admin@gridnestsolution.in',
+            companyName: data.clientId || 'Default Company',
+            websiteType: 'corporate',
+            status: 'active',
+            isActive: true,
+            createdBy: adminUser ? adminUser._id : new mongoose.Types.ObjectId('000000000000000000000001'),
+          });
+          resolvedClientId = created._id;
+        }
+      }
+    }
 
     const existingChat = await ChatModel.findOne({
       sessionId: data.sessionId,
@@ -147,9 +176,11 @@ export class ChatService {
     const targetClientId = chat.clientId.toString();
 
     const ClientModel = mongoose.model('Client');
-    const clientDoc = await ClientModel.findById(targetClientId).lean();
-    if (clientDoc && ClientService.isClientExpired(clientDoc)) {
-      throw ApiError.forbidden('Chatbot service subscription expired for this client.');
+    if (targetClientId && mongoose.Types.ObjectId.isValid(targetClientId)) {
+      const clientDoc = await ClientModel.findById(targetClientId).lean();
+      if (clientDoc && ClientService.isClientExpired(clientDoc)) {
+        throw ApiError.forbidden('Chatbot service subscription expired for this client.');
+      }
     }
 
     const userMessage = await ChatMessageModel.create({

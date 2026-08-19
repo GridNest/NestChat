@@ -34,10 +34,9 @@ export class AuditLogService {
   ) {
     try {
       const user = req.user;
-      if (!user) return;
       await this.create({
-        userId: user.id || user._id,
-        clientId: user.clientId || req.params?.clientId || req.body?.clientId,
+        userId: user ? (user.id || user._id) : undefined,
+        clientId: user?.clientId || req.params?.clientId || req.body?.clientId,
         action,
         module: moduleName,
         resourceId,
