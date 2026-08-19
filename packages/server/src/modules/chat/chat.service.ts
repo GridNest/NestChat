@@ -3,6 +3,7 @@ import { ChatMessageModel, ChatMessageDocument } from './chatMessage.model.js';
 import { ResponseEngine, BotResponse } from './responseEngine.js';
 import { LanguageEngine, Language } from './languageEngine.js';
 import { IntentDetector } from './intentDetector.js';
+import { ClientService } from '../client/client.service.js';
 import { InquiryEngine, INQUIRY_STEPS } from '../inquiry/inquiryEngine.js';
 import { LeadExtractor } from '../inquiry/leadExtractor.js';
 import { InquiryService } from '../inquiry/inquiry.service.js';
@@ -70,6 +71,10 @@ export class ChatService {
     }
     if (!clientDoc) {
       clientDoc = await ClientModel.findOne({ clientId: data.clientId.trim().toLowerCase() }).lean();
+    }
+
+    if (clientDoc && ClientService.isClientExpired(clientDoc)) {
+      throw ApiError.forbidden('Chatbot service subscription expired for this client.');
     }
 
     const resolvedClientId = clientDoc ? clientDoc._id : data.clientId;
@@ -140,6 +145,12 @@ export class ChatService {
     }
 
     const targetClientId = chat.clientId.toString();
+
+    const ClientModel = mongoose.model('Client');
+    const clientDoc = await ClientModel.findById(targetClientId).lean();
+    if (clientDoc && ClientService.isClientExpired(clientDoc)) {
+      throw ApiError.forbidden('Chatbot service subscription expired for this client.');
+    }
 
     const userMessage = await ChatMessageModel.create({
       chatId: chat._id,

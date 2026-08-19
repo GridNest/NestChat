@@ -28,6 +28,8 @@ interface Client {
   timezone: string;
   status: string;
   isActive: boolean;
+  startDate?: string;
+  endDate?: string;
   createdAt: string;
 }
 
@@ -293,16 +295,30 @@ export function ClientDetail() {
                   <dt className="text-gray-500 font-medium">Type:</dt>
                   <dd className="font-medium text-gray-900 capitalize">{client.websiteType}</dd>
                 </div>
+                <div className="flex justify-between py-1 border-b border-gray-100">
+                  <dt className="text-gray-500 font-medium">Start Date:</dt>
+                  <dd className="font-medium text-gray-900">{client.startDate ? new Date(client.startDate).toLocaleDateString() : new Date(client.createdAt).toLocaleDateString()}</dd>
+                </div>
+                <div className="flex justify-between py-1 border-b border-gray-100">
+                  <dt className="text-gray-500 font-medium">End Date (Expiry):</dt>
+                  <dd className="font-medium text-gray-900">{client.endDate ? new Date(client.endDate).toLocaleDateString() : 'No Expiry (Lifetime)'}</dd>
+                </div>
                 <div className="flex justify-between py-1">
-                  <dt className="text-gray-500 font-medium">Status:</dt>
+                  <dt className="text-gray-500 font-medium">Subscription Status:</dt>
                   <dd>
-                    <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full capitalize ${
-                      client.status === 'active' ? 'bg-green-100 text-green-800' :
-                      client.status === 'suspended' ? 'bg-red-100 text-red-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {client.status}
-                    </span>
+                    {client.endDate && new Date() > new Date(client.endDate) ? (
+                      <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-red-100 text-red-800">
+                        Expired (Bot Deactivated)
+                      </span>
+                    ) : (
+                      <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full capitalize ${
+                        client.status === 'active' ? 'bg-green-100 text-green-800' :
+                        client.status === 'suspended' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {client.status}
+                      </span>
+                    )}
                   </dd>
                 </div>
               </dl>

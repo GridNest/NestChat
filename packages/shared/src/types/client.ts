@@ -44,6 +44,8 @@ export interface Client {
   timezone: string;
   status: ClientStatus;
   isActive: boolean;
+  startDate?: Date | string;
+  endDate?: Date | string;
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
@@ -66,6 +68,8 @@ export interface ClientResponse {
   timezone?: string;
   status?: ClientStatus;
   isActive: boolean;
+  startDate?: Date | string;
+  endDate?: Date | string;
   createdAt: Date;
 }
 
@@ -83,6 +87,8 @@ export interface CreateClientRequest {
   botName?: string;
   defaultLanguage?: 'en' | 'hi';
   timezone?: string;
+  startDate?: Date | string;
+  endDate?: Date | string;
 }
 
 export interface UpdateClientRequest {
@@ -99,6 +105,8 @@ export interface UpdateClientRequest {
   timezone?: string;
   status?: ClientStatus;
   isActive?: boolean;
+  startDate?: Date | string;
+  endDate?: Date | string;
 }
 
 export interface ClientTheme {

@@ -44,6 +44,8 @@ export interface ClientDocument extends Document {
   timezone: string;
   status: ClientStatus;
   isActive: boolean;
+  startDate?: Date;
+  endDate?: Date;
   allowedDomains: string[];
   widgetSettings: WidgetSettings;
   widgetSecretKey: string;
@@ -139,6 +141,14 @@ const clientSchema = new Schema<ClientDocument>(
     isActive: {
       type: Boolean,
       default: true,
+    },
+    startDate: {
+      type: Date,
+      default: Date.now,
+    },
+    endDate: {
+      type: Date,
+      default: null,
     },
     allowedDomains: {
       type: [String],

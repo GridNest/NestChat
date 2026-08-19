@@ -22,6 +22,8 @@ export function ClientCreate() {
     defaultLanguage: 'en',
     timezone: 'Asia/Kolkata',
     status: 'active',
+    startDate: new Date().toISOString().slice(0, 10),
+    endDate: '',
   });
 
   useEffect(() => {
@@ -47,6 +49,8 @@ export function ClientCreate() {
         defaultLanguage: data.defaultLanguage || 'en',
         timezone: data.timezone || 'Asia/Kolkata',
         status: data.status || 'active',
+        startDate: data.startDate ? new Date(data.startDate).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+        endDate: data.endDate ? new Date(data.endDate).toISOString().slice(0, 10) : '',
       });
     } catch (error) {
       addToast('error', 'Failed to load client details');
@@ -257,6 +261,35 @@ export function ClientCreate() {
             <option value="America/Los_Angeles">America/Los_Angeles (PST)</option>
             <option value="Europe/London">Europe/London (GMT)</option>
           </select>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+          <div>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
+              Subscription Start Date *
+            </label>
+            <input
+              type="date"
+              name="startDate"
+              value={formData.startDate}
+              onChange={handleChange}
+              required
+              className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm min-h-[44px]"
+            />
+          </div>
+          <div>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5">
+              Subscription End Date (Expiry Date)
+            </label>
+            <input
+              type="date"
+              name="endDate"
+              value={formData.endDate}
+              onChange={handleChange}
+              className="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm min-h-[44px]"
+            />
+            <p className="text-[11px] text-gray-500 mt-1">Chatbot will automatically stop working after this date.</p>
+          </div>
         </div>
 
         <div className="flex flex-col-reverse sm:flex-row gap-3 pt-3">

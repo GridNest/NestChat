@@ -1,4 +1,5 @@
 import { ClientModel } from '../client/client.model.js';
+import { ClientService } from '../client/client.service.js';
 import { ClientConfigModel } from '../clientConfig/clientConfig.model.js';
 import { ClientThemeModel } from '../clientTheme/clientTheme.model.js';
 import { ClientModuleModel } from '../clientModule/clientModule.model.js';

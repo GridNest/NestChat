@@ -33,6 +33,8 @@ export interface ClientListItem {
   timezone: string;
   status: 'active' | 'inactive' | 'suspended';
   isActive: boolean;
+  startDate?: Date;
+  endDate?: Date;
   allowedDomains: string[];
   createdAt: Date;
   updatedAt: Date;
@@ -72,6 +74,8 @@ export class ClientService {
       botName: data.botName || 'Assistant',
       defaultLanguage: data.defaultLanguage || 'en',
       timezone: data.timezone || 'Asia/Kolkata',
+      startDate: data.startDate ? new Date(data.startDate) : new Date(),
+      endDate: data.endDate ? new Date(data.endDate) : undefined,
       createdBy: data.createdBy,
     });
 
@@ -193,6 +197,20 @@ export class ClientService {
     return { total, active, inactive, suspended };
   }
 
+  static isClientExpired(client: any): boolean {
+    if (!client) return false;
+    if (client.status === 'suspended' || client.status === 'inactive' || client.isActive === false) {
+      return true;
+    }
+    if (client.endDate) {
+      const end = new Date(client.endDate);
+      if (!isNaN(end.getTime()) && Date.now() > end.getTime()) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private static formatClient(client: ClientDocument): ClientListItem {
     return {
       id: client._id.toString(),
@@ -211,6 +229,8 @@ export class ClientService {
       timezone: client.timezone,
       status: client.status,
       isActive: client.isActive,
+      startDate: client.startDate || client.createdAt,
+      endDate: client.endDate,
       allowedDomains: client.allowedDomains || [],
       createdAt: client.createdAt,
       updatedAt: client.updatedAt || client.createdAt,

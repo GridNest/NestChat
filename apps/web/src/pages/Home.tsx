@@ -38,7 +38,7 @@ import {
 
 export function Home() {
   const [activeTab, setActiveTab] = useState<'restaurant' | 'agency' | 'hotel' | 'clinic'>('agency');
-  const [clientIdInput, setClientIdInput] = useState('gridnest-web-solution');
+  const [clientIdInput, setClientIdInput] = useState('');
   const [copied, setCopied] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
@@ -47,7 +47,7 @@ export function Home() {
   const [sandboxMessages, setSandboxMessages] = useState<Array<{ sender: 'user' | 'bot'; text: string; pills?: string[] }>>([
     {
       sender: 'bot',
-      text: 'Namaste! 👋 Welcome to NestChat. I am powered by Groq AI (OpenAI GPT-OSS 120B). How can I assist your business today?',
+      text: 'Namaste! 👋 Welcome to NestChat. I am powered by Advanced AI. How can I assist your business today?',
       pills: ['Request Web Quote', 'View Services', 'Book Consultation', 'Test Hinglish AI'],
     },
   ]);
@@ -155,7 +155,7 @@ export function Home() {
               <div className="lg:col-span-7 space-y-8 text-center lg:text-left">
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass-panel border-indigo-500/30 text-indigo-300 text-xs font-semibold shadow-inner">
                   <Sparkles className="w-4 h-4 text-purple-400 animate-pulse" />
-                  <span>Powered by Groq AI & OpenAI GPT-OSS 120B</span>
+                  <span>Powered by Advanced AI</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                 </div>
 
@@ -193,7 +193,7 @@ export function Home() {
                   </div>
                   <div>
                     <div className="text-2xl lg:text-3xl font-extrabold text-emerald-400">&lt;500ms</div>
-                    <div className="text-xs text-slate-400 font-medium">Groq AI Latency</div>
+                    <div className="text-xs text-slate-400 font-medium">AI Latency</div>
                   </div>
                   <div>
                     <div className="text-2xl lg:text-3xl font-extrabold text-indigo-400">100%</div>
@@ -328,9 +328,9 @@ export function Home() {
                 <div className="w-12 h-12 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
                   <Cpu className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-bold text-white">OpenAI GPT-OSS 120B AI</h3>
+                <h3 className="text-lg font-bold text-white">Advanced AI Engine</h3>
                 <p className="text-slate-400 text-xs leading-relaxed">
-                  Powered by Groq's high-speed inference engine with OpenAI GPT-OSS 120B for deep reasoning and zero hallucination answers.
+                  Powered by high-speed AI inference engine for deep reasoning and accurate zero-hallucination answers.
                 </p>
               </div>
 
@@ -593,7 +593,7 @@ export function Home() {
                       type="text"
                       value={clientIdInput}
                       onChange={(e) => setClientIdInput(e.target.value)}
-                      placeholder="e.g. gridnest-web-solution"
+                      placeholder="e.g. trial-client-id"
                       className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500 font-mono"
                     />
                   </div>
@@ -637,7 +637,7 @@ export function Home() {
                 Choose The Plan That Fits Your Scale
               </h2>
               <p className="text-slate-400 text-sm">
-                No hidden fees. Every plan includes Groq AI acceleration and automated lead collection.
+                No hidden fees. Every plan includes AI acceleration and automated lead collection.
               </p>
 
               {/* Billing Toggle */}
@@ -661,7 +661,7 @@ export function Home() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
               
               {/* Starter Plan */}
               <div className="glass-card p-8 rounded-3xl space-y-6 flex flex-col justify-between border-slate-800">
@@ -670,15 +670,17 @@ export function Home() {
                     Starter
                   </div>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-extrabold text-white">$0</span>
-                    <span className="text-slate-400 text-xs">/ forever free</span>
+                    <span className="text-4xl font-extrabold text-white">
+                      {billingCycle === 'monthly' ? '$2' : '$1.6'}
+                    </span>
+                    <span className="text-slate-400 text-xs">/ month</span>
                   </div>
                   <p className="text-slate-400 text-xs">Perfect for personal websites and early-stage startups.</p>
                   
                   <ul className="space-y-3 text-xs text-slate-300 pt-4 border-t border-slate-800">
                     <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-400" /> 1 Website Client Integration</li>
                     <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-400" /> 1,000 Messages / month</li>
-                    <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-400" /> Groq AI Engine</li>
+                    <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-400" /> AI Engine</li>
                     <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-400" /> Standard Lead Capture Form</li>
                     <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-400" /> Admin Panel & CSV Export</li>
                   </ul>
@@ -690,7 +692,7 @@ export function Home() {
                   rel="noreferrer"
                   className="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs transition-colors text-center"
                 >
-                  Start Free
+                  Start Free Trial
                 </a>
               </div>
 
@@ -706,7 +708,7 @@ export function Home() {
                   </div>
                   <div className="flex items-baseline gap-1">
                     <span className="text-4xl font-extrabold text-white">
-                      {billingCycle === 'monthly' ? '$29' : '$23'}
+                      {billingCycle === 'monthly' ? '$5' : '$4'}
                     </span>
                     <span className="text-slate-400 text-xs">/ month</span>
                   </div>
@@ -717,7 +719,6 @@ export function Home() {
                     <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-400" /> Unlimited AI Messages</li>
                     <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-400" /> RAG Semantic Vector Search</li>
                     <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-400" /> Native Hinglish & Multi-Language</li>
-                    <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-400" /> Live Human Agent Handoff</li>
                     <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-400" /> Priority Webhook & Email Forwarding</li>
                   </ul>
                 </div>
@@ -729,34 +730,6 @@ export function Home() {
                   className="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white font-bold text-xs transition-all shadow-lg text-center"
                 >
                   Upgrade To Pro
-                </a>
-              </div>
-
-              {/* Enterprise Plan */}
-              <div className="glass-card p-8 rounded-3xl space-y-6 flex flex-col justify-between border-slate-800">
-                <div className="space-y-4">
-                  <div className="inline-block px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 text-[11px] font-bold">
-                    Enterprise
-                  </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-extrabold text-white">Custom</span>
-                  </div>
-                  <p className="text-slate-400 text-xs">For high-traffic portals, franchises, and enterprise clients.</p>
-                  
-                  <ul className="space-y-3 text-xs text-slate-300 pt-4 border-t border-slate-800">
-                    <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-400" /> Unlimited Client Integrations</li>
-                    <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-400" /> Dedicated Private LLM Model Instance</li>
-                    <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-400" /> Custom Knowledge Base Scraping</li>
-                    <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-400" /> Dedicated Account Manager & SLA</li>
-                    <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-400" /> On-Premise / Custom Cloud Deploy</li>
-                  </ul>
-                </div>
-
-                <a
-                  href="mailto:support@gridnestsolution.in"
-                  className="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs transition-colors text-center"
-                >
-                  Contact Sales
                 </a>
               </div>
 
@@ -830,7 +803,7 @@ export function Home() {
               </p>
               <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
                 <a
-                  href="https://nestchat-admin-7my6.onrender.com"
+                  href="https://gridnestsolution.in/contact"
                   target="_blank"
                   rel="noreferrer"
                   className="px-8 py-4 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-indigo-600/30"

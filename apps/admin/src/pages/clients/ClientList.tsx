@@ -12,6 +12,8 @@ interface Client {
   websiteType: string;
   status: string;
   isActive: boolean;
+  startDate?: string;
+  endDate?: string;
   createdAt: string;
 }
 
@@ -61,15 +63,23 @@ export function ClientList() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (client: Client) => {
+    const isExpired = client.endDate && new Date() > new Date(client.endDate);
+    if (isExpired) {
+      return (
+        <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800 border border-red-200">
+          Expired
+        </span>
+      );
+    }
     const colors: Record<string, string> = {
       active: 'bg-green-100 text-green-800 border border-green-200',
       inactive: 'bg-gray-100 text-gray-800 border border-gray-200',
       suspended: 'bg-red-100 text-red-800 border border-red-200',
     };
     return (
-      <span className={`px-2.5 py-1 text-xs font-semibold rounded-full capitalize ${colors[status] || 'bg-gray-100 text-gray-800'}`}>
-        {status}
+      <span className={`px-2.5 py-1 text-xs font-semibold rounded-full capitalize ${colors[client.status] || 'bg-gray-100 text-gray-800'}`}>
+        {client.status}
       </span>
     );
   };
@@ -130,7 +140,7 @@ export function ClientList() {
                   <th className="px-4 sm:px-6 py-3.5 text-xs font-semibold text-gray-600 uppercase">Email</th>
                   <th className="px-4 sm:px-6 py-3.5 text-xs font-semibold text-gray-600 uppercase">Website</th>
                   <th className="px-4 sm:px-6 py-3.5 text-xs font-semibold text-gray-600 uppercase">Status</th>
-                  <th className="px-4 sm:px-6 py-3.5 text-xs font-semibold text-gray-600 uppercase">Created Date</th>
+                  <th className="px-4 sm:px-6 py-3.5 text-xs font-semibold text-gray-600 uppercase">Subscription Dates</th>
                   <th className="px-4 sm:px-6 py-3.5 text-xs font-semibold text-gray-600 uppercase">Actions</th>
                 </tr>
               </thead>
@@ -171,10 +181,11 @@ export function ClientList() {
                       )}
                     </td>
                     <td className="px-4 sm:px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(client.status)}
+                      {getStatusBadge(client)}
                     </td>
-                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-xs text-gray-500">
-                      {new Date(client.createdAt).toLocaleDateString()}
+                    <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-xs text-gray-600 font-mono">
+                      <div>Start: {client.startDate ? new Date(client.startDate).toLocaleDateString() : new Date(client.createdAt).toLocaleDateString()}</div>
+                      <div>End: {client.endDate ? new Date(client.endDate).toLocaleDateString() : 'No Expiry'}</div>
                     </td>
                     <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center gap-3 min-h-[36px]">
