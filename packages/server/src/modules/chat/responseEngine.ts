@@ -112,19 +112,8 @@ export class ResponseEngine {
       };
     }
 
-    // ── UNIVERSAL HIGH-INTEREST LEAD CAPTURE WORKFLOWS (ANY SECTOR) ─────────
-    if (['sales_intent', 'booking', 'services', 'products', 'menu', 'pricing', 'offers'].includes(intent.intent) && intent.confidence > 0.3) {
-      const promptMsg = language === 'hi'
-        ? 'Main aapki isme poori madad kar sakta hoon! Kripya apna Poora Naam batayein taaki hamari team aapko poori jankari de sake.'
-        : 'I would be happy to assist you with that! May I know your Full Name so our team can provide you with complete details?';
-      return {
-        content: promptMsg,
-        messageType: 'inquiry',
-        metadata: { matchedType: 'quickAction', matchedId: intent.intent, confidence: intent.confidence, workflowType: 'general_inquiry' },
-        triggerInquiry: true,
-        workflowType: 'general_inquiry',
-      };
-    }
+    // Note: Intent-based high interest queries (menu, services, pricing, etc.) now check Knowledge Base FIRST.
+    // If Knowledge Base contains details, it will answer from KB. If KB has no answer, buildPermissionResponse will trigger lead capture below.
 
     // Requirement 1: Contact, Location, Business Hours Dedicated Workflows
     if (['contact', 'location', 'hours'].includes(intent.intent)) {
@@ -275,7 +264,7 @@ export class ResponseEngine {
     }
 
     // Default permission / inquiry fallback
-    return this.buildPermissionResponse(language);
+    return this.buildPermissionResponse(language, intent.intent, query);
   }
 
   // ─── RAG Response Generator ─────────────────────────────────────────────────
@@ -339,7 +328,7 @@ export class ResponseEngine {
 
       // Step 7: If Groq says "I don't know", trigger inquiry flow
       if (groqResult.isUnknown) {
-        return this.buildPermissionResponse(language);
+        return this.buildPermissionResponse(language, intent);
       }
 
       return {
@@ -521,18 +510,37 @@ export class ResponseEngine {
     return this.buildPermissionResponse(language);
   }
 
-  private static buildPermissionResponse(language: Language): BotResponse {
-    const content = language === 'hi'
-      ? 'Mujhe yeh jaankari nahi mili.\n\nKya aap chahenge ki hamari team aapko contact kare?'
-      : "I'm sorry, I couldn't find that information.\n\nWould you like our team to contact you?";
+  private static buildPermissionResponse(language: Language, intent?: Intent, query?: string): BotResponse {
+    const isHighInterestIntent = intent && ['sales_intent', 'booking', 'services', 'products', 'menu', 'pricing', 'offers'].includes(intent);
+    const qLower = (query || '').toLowerCase();
+    const isBookingOrAvailability = intent === 'booking' || /\b(available|availability|room|book|booking|table|appointment|slot|stay|reservation|check-in|checkin|pax|guests?)\b/i.test(qLower);
+
+    let content = '';
+    if (isBookingOrAvailability) {
+      content = language === 'hi'
+        ? 'Main aapki booking / availability request me poori madad kar sakta hoon! Abhi direct live booking connected nahi hai, par main aapki requirement aur contact details note kar leta hoon taaki hamari team aapko confirm kar sake. Kripya apna Poora Naam batayein?'
+        : 'I would be glad to assist with your booking & availability request! Live automated checking is not connected, but I can record your requirement details for our team to confirm. May I know your Full Name?';
+    } else if (isHighInterestIntent) {
+      content = language === 'hi'
+        ? 'Main aapki isme poori madad kar sakta hoon! Kripya apna Poora Naam batayein taaki hamari team aapko poori jankari de sake.'
+        : 'I would be happy to assist you with that! May I know your Full Name so our team can provide you with complete details?';
+    } else {
+      content = language === 'hi'
+        ? 'Mujhe yeh jaankari nahi mili.\n\nKya aap chahenge ki hamari team aapko contact kare?'
+        : "I'm sorry, I couldn't find that information.\n\nWould you like our team to contact you?";
+    }
+
     return {
       content,
       messageType: 'inquiry',
       metadata: {
-        matchedType: 'unknown',
+        matchedType: isHighInterestIntent || isBookingOrAvailability ? 'quickAction' : 'unknown',
+        matchedId: intent || 'unknown',
         confidence: 0,
+        workflowType: isBookingOrAvailability ? 'booking' : 'general_inquiry',
       },
       triggerInquiry: true,
+      workflowType: isBookingOrAvailability ? 'booking' : 'general_inquiry',
     };
   }
 

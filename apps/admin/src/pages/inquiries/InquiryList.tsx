@@ -86,6 +86,16 @@ export function InquiryList() {
     }
   };
 
+  const getDisplayDetails = (item: Inquiry) => {
+    const details = item.details?.trim() || '';
+    const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(details);
+    const isPhone = /^\+?[0-9\s\-()]{7,20}$/.test(details);
+    if (!details || isEmail || isPhone || details === item.email?.trim() || details === item.phone?.trim()) {
+      return (item.service && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(item.service)) ? item.service : 'Chatbot Lead';
+    }
+    return details;
+  };
+
   const handleExportCSV = () => {
     if (inquiries.length === 0) {
       alert('No inquiry data to export');
@@ -97,7 +107,7 @@ export function InquiryList() {
       `"${(item.name || '').replace(/"/g, '""')}"`,
       `"${(item.phone || '').replace(/"/g, '""')}"`,
       `"${(item.email || '').replace(/"/g, '""')}"`,
-      `"${(item.details || item.service || '').replace(/"/g, '""')}"`,
+      `"${(getDisplayDetails(item)).replace(/"/g, '""')}"`,
       `"${item.source || 'chatbot'}"`,
       `"${item.status || 'new'}"`,
       `"${new Date(item.createdAt).toLocaleString()}"`,
@@ -251,7 +261,7 @@ export function InquiryList() {
                       {item.email}
                     </td>
                     <td className="px-4 sm:px-6 py-4 max-w-xs truncate text-xs sm:text-sm text-gray-700">
-                      {item.details || item.service || '-'}
+                      {getDisplayDetails(item)}
                     </td>
                     <td className="px-4 sm:px-6 py-4 whitespace-nowrap text-xs">
                       <span className="px-2 py-0.5 rounded font-mono font-medium bg-gray-100 text-gray-700 capitalize">

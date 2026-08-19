@@ -182,7 +182,14 @@ export class GroqService {
         lowerAnswer.includes('would you like our team to contact you') ||
         lowerAnswer.includes('would you like to contact the team') ||
         lowerAnswer.includes('mujhe yeh jaankari nahi mili') ||
-        lowerAnswer.includes('jaankari uplabdh nahi');
+        lowerAnswer.includes('jaankari uplabdh nahi') ||
+        lowerAnswer.includes('real-time') ||
+        lowerAnswer.includes('realtime') ||
+        lowerAnswer.includes('availability information') ||
+        lowerAnswer.includes('confirm room availability') ||
+        lowerAnswer.includes('confirm availability') ||
+        lowerAnswer.includes('please contact') ||
+        lowerAnswer.includes('contact directly');
 
       return {
         content: answer,

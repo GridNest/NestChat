@@ -187,36 +187,48 @@ export function getIndustryStepPrompt(field: string, industry?: string, lang: 'e
   const norm = (industry || 'corporate').toLowerCase().replace(/[^a-z0-9_]/g, '_');
   const prompts: Record<string, { en: string; hi: string }> = {
     restaurant: {
-      en: 'Please share your booking requirement (e.g. date, time, number of guests).',
-      hi: 'Kripya apni booking requirement batayein (date, time, number of guests).',
+      en: 'Please share your table reservation details (e.g. date, time, number of guests).',
+      hi: 'Kripya apni table reservation details batayein (date, time, kitne guests).',
     },
     hotel: {
-      en: 'Please share your stay requirement (e.g. check-in date, rooms, guests).',
-      hi: 'Kripya apni stay requirement batayein (check-in date, rooms).',
+      en: 'Please share your stay details (e.g. check-in date, check-out date, rooms & guests).',
+      hi: 'Kripya apni stay details batayein (jaise check-in date, check-out date, kitne rooms aur guests).',
+    },
+    resort: {
+      en: 'Please share your stay details (e.g. check-in date, check-out date, rooms & guests).',
+      hi: 'Kripya apni stay details batayein (jaise check-in date, check-out date, kitne rooms aur guests).',
     },
     hospital: {
-      en: 'Please describe your appointment requirement (e.g. department, doctor).',
-      hi: 'Kripya apni appointment requirement batayein (department, doctor).',
+      en: 'Please describe your appointment requirement (e.g. department, doctor, preferred date & time).',
+      hi: 'Kripya apni appointment requirement batayein (department, doctor, date aur timing).',
     },
     clinic: {
-      en: 'Please describe your appointment requirement (e.g. doctor, preferred timing).',
-      hi: 'Kripya apni appointment requirement batayein (doctor, timing).',
+      en: 'Please describe your appointment requirement (e.g. doctor, preferred date & time).',
+      hi: 'Kripya apni appointment requirement batayein (doctor, date aur timing).',
     },
     school: {
       en: 'Please share your admission inquiry (e.g. class/grade, academic year).',
       hi: 'Kripya apni admission inquiry batayein (class, academic year).',
     },
     corporate: {
-      en: 'Please describe your project requirement.',
-      hi: 'Kripya apni project requirement batayein.',
+      en: 'Please describe your project requirement or service request.',
+      hi: 'Kripya apni project requirement ya service request batayein.',
     },
     salon: {
-      en: 'Please describe your appointment requirement (e.g. service, preferred time).',
-      hi: 'Kripya apni appointment requirement batayein (service, time).',
+      en: 'Please describe your appointment requirement (e.g. service, preferred date & time).',
+      hi: 'Kripya apni appointment requirement batayein (service, date aur timing).',
+    },
+    spa: {
+      en: 'Please describe your appointment requirement (e.g. service type, preferred date & time).',
+      hi: 'Kripya apni appointment requirement batayein (service type, date aur timing).',
+    },
+    gym: {
+      en: 'Please share your membership requirement (e.g. trial date, package type).',
+      hi: 'Kripya apni membership requirement batayein (trial date, package type).',
     },
     real_estate: {
-      en: 'Please share your property requirement (e.g. location, budget, type).',
-      hi: 'Kripya apni property requirement batayein (location, budget).',
+      en: 'Please share your property requirement (e.g. location, budget, site visit date).',
+      hi: 'Kripya apni property requirement batayein (location, budget, visit date).',
     },
     ecommerce: {
       en: 'Please describe your product requirement or order inquiry.',
@@ -715,7 +727,19 @@ export class InquiryEngine {
       const clientEmail = inquiryData.email || inquiryData['your-email'] || inquiryData['your_email'] || inquiryData.visitorEmail || '';
       const clientPhone = inquiryData.phone || inquiryData['your-phone'] || inquiryData['your_phone'] || inquiryData.mobile || inquiryData.visitorPhone || '';
       const clientService = inquiryData.service || inquiryData['your-service'] || inquiryData['your_service'] || inquiryData.websiteType || inquiryData.businessType || '';
-      const clientDetails = inquiryData.message || inquiryData['your-message'] || inquiryData['your_message'] || inquiryData.requiredFeatures || inquiryData.details || state.originalQuestion || '';
+      let cleanDetails = inquiryData.message || inquiryData['your-message'] || inquiryData['your_message'] || inquiryData.requiredFeatures || inquiryData.details || '';
+      if (!cleanDetails || cleanDetails === clientEmail || cleanDetails === clientPhone || isValidEmail(cleanDetails) || isValidPhone(cleanDetails)) {
+        if (state.originalQuestion && !isValidEmail(state.originalQuestion) && !isValidPhone(state.originalQuestion)) {
+          cleanDetails = state.originalQuestion;
+        } else {
+          const parts: string[] = [];
+          if (inquiryData.businessName) parts.push(`Business: ${inquiryData.businessName}`);
+          if (inquiryData.businessType) parts.push(`Type: ${inquiryData.businessType}`);
+          if (inquiryData.websiteType) parts.push(`Website: ${inquiryData.websiteType}`);
+          cleanDetails = parts.length > 0 ? parts.join(' | ') : 'Chatbot Lead Submission';
+        }
+      }
+      const clientDetails = cleanDetails;
       const clientCompany = inquiryData.businessName || inquiryData.company || '';
 
       let createdInquiry = null;

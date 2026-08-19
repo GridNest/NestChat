@@ -11,6 +11,7 @@ import { NotificationService } from '../notification/notification.service.js';
 import { EventBus } from './eventBus.js';
 import { ApiError } from '../../utils/apiError.js';
 import { emitToUser, emitToClient, createAndEmitNotification } from '../socket/socket.service.js';
+import { isValidEmail, isValidPhone } from '@nestchat/shared';
 import mongoose from 'mongoose';
 
 export interface ChatSession {
@@ -172,6 +173,12 @@ export class ChatService {
       let stateForExtraction = await InquiryEngine.getActiveOrPausedState(chat._id.toString());
       if (!stateForExtraction) {
         const clientIndustry = await this.getClientIndustry(data.clientId || targetClientId);
+        const history = await this.getRecentHistory(chat._id.toString(), 5);
+        const lastQuestion = [...history].reverse().find(m => m.sender === 'user' && !isValidEmail(m.content) && !isValidPhone(m.content))?.content;
+        const initialQuestion = (lastQuestion && !isValidEmail(lastQuestion) && !isValidPhone(lastQuestion))
+          ? lastQuestion
+          : (!isValidEmail(data.content) && !isValidPhone(data.content) ? data.content : 'Lead Submission');
+
         stateForExtraction = await InquiryEngine.createState({
           chatId: chat._id.toString(),
           sessionId: data.sessionId,
@@ -179,7 +186,7 @@ export class ChatService {
           visitorId: chat.visitorId,
           language: lang,
           currentStep: 'name',
-          originalQuestion: data.content,
+          originalQuestion: initialQuestion,
           industry: clientIndustry,
           workflowType: 'lead_generation',
         });
@@ -249,6 +256,12 @@ export class ChatService {
             if (dataObj.budget) detailsParts.push(`Budget: ${dataObj.budget}`);
             if (dataObj.timeline) detailsParts.push(`Timeline: ${dataObj.timeline}`);
             details = detailsParts.length > 0 ? detailsParts.join(' | ') : 'Inquiry completed';
+          }
+
+          if (!details || isValidEmail(details) || isValidPhone(details) || details === dataObj.email || details === dataObj.phone) {
+            details = (originalQuestion && !isValidEmail(originalQuestion) && !isValidPhone(originalQuestion))
+              ? originalQuestion
+              : 'Chatbot Lead Submission';
           }
 
           // Extract name properly (do NOT fallback to businessName/requirement text)
