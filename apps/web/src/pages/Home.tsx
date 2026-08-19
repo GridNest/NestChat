@@ -796,7 +796,7 @@ export function Home() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="glass-card rounded-3xl p-10 lg:p-16 border-indigo-500/30 text-center space-y-6 glow-purple relative z-10">
               <h2 className="text-3xl sm:text-5xl font-extrabold text-white">
-                Ready To Automate Your Website Sales?
+                Ready To Automate Your Website?
               </h2>
               <p className="text-slate-300 text-sm max-w-2xl mx-auto">
                 Join GridNest Web Solution and modern enterprises leveraging NestChat for AI automated lead capture.
@@ -808,7 +808,7 @@ export function Home() {
                   rel="noreferrer"
                   className="px-8 py-4 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-indigo-600/30"
                 >
-                  Get Started For Free
+                  Get Started
                 </a>
               </div>
             </div>
