@@ -148,21 +148,14 @@ export class ChatService {
       messageType: 'text',
     });
 
-    // Check if chat is assigned to a live human agent (Bot Handover)
-    if (chat.assignedTo) {
-      await ChatModel.findByIdAndUpdate(chat._id, { $inc: { messageCount: 1 } });
+    // Emit user message to admin client via socket for monitoring
+    try {
       const formattedUserMsg = this.formatMessage(userMessage);
-      try {
-        emitToClient(chat.clientId.toString(), 'chat:userMessage', {
-          chatId: chat._id.toString(),
-          message: formattedUserMsg,
-        });
-      } catch (_) {}
-      return {
-        userMessage: formattedUserMsg,
-        botMessage: null as any,
-      };
-    }
+      emitToClient(chat.clientId.toString(), 'chat:userMessage', {
+        chatId: chat._id.toString(),
+        message: formattedUserMsg,
+      });
+    } catch (_) {}
 
     const startTime = Date.now();
     const lang = (data.language || chat.language) as Language;

@@ -100,15 +100,17 @@ export class ResponseEngine {
       };
     }
 
-    // Handle human agent intent
+    // Handle human agent intent - redirect to lead/contact collection
     if (intent.intent === 'human_agent') {
+      const promptMsg = language === 'hi'
+        ? 'Main aapki request hamari team tak pahuncha sakta hoon! Kripya apna Poora Naam batayein taaki hamari team aapko contact kar sake.'
+        : 'I would be happy to connect you with our team! May I know your Full Name so our team can reach out to you directly?';
       return {
-        content: language === 'hi'
-          ? 'Main aapko humari team se connect kar raha hoon. Kripya kuch der pratiksha karein.'
-          : 'I am connecting you with our team. Please wait a moment.',
-        messageType: 'text',
-        metadata: { matchedType: 'unknown', confidence: 1 },
+        content: promptMsg,
+        messageType: 'inquiry',
+        metadata: { matchedType: 'quickAction', matchedId: 'human_agent', confidence: 1, workflowType: 'general_inquiry' },
         triggerInquiry: true,
+        workflowType: 'general_inquiry',
       };
     }
 
